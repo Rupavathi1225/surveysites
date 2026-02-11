@@ -1073,6 +1073,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      finalize_ended_contests: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_subadmin: { Args: never; Returns: boolean }
     }

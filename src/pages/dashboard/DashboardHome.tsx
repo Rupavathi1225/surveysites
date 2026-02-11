@@ -196,7 +196,7 @@ const DashboardHome = () => {
               notifications.map((n) => {
                 const iconMap: Record<string, string> = {
                   signup: "🎉", login: "👋", offer_completed: "✅", promo_redeemed: "🎁", promo_added: "🔥",
-                  offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢", contest_created: "🏆",
+                  offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢", contest_created: "🏆", contest_winner: "🏆", contest_ended: "🏁",
                 };
                 return (
                   <div key={n.id} className="flex items-start gap-2 p-2 bg-accent/40 rounded-lg text-sm">
