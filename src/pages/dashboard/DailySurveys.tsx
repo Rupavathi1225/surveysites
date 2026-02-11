@@ -21,6 +21,20 @@ const DailySurveys = () => {
 
   const trackClick = async (item: any, type: "survey" | "offer") => {
     if (!profile) return;
+    // Fetch IP & geo info
+    let ipData: any = {};
+    try {
+      const res = await fetch("https://ip-api.com/json/?fields=query,country,countryCode,proxy");
+      ipData = await res.json();
+    } catch {}
+
+    const utmParams: Record<string, string> = {};
+    const urlParams = new URLSearchParams(window.location.search);
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
+      const v = urlParams.get(k);
+      if (v) utmParams[k] = v;
+    });
+
     const payload: any = {
       user_id: profile.id,
       session_id: sessionStorage.getItem("login_log_id") || crypto.randomUUID(),
@@ -30,6 +44,10 @@ const DailySurveys = () => {
       os: navigator.platform || "Unknown",
       source: document.referrer || "direct",
       completion_status: "clicked",
+      ip_address: ipData.query || null,
+      country: ipData.country || null,
+      vpn_proxy_flag: ipData.proxy || false,
+      utm_params: Object.keys(utmParams).length > 0 ? utmParams : null,
     };
     if (type === "offer") payload.offer_id = item.id;
     else payload.survey_link_id = item.id;

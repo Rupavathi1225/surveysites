@@ -21,20 +21,32 @@ const Contest = () => {
     });
   }, []);
 
+  const [ended, setEnded] = useState(false);
+
   useEffect(() => {
-    if (!activeContest?.end_date) return;
+    if (!activeContest?.end_date) { setEnded(false); return; }
+    const endTime = new Date(activeContest.end_date).getTime();
     const tick = () => {
-      const diff = new Date(activeContest.end_date).getTime() - Date.now();
-      if (diff <= 0) { setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 }); return; }
+      const diff = endTime - Date.now();
+      if (diff <= 0) {
+        setCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        setEnded(true);
+        return false;
+      }
+      setEnded(false);
       setCountdown({
         days: Math.floor(diff / 86400000),
         hours: Math.floor((diff % 86400000) / 3600000),
         minutes: Math.floor((diff % 3600000) / 60000),
         seconds: Math.floor((diff % 60000) / 1000),
       });
+      return true;
     };
-    tick();
-    const interval = setInterval(tick, 1000);
+    const running = tick();
+    if (!running) return;
+    const interval = setInterval(() => {
+      if (!tick()) clearInterval(interval);
+    }, 1000);
     return () => clearInterval(interval);
   }, [activeContest]);
 
@@ -87,23 +99,27 @@ const Contest = () => {
               {activeContest.description && <p className="text-sm text-muted-foreground mt-1">{activeContest.description}</p>}
 
               {/* Countdown */}
-              <div className="flex justify-center gap-4 mt-6">
-                {[
-                  { val: countdown.days, label: "Days" },
-                  { val: countdown.hours, label: "Hours" },
-                  { val: countdown.minutes, label: "Minutes" },
-                  { val: countdown.seconds, label: "Seconds" },
-                ].map(({ val, label }) => (
-                  <div key={label} className="text-center">
-                    <div className="flex gap-1">
-                      {pad(val).split("").map((d, i) => (
-                        <div key={i} className="bg-background border rounded-lg w-10 h-12 flex items-center justify-center text-xl font-bold">{d}</div>
-                      ))}
+              {ended ? (
+                <Badge variant="destructive" className="mt-6 text-lg px-6 py-2">Contest Ended</Badge>
+              ) : (
+                <div className="flex justify-center gap-4 mt-6">
+                  {[
+                    { val: countdown.days, label: "Days" },
+                    { val: countdown.hours, label: "Hours" },
+                    { val: countdown.minutes, label: "Minutes" },
+                    { val: countdown.seconds, label: "Seconds" },
+                  ].map(({ val, label }) => (
+                    <div key={label} className="text-center">
+                      <div className="flex gap-1">
+                        {pad(val).split("").map((d, i) => (
+                          <div key={i} className="bg-background border rounded-lg w-10 h-12 flex items-center justify-center text-xl font-bold">{d}</div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{label}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">{label}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
