@@ -64,20 +64,31 @@ const dropdownGroups: DropdownGroup[] = [
 function NavDropdown({ group, pathname }: { group: DropdownGroup; pathname: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
   const isActive = group.items.some(i => pathname === i.to);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node) && btnRef.current && !btnRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.left });
+    }
+    setOpen(!open);
+  };
+
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
-        onClick={() => setOpen(!open)}
+        ref={btnRef}
+        onClick={toggle}
         className={`${isActive ? "admin-tab-active" : "admin-tab"} flex items-center gap-1.5 whitespace-nowrap`}
       >
         <group.icon className="h-3.5 w-3.5" />
@@ -85,7 +96,11 @@ function NavDropdown({ group, pathname }: { group: DropdownGroup; pathname: stri
         <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-52 py-1 animate-fade-in">
+        <div
+          ref={ref}
+          className="fixed bg-popover border border-border rounded-lg shadow-xl z-[9999] min-w-52 py-1 animate-fade-in"
+          style={{ top: pos.top, left: pos.left }}
+        >
           {group.items.map(item => (
             <Link
               key={item.to}
