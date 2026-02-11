@@ -91,12 +91,23 @@ serve(async (req) => {
     if (ip === "Unknown") riskScore += 15;
     if (location === "Unknown") riskScore += 10;
 
-    // Get profile id
-    const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+    // Get profile id - wait briefly if profile doesn't exist yet (new signup)
+    let profileId: string | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+      if (profile?.id) { profileId = profile.id; break; }
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+    }
+
+    if (!profileId) {
+      return new Response(JSON.stringify({ success: true, login_log_id: null, note: "profile not ready" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Insert login log
     const { data: loginLog, error: insertError } = await supabase.from("login_logs").insert({
-      user_id: profile?.id || user.id,
+      user_id: profileId,
       ip_address: ip,
       location,
       isp,
