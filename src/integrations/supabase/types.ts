@@ -318,6 +318,45 @@ export type Database = {
           },
         ]
       }
+      page_visits: {
+        Row: {
+          id: string
+          login_log_id: string | null
+          page_path: string
+          user_id: string | null
+          visited_at: string
+        }
+        Insert: {
+          id?: string
+          login_log_id?: string | null
+          page_path: string
+          user_id?: string | null
+          visited_at?: string
+        }
+        Update: {
+          id?: string
+          login_log_id?: string | null
+          page_path?: string
+          user_id?: string | null
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_visits_login_log_id_fkey"
+            columns: ["login_log_id"]
+            isOneToOne: false
+            referencedRelation: "login_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "page_visits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_methods: {
         Row: {
           created_at: string | null

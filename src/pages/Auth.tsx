@@ -25,17 +25,23 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } else {
-      // Log login
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: prof } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
-        if (prof) {
-          await supabase.from("login_logs").insert({ user_id: prof.id, user_agent: navigator.userAgent });
+      // Track login via edge function for IP/location/ISP detection
+      try {
+        const session = authData?.session;
+        if (session) {
+          const { data: trackData } = await supabase.functions.invoke("track-login", {
+            body: { user_agent: navigator.userAgent, method: "PASSWORD" },
+          });
+          if (trackData?.login_log_id) {
+            sessionStorage.setItem("login_log_id", trackData.login_log_id);
+          }
         }
+      } catch (e) {
+        console.error("Login tracking failed:", e);
       }
       navigate("/dashboard");
     }
