@@ -51,9 +51,9 @@ const DailySurveys = () => {
     const d = (device || "").toLowerCase();
     return (
       <div className="flex gap-1">
-        {(d.includes("desktop") || d.includes("all") || !d) && <Monitor className="h-4 w-4" />}
-        {(d.includes("mobile") || d.includes("all") || !d) && <Smartphone className="h-4 w-4" />}
-        {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-4 w-4" />}
+        {(d.includes("desktop") || d.includes("all") || !d) && <Monitor className="h-3 w-3" />}
+        {(d.includes("mobile") || d.includes("all") || !d) && <Smartphone className="h-3 w-3" />}
+        {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-3 w-3" />}
       </div>
     );
   };
@@ -73,7 +73,7 @@ const DailySurveys = () => {
       {allItems.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">No tasks available. Check back later!</CardContent></Card>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {allItems.map((item) => (
             <Card
               key={item.id}
@@ -90,12 +90,12 @@ const DailySurveys = () => {
                     <span className="text-3xl font-bold text-primary/40">{(item.title || item.name || "?")[0]}</span>
                   </div>
                 )}
-                <div className="p-3">
-                  <p className="font-medium text-sm truncate">{item.title || item.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-primary font-bold text-sm">
-                      {item._type === "offer" ? `${item.currency || "$"} ${item.payout}` : `${item.payout} pts`}
+                <div className="p-2">
+                  <p className="font-medium text-xs truncate">{item.title || item.name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-primary font-bold text-xs">
+                      $ {item._type === "offer" ? `${Number(item.payout).toFixed(2)}` : `${item.payout}`}
                     </span>
                     {deviceIcons(item.device || item.devices || "")}
                   </div>
@@ -109,9 +109,7 @@ const DailySurveys = () => {
       {/* Detail Dialog */}
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Task</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Task Details</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-4">
               <div className="flex gap-4">
@@ -160,21 +158,15 @@ const DailySurveys = () => {
                 )}
               </div>
 
-              {/* Description */}
               {(selected.description || selected.content) && (
                 <div>
                   <h4 className="font-semibold text-sm mb-1">Description</h4>
-                  <div className="bg-accent/30 rounded-lg p-3 text-sm">
-                    {selected.description || selected.content}
-                  </div>
+                  <div className="bg-accent/30 rounded-lg p-3 text-sm">{selected.description || selected.content}</div>
                 </div>
               )}
 
-              <Button
-                className="w-full"
-                onClick={() => handleStart(selected, selectedType)}
-                style={selected.button_gradient ? { background: selected.button_gradient } : undefined}
-              >
+              <Button className="w-full" onClick={() => handleStart(selected, selectedType)}
+                style={selected.button_gradient ? { background: selected.button_gradient } : undefined}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 {selected.button_text || "Sign Up"}
               </Button>

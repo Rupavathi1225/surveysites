@@ -87,34 +87,40 @@ export type Database = {
       }
       contests: {
         Row: {
+          allow_same_ip: boolean | null
           amount: number | null
           created_at: string | null
           description: string | null
           end_date: string | null
           excluded_users: string[] | null
           id: string
+          rewards: Json | null
           start_date: string | null
           status: string | null
           title: string
         }
         Insert: {
+          allow_same_ip?: boolean | null
           amount?: number | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
           excluded_users?: string[] | null
           id?: string
+          rewards?: Json | null
           start_date?: string | null
           status?: string | null
           title: string
         }
         Update: {
+          allow_same_ip?: boolean | null
           amount?: number | null
           created_at?: string | null
           description?: string | null
           end_date?: string | null
           excluded_users?: string[] | null
           id?: string
+          rewards?: Json | null
           start_date?: string | null
           status?: string | null
           title?: string
