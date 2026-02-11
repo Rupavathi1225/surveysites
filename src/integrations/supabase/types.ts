@@ -205,23 +205,50 @@ export type Database = {
       }
       login_logs: {
         Row: {
+          browser: string | null
           created_at: string | null
+          device: string | null
+          fingerprint: string | null
           id: string
           ip_address: string | null
+          is_new_device: boolean | null
+          isp: string | null
+          location: string | null
+          method: string | null
+          os: string | null
+          risk_score: number | null
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
+          browser?: string | null
           created_at?: string | null
+          device?: string | null
+          fingerprint?: string | null
           id?: string
           ip_address?: string | null
+          is_new_device?: boolean | null
+          isp?: string | null
+          location?: string | null
+          method?: string | null
+          os?: string | null
+          risk_score?: number | null
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
+          browser?: string | null
           created_at?: string | null
+          device?: string | null
+          fingerprint?: string | null
           id?: string
           ip_address?: string | null
+          is_new_device?: boolean | null
+          isp?: string | null
+          location?: string | null
+          method?: string | null
+          os?: string | null
+          risk_score?: number | null
           user_agent?: string | null
           user_id?: string | null
         }
