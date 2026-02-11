@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       throw new Error("Forbidden: admin only");
     }
 
-    const { users, country, activityScheduling, timeGap } = await req.json();
+    const { users, country, activityScheduling, timeGap, singleUserData } = await req.json();
     
     if (!users || !Array.isArray(users) || users.length === 0) {
       throw new Error("No users provided");
@@ -62,17 +62,20 @@ Deno.serve(async (req) => {
         // Generate a referral code for the new user
         const refCode = Math.random().toString(36).substring(2, 12).toUpperCase();
 
-        // INSERT profile (not update) since no trigger creates it automatically
-        const { error: profileError } = await supabase.from("profiles").insert({
+        const profileData: any = {
           user_id: data.user.id,
           username,
-          first_name: username,
+          first_name: singleUserData?.first_name || username,
+          last_name: singleUserData?.last_name || null,
           email,
+          mobile: singleUserData?.mobile || null,
           country: country || "India",
           status: "active",
-          role: "user",
+          role: singleUserData?.role || "user",
           referral_code: refCode,
-        });
+        };
+
+        const { error: profileError } = await supabase.from("profiles").insert(profileData);
 
         if (profileError) {
           // If profile already exists (from a trigger), try update instead
