@@ -13,7 +13,14 @@ const AdminWithdrawals = () => {
   const [filter, setFilter] = useState("all");
   const load = () => supabase.from("withdrawals").select("*").order("created_at", { ascending: false }).then(({ data }) => setItems(data || []));
   useEffect(() => { load(); }, []);
-  const updateStatus = async (id: string, status: string) => { await supabase.from("withdrawals").update({ status }).eq("id", id); toast({ title: `Withdrawal ${status}` }); load(); };
+  const updateStatus = async (id: string, status: string) => {
+    await supabase.from("withdrawals").update({ status }).eq("id", id);
+    const w = items.find(i => i.id === id);
+    if (w && status === "approved") {
+      await supabase.from("notifications").insert({ type: "payment_completed", message: `Withdrawal of $${Number(w.amount).toFixed(2)} has been approved!`, is_global: true, user_id: w.user_id });
+    }
+    toast({ title: `Withdrawal ${status}` }); load();
+  };
   const del = async (id: string) => { await supabase.from("withdrawals").delete().eq("id", id); load(); };
 
   const filtered = filter === "all" ? items : items.filter(w => w.status === filter);

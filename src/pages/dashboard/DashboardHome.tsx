@@ -193,9 +193,9 @@ const DashboardHome = () => {
             {notifications.length === 0 ? (
               <p className="text-muted-foreground text-sm text-center py-6">No activity yet</p>
             ) : (
-              notifications.filter(n => n.is_global || n.user_id === profile.id).slice(0, 20).map((n) => {
+              notifications.map((n) => {
                 const iconMap: Record<string, string> = {
-                  signup: "🎉", offer_completed: "✅", promo_redeemed: "🎁", promo_added: "🔥",
+                  signup: "🎉", login: "👋", offer_completed: "✅", promo_redeemed: "🎁", promo_added: "🔥",
                   offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢",
                 };
                 return (

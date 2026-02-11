@@ -29,6 +29,11 @@ const AdminPromocodes = () => {
       toast({ title: "Promocode updated!" });
     } else {
       await supabase.from("promocodes").insert(form);
+      await supabase.from("notifications").insert({
+        type: "promo_added",
+        message: `New promocode added: ${form.code} (${form.reward} pts)`,
+        is_global: true,
+      });
       toast({ title: "Promocode created!" });
     }
     setOpen(false); load();
