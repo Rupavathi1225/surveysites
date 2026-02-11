@@ -1,6 +1,7 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
@@ -30,6 +31,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Track page visits
+  useEffect(() => {
+    if (profile?.id) {
+      const loginLogId = sessionStorage.getItem("login_log_id");
+      supabase.from("page_visits").insert({
+        user_id: profile.id,
+        login_log_id: loginLogId || null,
+        page_path: location.pathname,
+      }).then(() => {});
+    }
+  }, [location.pathname, profile?.id]);
 
   const handleLogout = async () => {
     await signOut();
