@@ -26,8 +26,9 @@ const AdminClickTracking = () => {
         <p className="text-sm text-muted-foreground">Track all survey & offer clicks with detailed session info</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{clicks.length}</p><p className="text-xs text-muted-foreground">Total Clicks</p></CardContent></Card>
+        <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{new Set(clicks.map(c => `${c.user_id}_${c.offer_id || c.survey_link_id}`).filter(Boolean)).size}</p><p className="text-xs text-muted-foreground">Unique Clicks</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{uniqueUsers}</p><p className="text-xs text-muted-foreground">Unique Users</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{uniqueIPs}</p><p className="text-xs text-muted-foreground">Unique IPs</p></CardContent></Card>
         <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{clicks.filter(c => c.completion_status === "completed").length}</p><p className="text-xs text-muted-foreground">Completed</p></CardContent></Card>

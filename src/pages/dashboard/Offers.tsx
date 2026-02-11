@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ExternalLink, Search, Globe, Filter } from "lucide-react";
 
 const Offers = () => {
+  const { profile } = useAuth();
   const [providers, setProviders] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -18,6 +20,29 @@ const Offers = () => {
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setProviders(data || []));
     supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
   }, []);
+
+  const trackClick = async (offer: any) => {
+    if (!profile) return;
+    let ipData: any = {};
+    try {
+      const res = await fetch("https://ip-api.com/json/?fields=query,country,countryCode,proxy");
+      ipData = await res.json();
+    } catch {}
+    await supabase.from("offer_clicks").insert({
+      user_id: profile.id,
+      offer_id: offer.id,
+      session_id: sessionStorage.getItem("login_log_id") || crypto.randomUUID(),
+      user_agent: navigator.userAgent,
+      device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
+      browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
+      os: navigator.platform || "Unknown",
+      source: document.referrer || "direct",
+      completion_status: "clicked",
+      ip_address: ipData.query || null,
+      country: ipData.country || null,
+      vpn_proxy_flag: ipData.proxy || false,
+    });
+  };
 
   const filtered = offers.filter(o => {
     if (search && !o.title.toLowerCase().includes(search.toLowerCase())) return false;
@@ -87,7 +112,7 @@ const Offers = () => {
                     </p>
                   )}
                   {o.url && (
-                    <Button className="mt-3 w-full" onClick={() => window.open(o.url, "_blank")}>
+                    <Button className="mt-3 w-full" onClick={async () => { await trackClick(o); window.open(o.url, "_blank"); }}>
                       <ExternalLink className="h-4 w-4 mr-2" /> Start Offer
                     </Button>
                   )}
