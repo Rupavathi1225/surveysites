@@ -39,6 +39,7 @@ import AdminPromocodes from "./pages/admin/AdminPromocodes";
 import AdminOffers from "./pages/admin/AdminOffers";
 import UserGeneration from "./pages/admin/UserGeneration";
 import AdminChats from "./pages/admin/AdminChats";
+import AdminClickTracking from "./pages/admin/AdminClickTracking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -109,6 +110,7 @@ const App = () => (
           <Route path="/admin/offers" element={<AdminPage><AdminOffers /></AdminPage>} />
           <Route path="/admin/user-generation" element={<AdminPage><UserGeneration /></AdminPage>} />
           <Route path="/admin/chats" element={<AdminPage><AdminChats /></AdminPage>} />
+          <Route path="/admin/click-tracking" element={<AdminPage><AdminClickTracking /></AdminPage>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -318,6 +318,100 @@ export type Database = {
           },
         ]
       }
+      offer_clicks: {
+        Row: {
+          attempt_count: number | null
+          browser: string | null
+          completion_status: string | null
+          country: string | null
+          created_at: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          offer_id: string | null
+          os: string | null
+          risk_score: number | null
+          session_end: string | null
+          session_id: string | null
+          session_start: string | null
+          source: string | null
+          survey_link_id: string | null
+          time_spent: number | null
+          user_agent: string | null
+          user_id: string | null
+          utm_params: Json | null
+          vpn_proxy_flag: boolean | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          browser?: string | null
+          completion_status?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          offer_id?: string | null
+          os?: string | null
+          risk_score?: number | null
+          session_end?: string | null
+          session_id?: string | null
+          session_start?: string | null
+          source?: string | null
+          survey_link_id?: string | null
+          time_spent?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          utm_params?: Json | null
+          vpn_proxy_flag?: boolean | null
+        }
+        Update: {
+          attempt_count?: number | null
+          browser?: string | null
+          completion_status?: string | null
+          country?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          offer_id?: string | null
+          os?: string | null
+          risk_score?: number | null
+          session_end?: string | null
+          session_id?: string | null
+          session_start?: string | null
+          source?: string | null
+          survey_link_id?: string | null
+          time_spent?: number | null
+          user_agent?: string | null
+          user_id?: string | null
+          utm_params?: Json | null
+          vpn_proxy_flag?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_clicks_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_clicks_survey_link_id_fkey"
+            columns: ["survey_link_id"]
+            isOneToOne: false
+            referencedRelation: "survey_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_clicks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offers: {
         Row: {
           allowed_countries: string | null
