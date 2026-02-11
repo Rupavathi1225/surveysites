@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { User, Upload, Sparkles, Clock, UserPlus } from "lucide-react";
+import { User, Upload, Sparkles, Clock, UserPlus, Loader2 } from "lucide-react";
 
 type Tab = "manual" | "bulk" | "ai";
 
@@ -25,7 +25,6 @@ const UserGeneration = () => {
   const [timeGap, setTimeGap] = useState(20);
 
   // Bulk
-  const [googleSheetLink, setGoogleSheetLink] = useState("");
   const [manualUsernames, setManualUsernames] = useState("");
   const [bulkCount, setBulkCount] = useState(30);
 
@@ -41,7 +40,7 @@ const UserGeneration = () => {
     return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   };
 
-  const generateUsername = (base: string, index: number) => {
+  const generateUsername = (base: string) => {
     const suffix = Math.floor(1000 + Math.random() * 9000);
     return `${base}${suffix}`;
   };
@@ -63,40 +62,60 @@ const UserGeneration = () => {
 
   const createUsers = async (usernames: string[]) => {
     setGenerating(true);
-    const created: any[] = [];
-    for (let i = 0; i < usernames.length; i++) {
-      const username = usernames[i];
-      const password = generatePassword();
-      const email = `${username}@generated.local`;
+    try {
+      const users = usernames.map(username => ({
+        username,
+        email: `${username.toLowerCase().replace(/[^a-z0-9]/g, "")}${Math.floor(Math.random() * 999)}@generated.local`,
+        password: generatePassword(),
+      }));
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        console.error(`Failed to create ${username}:`, error.message);
-        continue;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast({ title: "Not authenticated", variant: "destructive" });
+        setGenerating(false);
+        return;
       }
-      if (data.user) {
-        await supabase.from("profiles").update({
-          username, first_name: username, country, status: "active"
-        }).eq("user_id", data.user.id);
 
-        created.push({ username, email, password, created_at: new Date().toISOString() });
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-users`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          users,
+          country,
+          activityScheduling,
+          timeGap,
+        }),
+      });
 
-        if (activityScheduling && i > 0) {
-          // Notification for activity feed
-          await supabase.from("notifications").insert({
-            type: "signup", message: `${username} joined the platform!`, is_global: true
-          });
+      const result = await res.json();
+      if (result.error) {
+        toast({ title: result.error, variant: "destructive" });
+      } else {
+        // Match passwords back from our local list
+        const createdWithPasswords = result.created.map((c: any) => {
+          const original = users.find(u => u.username === c.username);
+          return { ...c, password: original?.password || c.password };
+        });
+        setGeneratedUsers(prev => [...createdWithPasswords, ...prev]);
+        toast({ title: `${result.total} users generated!` });
+        if (result.errors?.length > 0) {
+          console.warn("User creation errors:", result.errors);
         }
       }
+    } catch (err: any) {
+      toast({ title: "Failed to generate users", description: err.message, variant: "destructive" });
     }
-    setGeneratedUsers(prev => [...created, ...prev]);
-    toast({ title: `${created.length} users generated!` });
     setGenerating(false);
   };
 
   const handleManualGenerate = () => {
     if (!baseName.trim()) { toast({ title: "Enter a base username", variant: "destructive" }); return; }
-    const usernames = Array.from({ length: userCount }, (_, i) => generateUsername(baseName, i));
+    const usernames = Array.from({ length: userCount }, () => generateUsername(baseName));
     createUsers(usernames);
   };
 
@@ -105,7 +124,7 @@ const UserGeneration = () => {
     if (manualUsernames.trim()) {
       usernames = manualUsernames.split("\n").map(u => u.trim()).filter(Boolean);
     }
-    if (usernames.length === 0) { toast({ title: "Enter usernames or upload a file", variant: "destructive" }); return; }
+    if (usernames.length === 0) { toast({ title: "Enter usernames", variant: "destructive" }); return; }
     createUsers(usernames.slice(0, bulkCount));
   };
 
@@ -169,7 +188,7 @@ const UserGeneration = () => {
             {tab === "manual" && (
               <div className="space-y-4">
                 <div><label className="text-sm font-medium">Base Username</label><Input value={baseName} onChange={e => setBaseName(e.target.value)} placeholder="e.g., suraj" />
-                  <p className="text-xs text-muted-foreground mt-1">Will generate: user_5023, user_8471, etc.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Will generate: suraj5023, suraj8471, etc.</p>
                 </div>
                 <div><label className="text-sm font-medium">Number of Users: {userCount}</label><Slider value={[userCount]} onValueChange={v => setUserCount(v[0])} min={1} max={100} step={1} /></div>
                 <div><label className="text-sm font-medium">Country</label>
@@ -184,25 +203,22 @@ const UserGeneration = () => {
                   </div>
                 )}
                 <Button onClick={handleManualGenerate} disabled={generating} className="w-full">
-                  <UserPlus className="h-4 w-4 mr-2" /> Generate {userCount} Users
+                  {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                  Generate {userCount} Users
                 </Button>
               </div>
             )}
 
             {tab === "bulk" && (
               <div className="space-y-4">
-                <div><label className="text-sm font-medium flex items-center gap-1">🔗 Google Sheet Link (optional)</label>
-                  <Input value={googleSheetLink} onChange={e => setGoogleSheetLink(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." />
-                  <p className="text-xs text-muted-foreground mt-1">Sheet must be publicly accessible with usernames in first column</p>
-                </div>
-                <div><label className="text-sm font-medium flex items-center gap-1">📄 Upload CSV/Excel File</label>
-                  <Input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} />
+                <div><label className="text-sm font-medium flex items-center gap-1">📄 Upload CSV File</label>
+                  <Input type="file" accept=".csv,.txt" onChange={handleFileUpload} />
                 </div>
                 <div className="text-center text-xs text-muted-foreground">— OR ENTER MANUALLY —</div>
-                <div><label className="text-sm font-medium">Base Usernames (one per line)</label>
+                <div><label className="text-sm font-medium">Usernames (one per line)</label>
                   <Textarea value={manualUsernames} onChange={e => setManualUsernames(e.target.value)} placeholder={"suraj\nsuresh\nsanjay"} rows={5} />
                 </div>
-                <div><label className="text-sm font-medium">Total Users to Generate: {bulkCount}</label><Slider value={[bulkCount]} onValueChange={v => setBulkCount(v[0])} min={1} max={200} step={1} /></div>
+                <div><label className="text-sm font-medium">Max Users: {bulkCount}</label><Slider value={[bulkCount]} onValueChange={v => setBulkCount(v[0])} min={1} max={200} step={1} /></div>
                 <div><label className="text-sm font-medium">Country</label>
                   <Select value={country} onValueChange={setCountry}><SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="India">India</SelectItem><SelectItem value="US">US</SelectItem><SelectItem value="UK">UK</SelectItem><SelectItem value="Canada">Canada</SelectItem></SelectContent>
@@ -211,11 +227,11 @@ const UserGeneration = () => {
                 {activityScheduling && (
                   <div><label className="text-sm font-medium flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Time Gap: {timeGap} minutes</label>
                     <Slider value={[timeGap]} onValueChange={v => setTimeGap(v[0])} min={1} max={120} step={1} />
-                    <p className="text-xs text-muted-foreground mt-1">User 1 at now, User 2 after {timeGap} mins, User 3 after {timeGap * 2} mins...</p>
                   </div>
                 )}
                 <Button onClick={handleBulkGenerate} disabled={generating} className="w-full">
-                  <Upload className="h-4 w-4 mr-2" /> Generate {bulkCount} Users from List
+                  {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Generate Users from List
                 </Button>
               </div>
             )}
@@ -241,11 +257,11 @@ const UserGeneration = () => {
                 {activityScheduling && (
                   <div><label className="text-sm font-medium flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Time Gap: {timeGap} minutes</label>
                     <Slider value={[timeGap]} onValueChange={v => setTimeGap(v[0])} min={1} max={120} step={1} />
-                    <p className="text-xs text-muted-foreground mt-1">User 1 at now, User 2 after {timeGap} mins, User 3 after {timeGap * 2} mins...</p>
                   </div>
                 )}
                 <Button onClick={handleAIGenerate} disabled={generating} className="w-full">
-                  <Sparkles className="h-4 w-4 mr-2" /> Generate {aiCount} AI Users
+                  {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  Generate {aiCount} AI Users
                 </Button>
               </div>
             )}

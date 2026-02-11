@@ -21,14 +21,22 @@ const Offers = () => {
     supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
   }, []);
 
+  const fetchIpInfo = async () => {
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-ip-info`;
+      const res = await fetch(url, {
+        headers: { "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      });
+      return await res.json();
+    } catch {
+      return { ip: null, country: null, proxy: false };
+    }
+  };
+
   const trackClick = async (offer: any) => {
     if (!profile) return;
-    let ipData: any = {};
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
-      ipData = { query: data.ip, country: data.country_name, proxy: data.proxy || false };
-    } catch {}
+    const ipInfo = await fetchIpInfo();
+
     const urlParams = new URLSearchParams(window.location.search);
     const utmParams: Record<string, string> = {};
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
@@ -36,6 +44,7 @@ const Offers = () => {
       if (v) utmParams[k] = v;
     });
 
+    const sessionStart = new Date().toISOString();
     await supabase.from("offer_clicks").insert({
       user_id: profile.id,
       offer_id: offer.id,
@@ -46,10 +55,11 @@ const Offers = () => {
       os: navigator.platform || "Unknown",
       source: document.referrer || "direct",
       completion_status: "clicked",
-      ip_address: ipData.query || null,
-      country: ipData.country || null,
-      vpn_proxy_flag: ipData.proxy || false,
+      ip_address: ipInfo.ip || null,
+      country: ipInfo.country || null,
+      vpn_proxy_flag: ipInfo.proxy || false,
       utm_params: Object.keys(utmParams).length > 0 ? utmParams : null,
+      session_start: sessionStart,
     });
   };
 
