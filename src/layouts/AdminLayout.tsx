@@ -40,6 +40,7 @@ const dropdownGroups: DropdownGroup[] = [
       { to: "/admin/login-logs", icon: Activity, label: "Login Logs" },
       { to: "/admin/notifications", icon: Bell, label: "Notifications" },
       { to: "/admin/chats", icon: MessageSquare, label: "Chats" },
+      { to: "/admin/click-tracking", icon: Activity, label: "Click Tracking" },
       { to: "/admin/sub-admins", icon: ShieldCheck, label: "Subadmins" },
     ],
   },

@@ -24,7 +24,6 @@ const AdminOffers = () => {
   const [form, setForm] = useState<any>(defaultForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"manual" | "template">("manual");
 
   const load = () => supabase.from("offers").select("*").order("created_at", { ascending: false }).then(({ data }) => setItems(data || []));
   useEffect(() => { load(); }, []);
@@ -40,6 +39,12 @@ const AdminOffers = () => {
       toast({ title: "Offer updated!" });
     } else {
       await supabase.from("offers").insert(payload);
+      // Create notification for activity feed
+      await supabase.from("notifications").insert({
+        type: "offer_added",
+        message: `New offer added: ${form.title} (${form.currency} ${form.payout})`,
+        is_global: true,
+      });
       toast({ title: "Offer created!" });
     }
     setOpen(false); load();
@@ -58,17 +63,10 @@ const AdminOffers = () => {
           <h1 className="text-2xl font-bold">Offers Management</h1>
           <p className="text-sm text-muted-foreground">Manage offers via manual entry, bulk upload, or Google Sheets</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setTab("template")}>Template</Button>
-          <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" /> Add Offer</Button>
-        </div>
+        <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" /> Add Offer</Button>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <p className="text-sm font-medium mb-2">📦 Offers List ({items.length})</p>
-        </CardContent>
-      </Card>
+      <Card><CardContent className="p-4"><p className="text-sm font-medium">📦 Offers List ({items.length})</p></CardContent></Card>
 
       <Card><CardContent className="p-0">
         <Table>
@@ -104,7 +102,6 @@ const AdminOffers = () => {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Offer" : "Add New Offer"}</DialogTitle>
-            <p className="text-sm text-muted-foreground">Fill in the offer details below</p>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -128,21 +125,21 @@ const AdminOffers = () => {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground">Countries (comma-separated)</label><Input value={form.countries} onChange={e => setForm({ ...form, countries: e.target.value })} placeholder="US, UK, CA" /></div>
-              <div><label className="text-xs text-muted-foreground">Allowed Countries (comma-separated)</label><Input value={form.allowed_countries} onChange={e => setForm({ ...form, allowed_countries: e.target.value })} placeholder="US, UK, CA" /></div>
+              <div><label className="text-xs text-muted-foreground">Countries</label><Input value={form.countries} onChange={e => setForm({ ...form, countries: e.target.value })} placeholder="US, UK, CA" /></div>
+              <div><label className="text-xs text-muted-foreground">Allowed Countries</label><Input value={form.allowed_countries} onChange={e => setForm({ ...form, allowed_countries: e.target.value })} placeholder="US, UK, CA" /></div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div><label className="text-xs text-muted-foreground">Platform</label><Input value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} placeholder="web, ios, android" /></div>
               <div><label className="text-xs text-muted-foreground">Device</label><Input value={form.device} onChange={e => setForm({ ...form, device: e.target.value })} placeholder="all, desktop, mobile" /></div>
-              <div><label className="text-xs text-muted-foreground">Vertical</label><Input value={form.vertical} onChange={e => setForm({ ...form, vertical: e.target.value })} placeholder="finance, gaming, etc." /></div>
+              <div><label className="text-xs text-muted-foreground">Vertical</label><Input value={form.vertical} onChange={e => setForm({ ...form, vertical: e.target.value })} placeholder="finance, gaming" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground">Preview URL</label><Input value={form.preview_url} onChange={e => setForm({ ...form, preview_url: e.target.value })} placeholder="https://..." /></div>
               <div><label className="text-xs text-muted-foreground">Image URL</label><Input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground">Traffic Sources (comma-separated)</label><Input value={form.traffic_sources} onChange={e => setForm({ ...form, traffic_sources: e.target.value })} placeholder="Social, Email, Display" /></div>
-              <div><label className="text-xs text-muted-foreground">Devices (comma-separated)</label><Input value={form.devices} onChange={e => setForm({ ...form, devices: e.target.value })} placeholder="Desktop, Mobile, Tablet" /></div>
+              <div><label className="text-xs text-muted-foreground">Traffic Sources</label><Input value={form.traffic_sources} onChange={e => setForm({ ...form, traffic_sources: e.target.value })} placeholder="Social, Email" /></div>
+              <div><label className="text-xs text-muted-foreground">Devices</label><Input value={form.devices} onChange={e => setForm({ ...form, devices: e.target.value })} placeholder="Desktop, Mobile" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground">Expiry Date</label><Input type="date" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} /></div>

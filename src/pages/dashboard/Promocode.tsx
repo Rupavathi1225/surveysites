@@ -14,7 +14,8 @@ const Promocode = () => {
   const handleRedeem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !user) return;
-    const { data: promo } = await supabase.from("promocodes").select("*").eq("code", code.trim().toUpperCase()).eq("status", "active").single();
+    // Case-insensitive match
+    const { data: promo } = await supabase.from("promocodes").select("*").ilike("code", code.trim()).eq("status", "active").single();
     if (!promo) { toast({ title: "Invalid or expired code", variant: "destructive" }); return; }
     // Check if already redeemed
     const { data: existing } = await supabase.from("promocode_redemptions").select("id").eq("user_id", profile.id).eq("promocode_id", promo.id).single();
@@ -22,7 +23,7 @@ const Promocode = () => {
     await supabase.from("promocode_redemptions").insert({ user_id: profile.id, promocode_id: promo.id });
     await supabase.from("profiles").update({ points: profile.points + promo.reward }).eq("id", profile.id);
     await supabase.from("earning_history").insert({ user_id: profile.id, description: `Promocode: ${promo.code}`, amount: promo.reward, type: "promo" });
-    await supabase.from("notifications").insert({ user_id: profile.id, type: "promo", message: `${profile.username} redeemed promocode ${promo.code} (${promo.reward} pts)`, is_global: true });
+    await supabase.from("notifications").insert({ user_id: profile.id, type: "promo_redeemed", message: `${profile.username} redeemed promocode ${promo.code} (+${promo.reward} pts)`, is_global: true });
     toast({ title: `Redeemed! +${promo.reward} points` });
     setCode("");
     fetchProfile(user.id);

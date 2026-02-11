@@ -93,7 +93,8 @@ const SubAdmins = () => {
     setPermissions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const availableUsers = users.filter(u => u.role === "user");
+  const existingSubAdminUserIds = items.map(s => s.user_id);
+  const availableUsers = users.filter(u => u.role !== "admin" && !existingSubAdminUserIds.includes(u.id));
   const enabledCount = Object.values(permissions).filter(Boolean).length;
 
   return (

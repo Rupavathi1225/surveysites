@@ -18,7 +18,6 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Check URL for referral
   const urlParams = new URLSearchParams(window.location.search);
   const refFromUrl = urlParams.get("ref") || "";
 
@@ -29,7 +28,6 @@ const Auth = () => {
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
     } else {
-      // Track login via edge function for IP/location/ISP detection
       try {
         const session = authData?.session;
         if (session) {
@@ -43,6 +41,22 @@ const Auth = () => {
       } catch (e) {
         console.error("Login tracking failed:", e);
       }
+
+      // Create login notification for activity feed
+      try {
+        const { data: prof } = await supabase.from("profiles").select("id, username").eq("user_id", authData.user.id).single();
+        if (prof) {
+          await supabase.from("notifications").insert({
+            user_id: prof.id,
+            type: "login",
+            message: `${prof.username || email.split("@")[0]} just logged in`,
+            is_global: true,
+          });
+        }
+      } catch (e) {
+        console.error("Login notification failed:", e);
+      }
+
       navigate("/dashboard");
     }
     setLoading(false);
@@ -59,7 +73,6 @@ const Auth = () => {
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
     } else if (data.user) {
-      // Create profile
       const refCode = referralCode || refFromUrl;
       let referredById: string | null = null;
       if (refCode) {
@@ -77,21 +90,17 @@ const Auth = () => {
         referred_by: referredById,
       });
 
-      // Create signup notification
       const { data: newProfile } = await supabase.from("profiles").select("id").eq("user_id", data.user.id).single();
       if (newProfile) {
         await supabase.from("notifications").insert({
           user_id: newProfile.id,
           type: "signup",
-          message: `${username || email.split("@")[0]} just joined SurveySite!`,
+          message: `${username || email.split("@")[0]} just joined the platform! 🎉`,
           is_global: true,
         });
       }
 
-      toast({
-        title: "Account created!",
-        description: "Please check your email to verify your account.",
-      });
+      toast({ title: "Account created!", description: "Please check your email to verify your account." });
     }
     setLoading(false);
   };
