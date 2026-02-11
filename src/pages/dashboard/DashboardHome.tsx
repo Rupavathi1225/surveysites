@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import {
   DollarSign, Star, Lock, TrendingUp, Users, Gift, ClipboardList,
-  Wallet, ArrowLeftRight, Copy, CheckCircle, AlertCircle, Send, MessageCircle
+  Wallet, ArrowLeftRight, Copy, CheckCircle, AlertCircle, Send, MessageCircle, Activity
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -180,29 +180,54 @@ const DashboardHome = () => {
         </Card>
       </div>
 
+      {/* Live Activity Feed */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" /> Live Activity Feed
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Recent activity across the platform</p>
+        </CardHeader>
+        <CardContent>
+          <div className="h-48 overflow-y-auto space-y-2">
+            {notifications.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-6">No activity yet</p>
+            ) : (
+              notifications.filter(n => n.is_global || n.user_id === profile.id).slice(0, 20).map((n) => {
+                const iconMap: Record<string, string> = {
+                  signup: "🎉", offer_completed: "✅", promo_redeemed: "🎁", promo_added: "🔥",
+                  offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢",
+                };
+                return (
+                  <div key={n.id} className="flex items-start gap-2 p-2 bg-accent/40 rounded-lg text-sm">
+                    <span className="text-base mt-0.5">{iconMap[n.type] || "📢"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm">{n.message}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Live Chat / Notifications */}
+        {/* Live Chat */}
         <Card>
-          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><MessageCircle className="h-5 w-5 text-primary" /> Live Chat & Notifications</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><MessageCircle className="h-5 w-5 text-primary" /> Live Chat</CardTitle></CardHeader>
           <CardContent>
             <div className="h-64 overflow-y-auto space-y-2 mb-3 bg-accent/30 rounded-lg p-3">
-              {chatMessages.length === 0 && notifications.length === 0 ? (
+              {chatMessages.length === 0 ? (
                 <p className="text-muted-foreground text-sm text-center py-6">No messages yet</p>
               ) : (
-                <>
-                  {notifications.filter(n => n.is_global).slice(0, 10).map((n) => (
-                    <div key={n.id} className="text-xs p-2 bg-card rounded">
-                      <span className="text-primary">🔔</span> {n.message}
-                      <span className="text-muted-foreground ml-2">{new Date(n.created_at).toLocaleTimeString()}</span>
-                    </div>
-                  ))}
-                  {chatMessages.map((m) => (
-                    <div key={m.id} className={`text-xs p-2 rounded ${m.is_admin ? "bg-primary/20" : "bg-card"}`}>
-                      <span className="font-medium">{m.is_admin ? "Admin" : "User"}</span>: {m.message}
-                      <span className="text-muted-foreground ml-2">{new Date(m.created_at).toLocaleTimeString()}</span>
-                    </div>
-                  ))}
-                </>
+                chatMessages.map((m) => (
+                  <div key={m.id} className={`text-xs p-2 rounded ${m.is_admin ? "bg-primary/20" : "bg-card"}`}>
+                    <span className="font-medium">{m.is_admin ? "Admin" : "User"}</span>: {m.message}
+                    <span className="text-muted-foreground ml-2">{new Date(m.created_at).toLocaleTimeString()}</span>
+                  </div>
+                ))
               )}
             </div>
             <div className="flex gap-2">
