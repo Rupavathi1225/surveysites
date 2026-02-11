@@ -8,53 +8,108 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Send, Trash2, Bell, UserPlus, Tag, Gift, CreditCard, Megaphone } from "lucide-react";
-
-const NOTIFICATION_TYPES = [
-  { value: "signup", label: "🎉 New User Signup", icon: UserPlus },
-  { value: "offer_completed", label: "✅ Offer Completed", icon: Gift },
-  { value: "promo_redeemed", label: "🎁 Promocode Redeemed", icon: Tag },
-  { value: "promo_added", label: "🔥 Promocode Added", icon: Tag },
-  { value: "offer_added", label: "🆕 New Offer Added", icon: Gift },
-  { value: "credits", label: "💰 Credits/System", icon: Megaphone },
-  { value: "payment_requested", label: "💸 Payment Requested", icon: CreditCard },
-  { value: "payment_completed", label: "✅ Payment Completed", icon: CreditCard },
-  { value: "announcement", label: "📢 Global Announcement", icon: Bell },
-];
+import { Plus, Trash2, Bell, Gift, Settings2 } from "lucide-react";
 
 const AdminNotifications = () => {
   const [items, setItems] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ type: "announcement", message: "", user_id: "", is_global: true });
+  const [offers, setOffers] = useState<any[]>([]);
+
+  // Send Notification dialog
+  const [openNotif, setOpenNotif] = useState(false);
+  const [notifForm, setNotifForm] = useState({
+    is_global: false, user_id: "", type: "announcement", title: "", message: "",
+    repeat: false, repeat_count: 1, time_gap: 0,
+  });
+
+  // Offer Notification dialog
+  const [openOffer, setOpenOffer] = useState(false);
+  const [offerForm, setOfferForm] = useState({
+    user_id: "", offer_id: "", points: "", custom_title: "", custom_message: "",
+    repeat: false, repeat_count: 1, time_gap: 0,
+  });
 
   const load = () => {
     Promise.all([
       supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("profiles").select("id, username, email"),
-    ]).then(([notifRes, usersRes]) => {
+      supabase.from("survey_links").select("id, name, payout"),
+    ]).then(([notifRes, usersRes, offersRes]) => {
       setItems(notifRes.data || []);
       setUsers(usersRes.data || []);
+      setOffers(offersRes.data || []);
     });
   };
   useEffect(() => { load(); }, []);
 
   const getUser = (id: string) => users.find(u => u.id === id);
 
-  const send = async () => {
-    if (!form.message.trim()) return;
-    const payload: any = { type: form.type, message: form.message, is_global: form.is_global };
-    if (!form.is_global && form.user_id) payload.user_id = form.user_id;
-    const { error } = await supabase.from("notifications").insert(payload);
-    if (error) {
-      toast({ title: "Failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Notification sent!" });
-      setOpen(false);
-      setForm({ type: "announcement", message: "", user_id: "", is_global: true });
-      load();
+  // Send regular notification (with optional repeat/timer)
+  const sendNotification = async () => {
+    if (!notifForm.title.trim() || !notifForm.message.trim()) return;
+    const count = notifForm.repeat ? Math.max(1, notifForm.repeat_count) : 1;
+    const gap = notifForm.repeat ? Math.max(0, notifForm.time_gap) : 0;
+
+    for (let i = 0; i < count; i++) {
+      const scheduledAt = gap > 0 && i > 0
+        ? new Date(Date.now() + gap * 60000 * i).toISOString()
+        : undefined;
+
+      const payload: any = {
+        type: notifForm.type,
+        message: `${notifForm.title}: ${notifForm.message}`,
+        is_global: notifForm.is_global,
+        created_at: scheduledAt,
+      };
+      if (!notifForm.is_global && notifForm.user_id) payload.user_id = notifForm.user_id;
+
+      const { error } = await supabase.from("notifications").insert(payload);
+      if (error) {
+        toast({ title: "Failed", description: error.message, variant: "destructive" });
+        return;
+      }
     }
+    toast({ title: count > 1 ? `Scheduled ${count} notifications!` : "Notification sent!" });
+    setOpenNotif(false);
+    setNotifForm({ is_global: false, user_id: "", type: "announcement", title: "", message: "", repeat: false, repeat_count: 1, time_gap: 0 });
+    load();
+  };
+
+  // Send offer notification (with optional repeat/timer)
+  const sendOfferNotification = async () => {
+    if (!offerForm.user_id || !offerForm.points) return;
+    const user = getUser(offerForm.user_id);
+    const offer = offers.find(o => o.id === offerForm.offer_id);
+    const count = offerForm.repeat ? Math.max(1, offerForm.repeat_count) : 1;
+    const gap = offerForm.repeat ? Math.max(0, offerForm.time_gap) : 0;
+
+    const title = offerForm.custom_title || `Offer Completed: ${offer?.name || "Manual Offer"}`;
+    const message = offerForm.custom_message || `✅ ${user?.username || user?.email} completed ${offer?.name || "an offer"} and earned ${offerForm.points} points`;
+
+    for (let i = 0; i < count; i++) {
+      const scheduledAt = gap > 0 && i > 0
+        ? new Date(Date.now() + gap * 60000 * i).toISOString()
+        : undefined;
+
+      const { error } = await supabase.from("notifications").insert({
+        type: "offer_completed",
+        message: `${title} — ${message}`,
+        is_global: true,
+        user_id: offerForm.user_id,
+        created_at: scheduledAt,
+      });
+      if (error) {
+        toast({ title: "Failed", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    toast({ title: count > 1 ? `Scheduled ${count} offer notifications!` : "Offer notification sent!" });
+    setOpenOffer(false);
+    setOfferForm({ user_id: "", offer_id: "", points: "", custom_title: "", custom_message: "", repeat: false, repeat_count: 1, time_gap: 0 });
+    load();
   };
 
   const del = async (id: string) => {
@@ -64,43 +119,64 @@ const AdminNotifications = () => {
   };
 
   const getTypeIcon = (type: string) => {
-    const found = NOTIFICATION_TYPES.find(t => t.value === type);
-    return found?.label?.split(" ")[0] || "📢";
+    const map: Record<string, string> = {
+      signup: "🎉", offer_completed: "✅", promo_redeemed: "🎁", promo_added: "🔥",
+      offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢",
+    };
+    return map[type] || "📢";
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Notifications</h1>
-        <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" /> Send Notification</Button>
+        <div>
+          <h1 className="text-2xl font-bold">Notifications</h1>
+          <p className="text-sm text-muted-foreground">Send notifications to users with scheduling</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setOpenOffer(true)}>
+            <Gift className="h-4 w-4 mr-2" /> Offer Notification
+          </Button>
+          <Button onClick={() => setOpenNotif(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Send Notification
+          </Button>
+        </div>
       </div>
 
+      {/* Sent Notifications Table */}
       <Card>
         <CardContent className="p-0">
+          <div className="p-4 border-b">
+            <h3 className="text-sm font-medium flex items-center gap-2">
+              <Bell className="h-4 w-4" /> Sent Notifications ({items.length})
+            </h3>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
+                <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Message</TableHead>
+                <TableHead>Repeat</TableHead>
                 <TableHead>Target</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No notifications</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No notifications</TableCell></TableRow>
               ) : items.map(n => {
                 const user = n.user_id ? getUser(n.user_id) : null;
                 return (
                   <TableRow key={n.id}>
-                    <TableCell className="text-sm">{new Date(n.created_at).toLocaleString()}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {getTypeIcon(n.type)} {n.type}
-                      </Badge>
+                    <TableCell className="max-w-xs">
+                      <span className="text-sm">{getTypeIcon(n.type)} {n.message?.slice(0, 60)}{n.message?.length > 60 ? "..." : ""}</span>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate text-sm">{n.message}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">{n.type}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Once</TableCell>
                     <TableCell>
                       {n.is_global ? (
                         <Badge className="bg-primary/20 text-primary text-xs">Global</Badge>
@@ -108,9 +184,12 @@ const AdminNotifications = () => {
                         <span className="text-sm">{user?.username || user?.email || n.user_id?.slice(0, 8)}</span>
                       )}
                     </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => del(n.id)}>
-                        <Trash2 className="h-3 w-3" />
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => del(n.id)}>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -121,38 +200,21 @@ const AdminNotifications = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      {/* Send Notification Dialog */}
+      <Dialog open={openNotif} onOpenChange={setOpenNotif}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Send Notification</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="text-xs text-muted-foreground">Notification Type</label>
-              <Select value={form.type} onValueChange={v => setForm({ ...form, type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {NOTIFICATION_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-3">
+              <Switch checked={notifForm.is_global} onCheckedChange={v => setNotifForm({ ...notifForm, is_global: v })} />
+              <Label>Send to all users (Global)</Label>
             </div>
 
-            <div>
-              <label className="text-xs text-muted-foreground">Target</label>
-              <Select value={form.is_global ? "global" : "user"} onValueChange={v => setForm({ ...form, is_global: v === "global" })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="global">📢 Global (all users)</SelectItem>
-                  <SelectItem value="user">👤 Specific User</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {!form.is_global && (
+            {!notifForm.is_global && (
               <div>
-                <label className="text-xs text-muted-foreground">Select User</label>
-                <Select value={form.user_id} onValueChange={v => setForm({ ...form, user_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Choose a user..." /></SelectTrigger>
+                <Label className="text-sm">Select User</Label>
+                <Select value={notifForm.user_id} onValueChange={v => setNotifForm({ ...notifForm, user_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Choose user" /></SelectTrigger>
                   <SelectContent>
                     {users.map(u => (
                       <SelectItem key={u.id} value={u.id}>{u.username || u.email || u.id.slice(0, 8)}</SelectItem>
@@ -163,16 +225,135 @@ const AdminNotifications = () => {
             )}
 
             <div>
-              <label className="text-xs text-muted-foreground">Message</label>
-              <Textarea
-                value={form.message}
-                onChange={e => setForm({ ...form, message: e.target.value })}
-                placeholder="Enter notification message..."
-                rows={3}
-              />
+              <Label className="text-sm">Type</Label>
+              <Select value={notifForm.type} onValueChange={v => setNotifForm({ ...notifForm, type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="announcement">📢 Announcement</SelectItem>
+                  <SelectItem value="credits">💰 Credits/System</SelectItem>
+                  <SelectItem value="signup">🎉 Signup</SelectItem>
+                  <SelectItem value="offer_completed">✅ Offer Completed</SelectItem>
+                  <SelectItem value="promo_redeemed">🎁 Promo Redeemed</SelectItem>
+                  <SelectItem value="promo_added">🔥 Promo Added</SelectItem>
+                  <SelectItem value="offer_added">🆕 Offer Added</SelectItem>
+                  <SelectItem value="payment_requested">💸 Payment Requested</SelectItem>
+                  <SelectItem value="payment_completed">✅ Payment Completed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <Button onClick={send} className="w-full"><Send className="h-4 w-4 mr-2" /> Send Notification</Button>
+            <div>
+              <Label className="text-sm">Title *</Label>
+              <Input value={notifForm.title} onChange={e => setNotifForm({ ...notifForm, title: e.target.value })} placeholder="Notification title" />
+            </div>
+
+            <div>
+              <Label className="text-sm">Message *</Label>
+              <Textarea value={notifForm.message} onChange={e => setNotifForm({ ...notifForm, message: e.target.value })} placeholder="Notification message..." rows={3} />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={notifForm.repeat} onCheckedChange={v => setNotifForm({ ...notifForm, repeat: v })} />
+              <Label>Send Multiple Times (Repeat)</Label>
+            </div>
+
+            {notifForm.repeat && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm">Repeat Count</Label>
+                  <Input type="number" min={1} value={notifForm.repeat_count} onChange={e => setNotifForm({ ...notifForm, repeat_count: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground mt-1">How many times to send</p>
+                </div>
+                <div>
+                  <Label className="text-sm">Time Gap (minutes)</Label>
+                  <Input type="number" min={0} value={notifForm.time_gap} onChange={e => setNotifForm({ ...notifForm, time_gap: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground mt-1">Minutes between notifications</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOpenNotif(false)}>Cancel</Button>
+              <Button onClick={sendNotification}>{notifForm.repeat ? "Schedule" : "Send Notification"}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Offer Notification Dialog */}
+      <Dialog open={openOffer} onOpenChange={setOpenOffer}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Settings2 className="h-5 w-5" /> Send Offer Notification</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm">Select User *</Label>
+              <Select value={offerForm.user_id} onValueChange={v => setOfferForm({ ...offerForm, user_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Choose user" /></SelectTrigger>
+                <SelectContent>
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.username || u.email || u.id.slice(0, 8)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm">Select Offer (or leave empty for manual)</Label>
+              <Select value={offerForm.offer_id} onValueChange={v => {
+                const offer = offers.find(o => o.id === v);
+                setOfferForm({ ...offerForm, offer_id: v, points: offer?.payout?.toString() || offerForm.points });
+              }}>
+                <SelectTrigger><SelectValue placeholder="Choose offer" /></SelectTrigger>
+                <SelectContent>
+                  {offers.map(o => (
+                    <SelectItem key={o.id} value={o.id}>{o.name} ({o.payout} pts)</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm">Points *</Label>
+              <Input type="number" value={offerForm.points} onChange={e => setOfferForm({ ...offerForm, points: e.target.value })} placeholder="e.g. 500" />
+              <p className="text-xs text-muted-foreground mt-1">Enter points manually.</p>
+            </div>
+
+            <div>
+              <Label className="text-sm">Custom Title (optional)</Label>
+              <Input value={offerForm.custom_title} onChange={e => setOfferForm({ ...offerForm, custom_title: e.target.value })} placeholder="Override default title" />
+            </div>
+
+            <div>
+              <Label className="text-sm">Custom Message (optional)</Label>
+              <Textarea value={offerForm.custom_message} onChange={e => setOfferForm({ ...offerForm, custom_message: e.target.value })} placeholder="Override default message" rows={3} />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Switch checked={offerForm.repeat} onCheckedChange={v => setOfferForm({ ...offerForm, repeat: v })} />
+              <Label>Send Multiple Times (Repeat)</Label>
+            </div>
+
+            {offerForm.repeat && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm">Repeat Count</Label>
+                  <Input type="number" min={1} value={offerForm.repeat_count} onChange={e => setOfferForm({ ...offerForm, repeat_count: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground mt-1">How many times to send</p>
+                </div>
+                <div>
+                  <Label className="text-sm">Time Gap (minutes)</Label>
+                  <Input type="number" min={0} value={offerForm.time_gap} onChange={e => setOfferForm({ ...offerForm, time_gap: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground mt-1">Minutes between notifications</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOpenOffer(false)}>Cancel</Button>
+              <Button onClick={sendOfferNotification}>{offerForm.repeat ? "Schedule Offer Notification" : "Send Offer Notification"}</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
