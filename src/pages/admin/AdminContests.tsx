@@ -58,17 +58,17 @@ const DateTimePicker = ({ value, onChange, label }: { value: string; onChange: (
           <div className="flex gap-2 p-3 border-t">
             <Select value={h} onValueChange={(v) => { if (date) onChange(buildDate(new Date(date), v, m, s)); }}>
               <SelectTrigger className="w-[70px]"><SelectValue placeholder="HH" /></SelectTrigger>
-              <SelectContent className="max-h-48">{hours.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-48 z-[9999] bg-popover" position="popper" side="bottom" sideOffset={4}>{hours.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
             </Select>
             <span className="self-center">:</span>
             <Select value={m} onValueChange={(v) => { if (date) onChange(buildDate(new Date(date), h, v, s)); }}>
               <SelectTrigger className="w-[70px]"><SelectValue placeholder="MM" /></SelectTrigger>
-              <SelectContent className="max-h-48">{minutes.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-48 z-[9999] bg-popover" position="popper" side="bottom" sideOffset={4}>{minutes.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
             </Select>
             <span className="self-center">:</span>
             <Select value={s} onValueChange={(v) => { if (date) onChange(buildDate(new Date(date), h, m, v)); }}>
               <SelectTrigger className="w-[70px]"><SelectValue placeholder="SS" /></SelectTrigger>
-              <SelectContent className="max-h-48">{seconds.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-48 z-[9999] bg-popover" position="popper" side="bottom" sideOffset={4}>{seconds.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </PopoverContent>
