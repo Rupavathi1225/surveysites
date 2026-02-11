@@ -17,13 +17,14 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No auth");
 
-    const { data: { user }, error: authError } = await createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const { data: { user }, error: authError } = await createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } }
     }).auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
     const body = await req.json();
     const userAgent = body.user_agent || req.headers.get("user-agent") || "";
+    const sessionId = body.session_id || null;
 
     // Parse browser and device from user agent
     let browser = "Unknown";
@@ -105,7 +106,7 @@ serve(async (req) => {
       });
     }
 
-    // Insert login log
+    // Insert login log with session_id
     const { data: loginLog, error: insertError } = await supabase.from("login_logs").insert({
       user_id: profileId,
       ip_address: ip,
@@ -119,6 +120,7 @@ serve(async (req) => {
       fingerprint,
       is_new_device: isNewDevice,
       risk_score: riskScore,
+      session_id: sessionId,
     }).select("id").single();
 
     if (insertError) throw insertError;

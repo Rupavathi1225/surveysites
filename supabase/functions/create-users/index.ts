@@ -59,13 +59,35 @@ Deno.serve(async (req) => {
       }
 
       if (data.user) {
-        // Update profile
-        await supabase.from("profiles").update({
+        // Generate a referral code for the new user
+        const refCode = Math.random().toString(36).substring(2, 12).toUpperCase();
+
+        // INSERT profile (not update) since no trigger creates it automatically
+        const { error: profileError } = await supabase.from("profiles").insert({
+          user_id: data.user.id,
           username,
           first_name: username,
+          email,
           country: country || "India",
           status: "active",
-        }).eq("user_id", data.user.id);
+          role: "user",
+          referral_code: refCode,
+        });
+
+        if (profileError) {
+          // If profile already exists (from a trigger), try update instead
+          if (profileError.code === "23505") {
+            await supabase.from("profiles").update({
+              username,
+              first_name: username,
+              email,
+              country: country || "India",
+              status: "active",
+            }).eq("user_id", data.user.id);
+          } else {
+            console.error("Profile insert error:", profileError);
+          }
+        }
 
         // Activity notification with scheduling
         if (activityScheduling && i > 0 && timeGap > 0) {

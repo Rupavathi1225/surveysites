@@ -223,6 +223,7 @@ export type Database = {
           method: string | null
           os: string | null
           risk_score: number | null
+          session_id: string | null
           user_agent: string | null
           user_id: string | null
         }
@@ -239,6 +240,7 @@ export type Database = {
           method?: string | null
           os?: string | null
           risk_score?: number | null
+          session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
@@ -255,6 +257,7 @@ export type Database = {
           method?: string | null
           os?: string | null
           risk_score?: number | null
+          session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }

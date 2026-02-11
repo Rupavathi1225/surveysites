@@ -121,7 +121,7 @@ const LoginLogs = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                     <div>
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         {(log.device || "").toLowerCase().includes("mobile") ? <Smartphone className="h-3 w-3" /> : <Monitor className="h-3 w-3" />} Device
@@ -135,6 +135,10 @@ const LoginLogs = () => {
                     <div>
                       <p className="text-xs text-muted-foreground">Method</p>
                       <p className="text-sm font-medium mt-1">{log.method || "PASSWORD"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1"><Fingerprint className="h-3 w-3" /> Session ID</p>
+                      <p className="text-sm font-mono font-medium mt-1 truncate max-w-[180px]">{log.session_id || "—"}</p>
                     </div>
                   </div>
 
