@@ -1,1 +1,4 @@
 project_id = "gyafunimpnzctpfbqkgm"
+
+[functions.finalize-contests]
+verify_jwt = false
