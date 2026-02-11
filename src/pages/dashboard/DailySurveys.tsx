@@ -45,7 +45,7 @@ const DailySurveys = () => {
     const sessionStart = new Date().toISOString();
     const payload: any = {
       user_id: profile.id,
-      session_id: sessionStorage.getItem("login_log_id") || crypto.randomUUID(),
+      session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
       user_agent: navigator.userAgent,
       device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
       browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
