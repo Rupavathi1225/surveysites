@@ -4,7 +4,7 @@ import {
   LayoutDashboard, BarChart3, Link2, FileText, Trophy, History,
   Wallet, Users, FileStack, CreditCard, Lock, UserCog, Settings,
   ShieldCheck, Bell, Activity, LogOut, Home, ChevronDown, MessageSquare,
-  UserPlus, Gift, Newspaper, Tag
+  UserPlus, Gift, Newspaper, Tag, Package
 } from "lucide-react";
 
 interface DropdownGroup {
@@ -25,10 +25,12 @@ const dropdownGroups: DropdownGroup[] = [
     label: "More",
     icon: ChevronDown,
     items: [
+      { to: "/admin/offers", icon: Package, label: "Offers" },
       { to: "/admin/contests", icon: Trophy, label: "Contests" },
       { to: "/admin/earning-history", icon: History, label: "Earning History" },
       { to: "/admin/withdrawals", icon: Wallet, label: "Withdrawals" },
       { to: "/admin/users", icon: Users, label: "Users" },
+      { to: "/admin/user-generation", icon: UserPlus, label: "User Generation" },
     ],
   },
   {
@@ -37,6 +39,7 @@ const dropdownGroups: DropdownGroup[] = [
     items: [
       { to: "/admin/login-logs", icon: Activity, label: "Login Logs" },
       { to: "/admin/notifications", icon: Bell, label: "Notifications" },
+      { to: "/admin/chats", icon: MessageSquare, label: "Chats" },
       { to: "/admin/sub-admins", icon: ShieldCheck, label: "Subadmins" },
     ],
   },

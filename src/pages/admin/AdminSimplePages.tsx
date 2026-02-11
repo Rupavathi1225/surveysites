@@ -6,9 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Pencil } from "lucide-react";
+import { Pencil, Settings, CreditCard, Mail, MessageSquare } from "lucide-react";
 
 export const AdminPages = () => {
   const [items, setItems] = useState<any[]>([]);
@@ -88,25 +87,118 @@ export const AdminUpdateProfile = () => {
   );
 };
 
+const settingGroups = {
+  general: [
+    { key: "site_name", label: "Site Name" },
+    { key: "logo_url", label: "Logo URL" },
+    { key: "favicon_url", label: "Favicon URL" },
+    { key: "contact_email", label: "Contact Email" },
+    { key: "homepage_text", label: "Homepage Text" },
+  ],
+  payment: [
+    { key: "min_withdrawal", label: "Min Withdrawal Amount" },
+    { key: "max_withdrawal", label: "Max Withdrawal Amount" },
+    { key: "withdrawal_fee", label: "Withdrawal Fee (%)" },
+    { key: "points_to_cash_rate", label: "Points to Cash Rate" },
+    { key: "payout_schedule", label: "Payout Schedule" },
+  ],
+  email: [
+    { key: "smtp_host", label: "SMTP Host" },
+    { key: "smtp_port", label: "SMTP Port" },
+    { key: "smtp_user", label: "SMTP Username" },
+    { key: "smtp_password", label: "SMTP Password" },
+    { key: "from_email", label: "From Email" },
+  ],
+  chat: [
+    { key: "free_messages_limit", label: "Free Messages Per User" },
+    { key: "message_cost_points", label: "Cost Per Message (Points)" },
+    { key: "chat_enabled", label: "Chat Enabled (true/false)" },
+    { key: "profanity_filter", label: "Profanity Filter (true/false)" },
+    { key: "max_message_length", label: "Max Message Length" },
+  ],
+};
+
 export const WebsiteSettings = () => {
-  const [settings, setSettings] = useState<any[]>([]);
-  const [key, setKey] = useState(""); const [value, setValue] = useState("");
-  const load = () => supabase.from("website_settings").select("*").then(({ data }) => setSettings(data || []));
-  useEffect(() => { load(); }, []);
-  const save = async () => {
-    const existing = settings.find((s) => s.key === key);
-    if (existing) await supabase.from("website_settings").update({ value }).eq("id", existing.id);
-    else await supabase.from("website_settings").insert({ key, value });
-    toast({ title: "Saved!" }); setKey(""); setValue(""); load();
+  const [settings, setSettings] = useState<Map<string, { id: string; value: string }>>(new Map());
+  const [activeTab, setActiveTab] = useState<"general" | "payment" | "email" | "chat">("general");
+
+  const load = async () => {
+    const { data } = await supabase.from("website_settings").select("*");
+    const map = new Map<string, { id: string; value: string }>();
+    (data || []).forEach((s: any) => map.set(s.key, { id: s.id, value: s.value || "" }));
+    setSettings(map);
   };
+  useEffect(() => { load(); }, []);
+
+  const updateSetting = async (key: string, value: string) => {
+    const existing = settings.get(key);
+    if (existing) {
+      await supabase.from("website_settings").update({ value }).eq("id", existing.id);
+    } else {
+      await supabase.from("website_settings").insert({ key, value });
+    }
+    toast({ title: "Saved!" });
+    load();
+  };
+
+  const tabs = [
+    { id: "general" as const, icon: Settings, label: "General" },
+    { id: "payment" as const, icon: CreditCard, label: "Payment" },
+    { id: "email" as const, icon: Mail, label: "Email" },
+    { id: "chat" as const, icon: MessageSquare, label: "Chat Limits" },
+  ];
+
+  const currentSettings = settingGroups[activeTab];
+
   return (
-    <div className="space-y-6"><h1 className="text-2xl font-bold">Website Settings</h1>
-      <Card><CardContent className="p-6 space-y-4">
-        <div className="flex gap-3 max-w-lg"><Input placeholder="Key" value={key} onChange={(e) => setKey(e.target.value)} /><Input placeholder="Value" value={value} onChange={(e) => setValue(e.target.value)} /><Button onClick={save}>Save</Button></div>
-        <Table><TableHeader><TableRow><TableHead>Key</TableHead><TableHead>Value</TableHead></TableRow></TableHeader><TableBody>
-          {settings.map((s) => <TableRow key={s.id}><TableCell className="font-mono text-sm">{s.key}</TableCell><TableCell>{s.value}</TableCell></TableRow>)}
-        </TableBody></Table>
-      </CardContent></Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Website Settings</h1>
+        <p className="text-sm text-muted-foreground">Configure global website settings</p>
+      </div>
+
+      <div className="flex gap-1 bg-accent/40 rounded-lg p-1">
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm rounded-md transition-colors ${activeTab === t.id ? "bg-background shadow text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>
+            <t.icon className="h-4 w-4" /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold flex items-center gap-2 mb-1">
+            <Settings className="h-5 w-5" /> {tabs.find(t => t.id === activeTab)?.label} Settings
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            {activeTab === "general" && "Site name, logo, and branding"}
+            {activeTab === "payment" && "Payment and withdrawal configuration"}
+            {activeTab === "email" && "Email delivery settings"}
+            {activeTab === "chat" && "Chat limits and moderation"}
+          </p>
+          <Table>
+            <TableHeader><TableRow><TableHead>Setting</TableHead><TableHead>Value</TableHead><TableHead>Action</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {currentSettings.map(({ key, label }) => {
+                const val = settings.get(key)?.value || "";
+                return (
+                  <TableRow key={key}>
+                    <TableCell className="font-medium">{label}</TableCell>
+                    <TableCell className="text-muted-foreground">{val || "-"}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        const newVal = prompt(`Enter value for ${label}:`, val);
+                        if (newVal !== null) updateSetting(key, newVal);
+                      }}><Pencil className="h-3 w-3" /></Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 };

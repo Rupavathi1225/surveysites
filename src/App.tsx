@@ -36,6 +36,9 @@ import LoginLogs from "./pages/admin/LoginLogs";
 import { AdminPages, AdminPaymentMethods, ChangePassword, AdminUpdateProfile, WebsiteSettings } from "./pages/admin/AdminSimplePages";
 import AdminNews from "./pages/admin/AdminNews";
 import AdminPromocodes from "./pages/admin/AdminPromocodes";
+import AdminOffers from "./pages/admin/AdminOffers";
+import UserGeneration from "./pages/admin/UserGeneration";
+import AdminChats from "./pages/admin/AdminChats";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -103,6 +106,9 @@ const App = () => (
           <Route path="/admin/change-password" element={<AdminPage><ChangePassword /></AdminPage>} />
           <Route path="/admin/update-profile" element={<AdminPage><AdminUpdateProfile /></AdminPage>} />
           <Route path="/admin/settings" element={<AdminPage><WebsiteSettings /></AdminPage>} />
+          <Route path="/admin/offers" element={<AdminPage><AdminOffers /></AdminPage>} />
+          <Route path="/admin/user-generation" element={<AdminPage><UserGeneration /></AdminPage>} />
+          <Route path="/admin/chats" element={<AdminPage><AdminChats /></AdminPage>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
