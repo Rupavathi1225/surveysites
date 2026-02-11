@@ -25,9 +25,17 @@ const Offers = () => {
     if (!profile) return;
     let ipData: any = {};
     try {
-      const res = await fetch("https://ip-api.com/json/?fields=query,country,countryCode,proxy");
-      ipData = await res.json();
+      const res = await fetch("https://ipapi.co/json/");
+      const data = await res.json();
+      ipData = { query: data.ip, country: data.country_name, proxy: data.proxy || false };
     } catch {}
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmParams: Record<string, string> = {};
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
+      const v = urlParams.get(k);
+      if (v) utmParams[k] = v;
+    });
+
     await supabase.from("offer_clicks").insert({
       user_id: profile.id,
       offer_id: offer.id,
@@ -41,6 +49,7 @@ const Offers = () => {
       ip_address: ipData.query || null,
       country: ipData.country || null,
       vpn_proxy_flag: ipData.proxy || false,
+      utm_params: Object.keys(utmParams).length > 0 ? utmParams : null,
     });
   };
 
