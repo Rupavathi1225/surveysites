@@ -24,7 +24,7 @@ const DashboardHome = () => {
   useEffect(() => {
     if (!profile) return;
     // Fetch data
-    supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20).then(({ data }) => setNotifications(data || []));
+    supabase.from("notifications").select("*").lte("created_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(20).then(({ data }) => setNotifications(data || []));
     supabase.from("earning_history").select("*").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(5).then(({ data }) => setLastCredited(data || []));
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
     supabase.from("survey_links").select("*").eq("status", "active").then(({ data }) => setSurveyLinks(data || []));

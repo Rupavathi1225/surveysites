@@ -29,7 +29,7 @@ const AdminDashboard = () => {
       });
     };
     fetchStats();
-    supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20).then(({ data }) => setNotifications(data || []));
+    supabase.from("notifications").select("*").lte("created_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(20).then(({ data }) => setNotifications(data || []));
   }, []);
 
   const statCards = [

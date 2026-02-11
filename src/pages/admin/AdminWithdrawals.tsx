@@ -10,14 +10,35 @@ import { Check, X, Trash2, AlertTriangle, Pause } from "lucide-react";
 
 const AdminWithdrawals = () => {
   const [items, setItems] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [filter, setFilter] = useState("all");
-  const load = () => supabase.from("withdrawals").select("*").order("created_at", { ascending: false }).then(({ data }) => setItems(data || []));
+
+  const load = () => {
+    Promise.all([
+      supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, username, email"),
+    ]).then(([wRes, uRes]) => {
+      setItems(wRes.data || []);
+      setUsers(uRes.data || []);
+    });
+  };
   useEffect(() => { load(); }, []);
+
+  const getUsername = (userId: string) => {
+    const u = users.find(p => p.id === userId);
+    return u?.username || u?.email || userId?.slice(0, 8);
+  };
+
   const updateStatus = async (id: string, status: string) => {
     await supabase.from("withdrawals").update({ status }).eq("id", id);
     const w = items.find(i => i.id === id);
     if (w && status === "approved") {
-      await supabase.from("notifications").insert({ type: "payment_completed", message: `Withdrawal of $${Number(w.amount).toFixed(2)} has been approved!`, is_global: true, user_id: w.user_id });
+      const username = getUsername(w.user_id);
+      await supabase.from("notifications").insert({
+        type: "payment_completed",
+        message: `✅ ${username}'s withdrawal of $${Number(w.amount).toFixed(2)} via ${w.payment_method} has been approved!`,
+        is_global: true, user_id: w.user_id,
+      });
     }
     toast({ title: `Withdrawal ${status}` }); load();
   };
@@ -73,7 +94,7 @@ const AdminWithdrawals = () => {
         {filtered.length === 0 ? <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No withdrawals</TableCell></TableRow> : filtered.map((w) => (
           <TableRow key={w.id}>
             <TableCell className="text-sm">{new Date(w.created_at).toLocaleDateString()}</TableCell>
-            <TableCell className="text-xs font-mono">{w.user_id?.slice(0,8)}</TableCell>
+            <TableCell className="font-medium">{getUsername(w.user_id)}</TableCell>
             <TableCell>{w.payment_method}</TableCell>
             <TableCell className="text-sm">{w.account_id}</TableCell>
             <TableCell className="font-medium">${Number(w.amount).toFixed(2)}</TableCell>
@@ -83,18 +104,10 @@ const AdminWithdrawals = () => {
               <div className="flex gap-1">
                 {(w.status === "pending" || w.status === "paused") && (
                   <>
-                    <Button size="sm" variant="outline" title="Approve" onClick={() => updateStatus(w.id, "approved")}>
-                      <Check className="h-3 w-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" title="Reject" onClick={() => updateStatus(w.id, "rejected")}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" title="Suspicious" onClick={() => updateStatus(w.id, "suspicious")}>
-                      <AlertTriangle className="h-3 w-3" />
-                    </Button>
-                    <Button size="sm" variant="outline" title="Pause" onClick={() => updateStatus(w.id, "paused")}>
-                      <Pause className="h-3 w-3" />
-                    </Button>
+                    <Button size="sm" variant="outline" title="Approve" onClick={() => updateStatus(w.id, "approved")}><Check className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" title="Reject" onClick={() => updateStatus(w.id, "rejected")}><X className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" title="Suspicious" onClick={() => updateStatus(w.id, "suspicious")}><AlertTriangle className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" title="Pause" onClick={() => updateStatus(w.id, "paused")}><Pause className="h-3 w-3" /></Button>
                   </>
                 )}
                 <Button size="sm" variant="outline" onClick={() => del(w.id)}><Trash2 className="h-3 w-3" /></Button>
