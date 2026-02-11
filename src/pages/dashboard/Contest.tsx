@@ -210,11 +210,13 @@ const Contest = () => {
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No entries yet. Earn points to participate!</TableCell></TableRow>
                   ) : entries.map((e: any, i) => {
                     const rank = i + 1;
-                    if (rank <= 3) return null; // shown in podium
                     const prize = getPrize(rank);
+                    const medals = ["🥇", "🥈", "🥉"];
                     return (
-                      <TableRow key={e.id}>
-                        <TableCell className="font-bold">#{rank}</TableCell>
+                      <TableRow key={e.id} className={rank <= 3 ? "bg-primary/5" : ""}>
+                        <TableCell className="font-bold">
+                          {rank <= 3 ? <span className="text-lg">{medals[rank - 1]}</span> : `#${rank}`}
+                        </TableCell>
                         <TableCell className="font-medium flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold">
                             {e.profiles?.avatar_url
@@ -225,7 +227,7 @@ const Contest = () => {
                         </TableCell>
                         <TableCell className="text-sm">{e.profiles?.country || "-"}</TableCell>
                         <TableCell className="font-bold">{e.points?.toLocaleString()} Points</TableCell>
-                        <TableCell className="text-primary font-bold">{prize > 0 ? `${prize} pts` : "-"}</TableCell>
+                        <TableCell className="text-primary font-bold">{prize > 0 ? `${prize} pts bonus` : "-"}</TableCell>
                       </TableRow>
                     );
                   })}
