@@ -24,8 +24,9 @@ const DailySurveys = () => {
     // Fetch IP & geo info
     let ipData: any = {};
     try {
-      const res = await fetch("https://ip-api.com/json/?fields=query,country,countryCode,proxy");
-      ipData = await res.json();
+      const res = await fetch("https://ipapi.co/json/");
+      const data = await res.json();
+      ipData = { query: data.ip, country: data.country_name, proxy: data.proxy || false };
     } catch {}
 
     const utmParams: Record<string, string> = {};

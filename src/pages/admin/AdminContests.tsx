@@ -27,8 +27,9 @@ const seconds = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"))
 
 const DateTimePicker = ({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) => {
   const date = value ? new Date(value) : undefined;
-  const h = date ? String(date.getHours()).padStart(2, "0") : "00";
-  const m = date ? String(date.getMinutes()).padStart(2, "0") : "00";
+  const now = new Date();
+  const h = date ? String(date.getHours()).padStart(2, "0") : String(now.getHours()).padStart(2, "0");
+  const m = date ? String(date.getMinutes()).padStart(2, "0") : String(now.getMinutes()).padStart(2, "0");
   const s = date ? String(date.getSeconds()).padStart(2, "0") : "00";
 
   const buildDate = (d: Date, hh: string, mm: string, ss: string) => {
