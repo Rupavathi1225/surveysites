@@ -34,6 +34,8 @@ import SubAdmins from "./pages/admin/SubAdmins";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import LoginLogs from "./pages/admin/LoginLogs";
 import { AdminPages, AdminPaymentMethods, ChangePassword, AdminUpdateProfile, WebsiteSettings } from "./pages/admin/AdminSimplePages";
+import AdminNews from "./pages/admin/AdminNews";
+import AdminPromocodes from "./pages/admin/AdminPromocodes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -94,6 +96,8 @@ const App = () => (
           <Route path="/admin/sub-admins" element={<AdminPage><SubAdmins /></AdminPage>} />
           <Route path="/admin/notifications" element={<AdminPage><AdminNotifications /></AdminPage>} />
           <Route path="/admin/login-logs" element={<AdminPage><LoginLogs /></AdminPage>} />
+          <Route path="/admin/news" element={<AdminPage><AdminNews /></AdminPage>} />
+          <Route path="/admin/promocodes" element={<AdminPage><AdminPromocodes /></AdminPage>} />
           <Route path="/admin/pages" element={<AdminPage><AdminPages /></AdminPage>} />
           <Route path="/admin/payment-methods" element={<AdminPage><AdminPaymentMethods /></AdminPage>} />
           <Route path="/admin/change-password" element={<AdminPage><ChangePassword /></AdminPage>} />
