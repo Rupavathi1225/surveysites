@@ -2,3 +2,12 @@ project_id = "gyafunimpnzctpfbqkgm"
 
 [functions.finalize-contests]
 verify_jwt = false
+
+[functions.create-users]
+verify_jwt = false
+
+[functions.track-login]
+verify_jwt = false
+
+[functions.get-ip-info]
+verify_jwt = false

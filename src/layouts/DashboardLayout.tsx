@@ -32,6 +32,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Generate session ID if not already set (covers page refresh / returning users)
+  useEffect(() => {
+    if (!sessionStorage.getItem("session_id")) {
+      const sessionId = crypto.randomUUID();
+      sessionStorage.setItem("session_id", sessionId);
+    }
+  }, []);
+
+  // Track session on first load (when no login_log_id exists — e.g. returning via existing auth)
+  useEffect(() => {
+    if (profile?.id && !sessionStorage.getItem("login_log_id")) {
+      const sessionId = sessionStorage.getItem("session_id");
+      supabase.functions.invoke("track-login", {
+        body: { user_agent: navigator.userAgent, method: "SESSION_RESUME", session_id: sessionId },
+      }).then(({ data }) => {
+        if (data?.login_log_id) {
+          sessionStorage.setItem("login_log_id", data.login_log_id);
+        }
+      }).catch(e => console.error("Session tracking failed:", e));
+    }
+  }, [profile?.id]);
+
   // Track page visits
   useEffect(() => {
     if (profile?.id) {

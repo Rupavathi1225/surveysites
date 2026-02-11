@@ -31,8 +31,12 @@ const Auth = () => {
       try {
         const session = authData?.session;
         if (session) {
+          // Generate a unique session ID for this browser session
+          const sessionId = crypto.randomUUID();
+          sessionStorage.setItem("session_id", sessionId);
+
           const { data: trackData } = await supabase.functions.invoke("track-login", {
-            body: { user_agent: navigator.userAgent, method: "PASSWORD" },
+            body: { user_agent: navigator.userAgent, method: "PASSWORD", session_id: sessionId },
           });
           if (trackData?.login_log_id) {
             sessionStorage.setItem("login_log_id", trackData.login_log_id);
