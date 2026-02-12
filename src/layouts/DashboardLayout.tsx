@@ -26,37 +26,31 @@ const navItems = [
   { to: "/dashboard/support", icon: HelpCircle, label: "Support Ticket" },
 ];
 
+// Module-level flag: resets on every page refresh/new tab (JS re-executes)
+let sessionTrackedThisLoad = false;
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { profile, signOut, isAdminOrSubAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Generate session ID on every new page load if not already set
+  // Track session: every new page refresh/tab gets a unique session
   useEffect(() => {
-    if (!sessionStorage.getItem("session_id")) {
-      const sessionId = crypto.randomUUID();
-      sessionStorage.setItem("session_id", sessionId);
-      // Clear login_log_id so a new session log is created
-      sessionStorage.removeItem("login_log_id");
-    }
-  }, []);
+    if (!profile?.id || sessionTrackedThisLoad) return;
+    sessionTrackedThisLoad = true;
 
-  // Track session on first load (when no login_log_id exists — e.g. returning via existing auth)
-  useEffect(() => {
-    if (profile?.id && !sessionStorage.getItem("login_log_id")) {
-      const sessionId = sessionStorage.getItem("session_id") || crypto.randomUUID();
-      if (!sessionStorage.getItem("session_id")) {
-        sessionStorage.setItem("session_id", sessionId);
+    // Generate a fresh session ID for every new page load
+    const sessionId = crypto.randomUUID();
+    sessionStorage.setItem("session_id", sessionId);
+
+    supabase.functions.invoke("track-login", {
+      body: { user_agent: navigator.userAgent, method: "SESSION_RESUME", session_id: sessionId },
+    }).then(({ data }) => {
+      if (data?.login_log_id) {
+        sessionStorage.setItem("login_log_id", data.login_log_id);
       }
-      supabase.functions.invoke("track-login", {
-        body: { user_agent: navigator.userAgent, method: "SESSION_RESUME", session_id: sessionId },
-      }).then(({ data }) => {
-        if (data?.login_log_id) {
-          sessionStorage.setItem("login_log_id", data.login_log_id);
-        }
-      }).catch(e => console.error("Session tracking failed:", e));
-    }
+    }).catch(e => console.error("Session tracking failed:", e));
   }, [profile?.id]);
 
   // Track page visits
