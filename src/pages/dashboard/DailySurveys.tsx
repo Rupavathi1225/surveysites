@@ -35,12 +35,30 @@ const DailySurveys = () => {
     if (!profile) return;
     const ipInfo = await fetchIpInfo();
 
+    // Collect UTM from current URL
     const utmParams: Record<string, string> = {};
     const urlParams = new URLSearchParams(window.location.search);
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
       const v = urlParams.get(k);
       if (v) utmParams[k] = v;
     });
+    // If no UTM params found, try to extract from referrer
+    if (Object.keys(utmParams).length === 0 && document.referrer) {
+      try {
+        const refUrl = new URL(document.referrer);
+        const refParams = new URLSearchParams(refUrl.search);
+        ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
+          const v = refParams.get(k);
+          if (v) utmParams[k] = v;
+        });
+        // If still no UTM, store referrer domain as source info
+        if (Object.keys(utmParams).length === 0) {
+          utmParams["referrer"] = refUrl.hostname;
+        }
+      } catch {}
+    }
+    // Always include current page as context
+    utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
     const payload: any = {
@@ -50,17 +68,42 @@ const DailySurveys = () => {
       device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
       browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
       os: navigator.platform || "Unknown",
-      source: document.referrer || "direct",
+      source: document.referrer || window.location.href,
       completion_status: "clicked",
       ip_address: ipInfo.ip || null,
       country: ipInfo.country || null,
       vpn_proxy_flag: ipInfo.proxy || false,
-      utm_params: Object.keys(utmParams).length > 0 ? utmParams : null,
+      utm_params: utmParams,
       session_start: sessionStart,
+      session_end: sessionStart, // Will be updated on page unload
     };
     if (type === "offer") payload.offer_id = item.id;
     else payload.survey_link_id = item.id;
-    await supabase.from("offer_clicks").insert(payload);
+
+    const { data: inserted } = await supabase.from("offer_clicks").insert(payload).select("id").single();
+
+    // Track session_end when user leaves
+    if (inserted?.id) {
+      const updateEnd = () => {
+        const endTime = new Date().toISOString();
+        const startMs = new Date(sessionStart).getTime();
+        const endMs = Date.now();
+        const timeSpent = Math.round((endMs - startMs) / 1000);
+        navigator.sendBeacon(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/offer_clicks?id=eq.${inserted.id}`,
+          JSON.stringify({ session_end: endTime, time_spent: timeSpent })
+        );
+        // Fallback: direct update
+        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
+      };
+      window.addEventListener("beforeunload", updateEnd, { once: true });
+      // Also update after 30 seconds as fallback
+      setTimeout(async () => {
+        const endTime = new Date().toISOString();
+        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
+        await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
+      }, 30000);
+    }
   };
 
   const openDetail = (item: any, type: "survey" | "offer") => {

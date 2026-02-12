@@ -37,15 +37,29 @@ const Offers = () => {
     if (!profile) return;
     const ipInfo = await fetchIpInfo();
 
-    const urlParams = new URLSearchParams(window.location.search);
     const utmParams: Record<string, string> = {};
+    const urlParams = new URLSearchParams(window.location.search);
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
       const v = urlParams.get(k);
       if (v) utmParams[k] = v;
     });
+    if (Object.keys(utmParams).length === 0 && document.referrer) {
+      try {
+        const refUrl = new URL(document.referrer);
+        const refParams = new URLSearchParams(refUrl.search);
+        ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
+          const v = refParams.get(k);
+          if (v) utmParams[k] = v;
+        });
+        if (Object.keys(utmParams).length === 0) {
+          utmParams["referrer"] = refUrl.hostname;
+        }
+      } catch {}
+    }
+    utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
-    await supabase.from("offer_clicks").insert({
+    const { data: inserted } = await supabase.from("offer_clicks").insert({
       user_id: profile.id,
       offer_id: offer.id,
       session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
@@ -53,14 +67,29 @@ const Offers = () => {
       device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
       browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
       os: navigator.platform || "Unknown",
-      source: document.referrer || "direct",
+      source: document.referrer || window.location.href,
       completion_status: "clicked",
       ip_address: ipInfo.ip || null,
       country: ipInfo.country || null,
       vpn_proxy_flag: ipInfo.proxy || false,
-      utm_params: Object.keys(utmParams).length > 0 ? utmParams : null,
+      utm_params: utmParams,
       session_start: sessionStart,
-    });
+      session_end: sessionStart,
+    }).select("id").single();
+
+    if (inserted?.id) {
+      const updateEnd = () => {
+        const endTime = new Date().toISOString();
+        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
+        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
+      };
+      window.addEventListener("beforeunload", updateEnd, { once: true });
+      setTimeout(async () => {
+        const endTime = new Date().toISOString();
+        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
+        await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
+      }, 30000);
+    }
   };
 
   const filtered = offers.filter(o => {
