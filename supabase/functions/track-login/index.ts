@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -15,12 +15,19 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No auth");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    const { data: { user }, error: authError } = await createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } }
-    }).auth.getUser();
-    if (authError || !user) throw new Error("Unauthorized");
+    });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const userId = claimsData.claims.sub as string;
 
     const body = await req.json();
     const userAgent = body.user_agent || req.headers.get("user-agent") || "";
@@ -80,7 +87,7 @@ serve(async (req) => {
     const { data: prevLogs } = await supabase
       .from("login_logs")
       .select("fingerprint")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .limit(20);
     
     const knownFingerprints = new Set((prevLogs || []).map(l => l.fingerprint));
@@ -95,7 +102,7 @@ serve(async (req) => {
     // Get profile id - wait briefly if profile doesn't exist yet (new signup)
     let profileId: string | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", user.id).single();
+      const { data: profile } = await supabase.from("profiles").select("id").eq("user_id", userId).single();
       if (profile?.id) { profileId = profile.id; break; }
       if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
     }
