@@ -39,7 +39,9 @@ const SurveyProviders = () => {
 
   const del = async (id: string) => { await supabase.from("survey_providers").delete().eq("id", id); fetch(); };
 
-  const postbackUrl = `${window.location.origin}/api/postback?user_id={user_id}`;
+  const supabaseUrl = "https://gyafunimpnzctpfbqkgm.supabase.co/functions/v1/receive-postback";
+  const postbackUrl = form.code ? `${supabaseUrl}/${form.code}?${form.postback_username_key || 'user_id'}={user_id}&${form.postback_status_key || 'status'}={status}&${form.postback_payout_key || 'payout'}={payout}&${form.postback_txn_key || 'txn_id'}={txn_id}` : `${supabaseUrl}/{code}?user_id={user_id}&status={status}&payout={payout}&txn_id={txn_id}`;
+  const testPostbackUrl = form.code ? `${supabaseUrl}/${form.code}?${form.postback_username_key || 'user_id'}=badboysai&${form.postback_status_key || 'status'}=1&${form.postback_payout_key || 'payout'}=10&${form.postback_txn_key || 'txn_id'}=test_${Date.now()}` : "";
 
   return (
     <div className="space-y-6">
@@ -95,12 +97,20 @@ const SurveyProviders = () => {
 
               <div className="border border-border rounded-lg p-4 space-y-3">
                 <h3 className="font-semibold text-sm text-primary">Postback Configuration</h3>
-                <div><label className="text-xs text-muted-foreground">Postback URL (Auto-generated)</label>
+                <div><label className="text-xs text-muted-foreground">Postback URL (Give this to Provider)</label>
                   <div className="flex gap-2">
                     <Input value={postbackUrl} readOnly className="text-xs bg-accent" />
                     <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(postbackUrl); toast({ title: "Copied!" }); }}><Copy className="h-3 w-3" /></Button>
                   </div>
                 </div>
+                {testPostbackUrl && (
+                  <div><label className="text-xs text-muted-foreground">🧪 Test Postback (Click to send test - credits 10 points to badboysai)</label>
+                    <div className="flex gap-2">
+                      <Input value={testPostbackUrl} readOnly className="text-xs bg-green-50 dark:bg-green-950 border-green-300" />
+                      <Button variant="outline" size="sm" className="border-green-500 text-green-600 hover:bg-green-50" onClick={() => { window.open(testPostbackUrl, '_blank'); toast({ title: "Test postback sent! Check Postback Logs." }); }}>Test</Button>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="text-xs text-muted-foreground">Username Key</label><Input value={form.postback_username_key} onChange={(e) => setForm({ ...form, postback_username_key: e.target.value })} /></div>
                   <div><label className="text-xs text-muted-foreground">Status Key</label><Input value={form.postback_status_key} onChange={(e) => setForm({ ...form, postback_status_key: e.target.value })} /></div>
