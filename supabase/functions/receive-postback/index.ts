@@ -111,12 +111,28 @@ Deno.serve(async (req) => {
       normalizedStatus = "reversed";
     }
 
-    // Find the user by username
-    const { data: userProfile } = await supabase
+    // Find the user by username first, then try by id/user_id if it looks like a UUID
+    let userProfile: any = null;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    // Try username first
+    const { data: byUsername } = await supabase
       .from("profiles")
       .select("id, user_id, username, points, cash_balance")
-      .or(`username.eq.${username},id.eq.${username},user_id.eq.${username}`)
+      .eq("username", username)
       .maybeSingle();
+    
+    if (byUsername) {
+      userProfile = byUsername;
+    } else if (uuidRegex.test(username)) {
+      // Try by id or user_id if it looks like a UUID
+      const { data: byId } = await supabase
+        .from("profiles")
+        .select("id, user_id, username, points, cash_balance")
+        .or(`id.eq.${username},user_id.eq.${username}`)
+        .maybeSingle();
+      userProfile = byId;
+    }
 
     // Calculate points based on provider settings
     const pointPercentage = provider.point_percentage || 100;
