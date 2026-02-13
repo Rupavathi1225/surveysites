@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.get-ip-info]
 verify_jwt = false
+
+[functions.receive-postback]
+verify_jwt = false
+
+[functions.handle-click]
+verify_jwt = false
