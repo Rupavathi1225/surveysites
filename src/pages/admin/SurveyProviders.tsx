@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Play } from "lucide-react";
 
 const defaultForm = {
   name: "", code: "", point_percentage: 100, is_recommended: false, rating: 0,
@@ -40,8 +40,22 @@ const SurveyProviders = () => {
   const del = async (id: string) => { await supabase.from("survey_providers").delete().eq("id", id); fetch(); };
 
   const supabaseUrl = "https://gyafunimpnzctpfbqkgm.supabase.co/functions/v1/receive-postback";
-  const postbackUrl = form.code ? `${supabaseUrl}/${form.code}?${form.postback_username_key || 'user_id'}={user_id}&${form.postback_status_key || 'status'}={status}&${form.postback_payout_key || 'payout'}={payout}&${form.postback_txn_key || 'txn_id'}={txn_id}` : `${supabaseUrl}/{code}?user_id={user_id}&status={status}&payout={payout}&txn_id={txn_id}`;
-  const testPostbackUrl = form.code ? `${supabaseUrl}/${form.code}?${form.postback_username_key || 'user_id'}=badboysai&${form.postback_status_key || 'status'}=1&${form.postback_payout_key || 'payout'}=10&${form.postback_txn_key || 'txn_id'}=test_${Date.now()}` : "";
+  const getPostbackUrl = (code: string, keys?: any) => {
+    const uk = keys?.postback_username_key || form.postback_username_key || 'user_id';
+    const sk = keys?.postback_status_key || form.postback_status_key || 'status';
+    const pk = keys?.postback_payout_key || form.postback_payout_key || 'payout';
+    const tk = keys?.postback_txn_key || form.postback_txn_key || 'txn_id';
+    return `${supabaseUrl}/${code}?${uk}={user_id}&${sk}={status}&${pk}={payout}&${tk}={txn_id}`;
+  };
+  const getTestUrl = (code: string, keys?: any) => {
+    const uk = keys?.postback_username_key || form.postback_username_key || 'user_id';
+    const sk = keys?.postback_status_key || form.postback_status_key || 'status';
+    const pk = keys?.postback_payout_key || form.postback_payout_key || 'payout';
+    const tk = keys?.postback_txn_key || form.postback_txn_key || 'txn_id';
+    return `${supabaseUrl}/${code}?${uk}=badboysai&${sk}=1&${pk}=10&${tk}=test_${Date.now()}`;
+  };
+  const postbackUrl = form.code ? getPostbackUrl(form.code) : `${supabaseUrl}/{code}?user_id={user_id}&status={status}&payout={payout}&txn_id={txn_id}`;
+  const testPostbackUrl = form.code ? getTestUrl(form.code) : "";
 
   return (
     <div className="space-y-6">
@@ -104,10 +118,10 @@ const SurveyProviders = () => {
                   </div>
                 </div>
                 {testPostbackUrl && (
-                  <div><label className="text-xs text-muted-foreground">🧪 Test Postback (Click to send test - credits 10 points to badboysai)</label>
-                    <div className="flex gap-2">
-                      <Input value={testPostbackUrl} readOnly className="text-xs bg-green-50 dark:bg-green-950 border-green-300" />
-                      <Button variant="outline" size="sm" className="border-green-500 text-green-600 hover:bg-green-50" onClick={() => { window.open(testPostbackUrl, '_blank'); toast({ title: "Test postback sent! Check Postback Logs." }); }}>Test</Button>
+                  <div><label className="text-xs font-medium text-primary">🧪 Test Postback (Click to send test - credits 10 points to badboysai)</label>
+                    <div className="flex gap-2 mt-1">
+                      <Input value={testPostbackUrl} readOnly className="text-xs bg-accent border-primary/30" />
+                      <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => { window.open(getTestUrl(form.code), '_blank'); toast({ title: "Test postback sent! Check Postback Logs." }); }}><Play className="h-3 w-3 mr-1" /> Test</Button>
                     </div>
                   </div>
                 )}
@@ -141,6 +155,7 @@ const SurveyProviders = () => {
                 <TableCell>{p.point_percentage}%</TableCell>
                 <TableCell><Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
                 <TableCell className="flex gap-1">
+                  {p.code && <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => { window.open(getTestUrl(p.code, p), '_blank'); toast({ title: `Test postback sent for ${p.name}!` }); }}><Play className="h-3 w-3" /></Button>}
                   <Button size="sm" variant="outline" onClick={() => { setForm(p); setEditing(p.id); setOpen(true); }}><Pencil className="h-3 w-3" /></Button>
                   <Button size="sm" variant="outline" onClick={() => del(p.id)}><Trash2 className="h-3 w-3" /></Button>
                 </TableCell>
