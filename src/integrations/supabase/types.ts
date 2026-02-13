@@ -127,6 +127,57 @@ export type Database = {
         }
         Relationships: []
       }
+      downward_partners: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          custom_params: Json | null
+          id: string
+          name: string
+          offer_param: string | null
+          payout_param: string | null
+          postback_method: string | null
+          postback_url: string | null
+          status: string | null
+          status_param: string | null
+          txn_param: string | null
+          updated_at: string | null
+          username_param: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          custom_params?: Json | null
+          id?: string
+          name: string
+          offer_param?: string | null
+          payout_param?: string | null
+          postback_method?: string | null
+          postback_url?: string | null
+          status?: string | null
+          status_param?: string | null
+          txn_param?: string | null
+          updated_at?: string | null
+          username_param?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          custom_params?: Json | null
+          id?: string
+          name?: string
+          offer_param?: string | null
+          payout_param?: string | null
+          postback_method?: string | null
+          postback_url?: string | null
+          status?: string | null
+          status_param?: string | null
+          txn_param?: string | null
+          updated_at?: string | null
+          username_param?: string | null
+        }
+        Relationships: []
+      }
       earning_history: {
         Row: {
           amount: number | null
@@ -564,6 +615,93 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      postback_logs: {
+        Row: {
+          created_at: string | null
+          direction: string
+          downward_partner_id: string | null
+          error_message: string | null
+          forward_count: number | null
+          forwarded: boolean | null
+          id: string
+          ip_address: string | null
+          offer_click_id: string | null
+          payout: number | null
+          payout_type: string | null
+          provider_id: string | null
+          provider_name: string | null
+          provider_type: string | null
+          raw_params: Json | null
+          response_body: string | null
+          response_code: number | null
+          status: string | null
+          txn_id: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direction?: string
+          downward_partner_id?: string | null
+          error_message?: string | null
+          forward_count?: number | null
+          forwarded?: boolean | null
+          id?: string
+          ip_address?: string | null
+          offer_click_id?: string | null
+          payout?: number | null
+          payout_type?: string | null
+          provider_id?: string | null
+          provider_name?: string | null
+          provider_type?: string | null
+          raw_params?: Json | null
+          response_body?: string | null
+          response_code?: number | null
+          status?: string | null
+          txn_id?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string
+          downward_partner_id?: string | null
+          error_message?: string | null
+          forward_count?: number | null
+          forwarded?: boolean | null
+          id?: string
+          ip_address?: string | null
+          offer_click_id?: string | null
+          payout?: number | null
+          payout_type?: string | null
+          provider_id?: string | null
+          provider_name?: string | null
+          provider_type?: string | null
+          raw_params?: Json | null
+          response_body?: string | null
+          response_code?: number | null
+          status?: string | null
+          txn_id?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "postback_logs_downward_partner_id_fkey"
+            columns: ["downward_partner_id"]
+            isOneToOne: false
+            referencedRelation: "downward_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "postback_logs_offer_click_id_fkey"
+            columns: ["offer_click_id"]
+            isOneToOne: false
+            referencedRelation: "offer_clicks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
