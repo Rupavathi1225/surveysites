@@ -174,6 +174,20 @@ const DashboardHome = () => {
         </Card>
       </div>
 
+      {/* Refer & Earn */}
+      <Card className="border-0 bg-gradient-to-r from-success/10 to-transparent">
+        <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5"><Gift className="h-4 w-4 text-success" /> Refer & Earn</h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Share your referral link and earn when friends join</p>
+          </div>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Input value={referralLink} readOnly className="h-7 text-[10px] bg-accent/50 w-full md:w-64" />
+            <Button onClick={copyReferral} size="sm" variant="outline" className="h-7 px-2 shrink-0"><Copy className="h-3 w-3" /></Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Last Credited */}
       <Card className="border-0">
         <CardHeader className="pb-2 pt-4 px-4">
@@ -206,13 +220,6 @@ const DashboardHome = () => {
         {chatOpen ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
       </button>
 
-      {/* Floating Affiliates Button */}
-      <Link
-        to="/dashboard/affiliates"
-        className="fixed bottom-5 right-20 z-50 bg-info text-primary-foreground p-3 rounded-full shadow-lg hover:bg-info/90 transition-colors"
-      >
-        <Users className="h-5 w-5" />
-      </Link>
 
       {/* Chat Panel */}
       {chatOpen && (
