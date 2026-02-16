@@ -104,13 +104,10 @@ Deno.serve(async (req) => {
     const txnId = params[txnKey] || "";
 
     // Determine if this is a success, failure, or reversal
-    const statusLower = postbackStatus.toLowerCase().trim();
     let normalizedStatus = "failed";
-    const successValues = [successValue.toLowerCase(), "1", "2", "success", "approved", "complete", "completed", "true", "yes", "ok", "done"];
-    const reversalValues = ["reversed", "reversal", "-1", "3", "chargeback", "refund", "refunded"];
-    if (successValues.includes(statusLower)) {
+    if (postbackStatus === successValue || postbackStatus === "1" || postbackStatus === "success" || postbackStatus === "2") {
       normalizedStatus = "success";
-    } else if (reversalValues.includes(statusLower)) {
+    } else if (postbackStatus === "reversed" || postbackStatus === "reversal" || postbackStatus === "-1" || postbackStatus === "3") {
       normalizedStatus = "reversed";
     }
 
