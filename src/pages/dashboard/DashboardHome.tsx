@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import {
   DollarSign, Star, Lock, TrendingUp, Users, Gift, ClipboardList,
-  Wallet, ArrowLeftRight, Copy, CheckCircle, AlertCircle, Send, MessageCircle, X
+  Wallet, ArrowLeftRight, Copy, CheckCircle, AlertCircle, Send, MessageCircle, X,
+  Activity, UserPlus, LogIn, Tag, CreditCard, Bell
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -16,6 +17,7 @@ const DashboardHome = () => {
   const [lastCredited, setLastCredited] = useState<any[]>([]);
   const [surveyProviders, setSurveyProviders] = useState<any[]>([]);
   const [surveyLinks, setSurveyLinks] = useState<any[]>([]);
+  const [activityFeed, setActivityFeed] = useState<any[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -25,6 +27,14 @@ const DashboardHome = () => {
     supabase.from("earning_history").select("*").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(5).then(({ data }) => setLastCredited(data || []));
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
     supabase.from("survey_links").select("*").eq("status", "active").then(({ data }) => setSurveyLinks(data || []));
+    supabase.from("notifications").select("*").lte("created_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(15).then(({ data }) => setActivityFeed(data || []));
+
+    // Realtime subscription for activity feed
+    const channel = supabase.channel("activity-feed").on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
+      setActivityFeed((prev) => [payload.new as any, ...prev].slice(0, 15));
+    }).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [profile]);
 
   const loadChat = async () => {
@@ -207,6 +217,35 @@ const DashboardHome = () => {
                   <span className="text-success font-bold text-xs">+{e.amount} pts</span>
                 </div>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Live Activity Feed */}
+      <Card className="border-0">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Activity className="h-4 w-4 text-primary" /> Live Activity</CardTitle>
+          <p className="text-[10px] text-muted-foreground">Real-time platform activity</p>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          {activityFeed.length === 0 ? (
+            <p className="text-muted-foreground text-xs text-center py-4">No activity yet</p>
+          ) : (
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {activityFeed.map((n) => {
+                const iconMap: Record<string, any> = { signup: UserPlus, login: LogIn, promo: Tag, offer: Gift, payment: CreditCard, chat: MessageCircle };
+                const Icon = iconMap[n.type] || Bell;
+                return (
+                  <div key={n.id} className="flex items-start gap-2.5 p-2 bg-accent/40 rounded-lg">
+                    <Icon className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs">{n.message}</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
