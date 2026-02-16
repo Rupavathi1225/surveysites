@@ -42,6 +42,8 @@ const dropdownGroups: DropdownGroup[] = [
       { to: "/admin/chats", icon: MessageSquare, label: "Chats" },
       { to: "/admin/click-tracking", icon: Activity, label: "Click Tracking" },
       { to: "/admin/postback-logs", icon: Activity, label: "Postback Logs" },
+      { to: "/admin/test-postback", icon: Activity, label: "Test Postback" },
+      { to: "/admin/downward-partners", icon: Activity, label: "Downward Partners" },
       { to: "/admin/downward-partners", icon: Activity, label: "Downward Partners" },
       { to: "/admin/sub-admins", icon: ShieldCheck, label: "Subadmins" },
     ],
