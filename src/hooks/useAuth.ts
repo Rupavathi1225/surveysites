@@ -54,8 +54,23 @@ export function useAuth() {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
-    setProfile(data as Profile | null);
+    const { data } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
+    if (data) {
+      setProfile(data as Profile);
+    } else {
+      // Auto-create profile if missing
+      const { data: userData } = await supabase.auth.getUser();
+      const email = userData?.user?.email || "";
+      const newRefCode = Math.random().toString(36).substring(2, 12).toUpperCase();
+      await supabase.from("profiles").insert({
+        user_id: userId,
+        email,
+        username: email.split("@")[0],
+        referral_code: newRefCode,
+      });
+      const { data: newProfile } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
+      setProfile(newProfile as Profile | null);
+    }
     setLoading(false);
   };
 
