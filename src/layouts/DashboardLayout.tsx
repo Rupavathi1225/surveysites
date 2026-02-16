@@ -5,25 +5,56 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
-  LogOut, Shield, Globe, Menu, X, DollarSign, Star
+  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, Image
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const navItems = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/dashboard/balance-history", icon: History, label: "Balance History" },
-  { to: "/dashboard/update-account", icon: UserCog, label: "Update Account" },
-  { to: "/dashboard/inbox", icon: Mail, label: "Inbox" },
-  { to: "/dashboard/affiliates", icon: Users, label: "Your Affiliates" },
-  { to: "/dashboard/withdrawal", icon: Wallet, label: "Withdrawal" },
-  { to: "/dashboard/convert-points", icon: ArrowLeftRight, label: "Convert Points" },
-  { to: "/dashboard/daily-surveys", icon: ClipboardList, label: "Daily Surveys" },
-  { to: "/dashboard/offers", icon: Gift, label: "Offers" },
-  { to: "/dashboard/contest", icon: Trophy, label: "Contest" },
-  { to: "/dashboard/news", icon: Newspaper, label: "News" },
-  { to: "/dashboard/promocode", icon: Tag, label: "Promocode" },
-  { to: "/dashboard/withdrawal-history", icon: CreditCard, label: "Withdrawal History" },
-  { to: "/dashboard/leaderboard", icon: Star, label: "Leaderboard" },
-  { to: "/dashboard/support", icon: HelpCircle, label: "Support Ticket" },
+interface NavGroup {
+  label: string;
+  items: { to: string; icon: any; label: string }[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Dashboard",
+    items: [
+      { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    ],
+  },
+  {
+    label: "Account & Finance",
+    items: [
+      { to: "/dashboard/balance-history", icon: History, label: "Balance History" },
+      { to: "/dashboard/withdrawal", icon: Wallet, label: "Withdrawal" },
+      { to: "/dashboard/withdrawal-history", icon: CreditCard, label: "Withdrawal History" },
+      { to: "/dashboard/convert-points", icon: ArrowLeftRight, label: "Convert Points" },
+      { to: "/dashboard/update-account", icon: UserCog, label: "Update Account" },
+    ],
+  },
+  {
+    label: "Earnings & Activities",
+    items: [
+      { to: "/dashboard/daily-surveys", icon: ClipboardList, label: "Daily Surveys" },
+      { to: "/dashboard/offers", icon: Gift, label: "Offers" },
+      { to: "/dashboard/contest", icon: Trophy, label: "Contest" },
+      { to: "/dashboard/promocode", icon: Tag, label: "Promocode" },
+    ],
+  },
+  {
+    label: "Network & Performance",
+    items: [
+      { to: "/dashboard/affiliates", icon: Users, label: "Your Affiliates" },
+      { to: "/dashboard/leaderboard", icon: Star, label: "Leaderboard" },
+    ],
+  },
+  {
+    label: "Communication & Support",
+    items: [
+      { to: "/dashboard/inbox", icon: Mail, label: "Inbox" },
+      { to: "/dashboard/news", icon: Newspaper, label: "News" },
+      { to: "/dashboard/support", icon: HelpCircle, label: "Support Ticket" },
+    ],
+  },
 ];
 
 // Module-level flag: resets on every page refresh/new tab (JS re-executes)
@@ -34,22 +65,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
-  // Track session: every new page refresh/tab gets a unique session
+  // Auto-expand the group that contains the active route
+  useEffect(() => {
+    const expanded: Record<string, boolean> = {};
+    navGroups.forEach((group) => {
+      if (group.items.some((item) => location.pathname === item.to)) {
+        expanded[group.label] = true;
+      }
+    });
+    setExpandedGroups((prev) => ({ ...prev, ...expanded }));
+  }, [location.pathname]);
+
+  // Track session
   useEffect(() => {
     if (!profile?.id || sessionTrackedThisLoad) return;
     sessionTrackedThisLoad = true;
-
-    // Generate a fresh session ID for every new page load
     const sessionId = crypto.randomUUID();
     sessionStorage.setItem("session_id", sessionId);
-
     supabase.functions.invoke("track-login", {
       body: { user_agent: navigator.userAgent, method: "SESSION_RESUME", session_id: sessionId },
     }).then(({ data }) => {
-      if (data?.login_log_id) {
-        sessionStorage.setItem("login_log_id", data.login_log_id);
-      }
+      if (data?.login_log_id) sessionStorage.setItem("login_log_id", data.login_log_id);
     }).catch(e => console.error("Session tracking failed:", e));
   }, [profile?.id]);
 
@@ -70,51 +108,97 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     navigate("/auth");
   };
 
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* Mobile toggle */}
-      <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card rounded-lg">
+      <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card rounded-lg border border-border">
         {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}>
-        <div className="p-4">
-          <Link to="/dashboard" className="flex items-center gap-2 mb-2">
-            <Globe className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold text-primary">SurveySite</span>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-60 bg-sidebar border-r border-sidebar-border transform transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}>
+        <div className="p-4 pb-2">
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-primary" />
+            <span className="text-base font-bold text-primary">SurveySite</span>
           </Link>
           {profile && (
-            <div className="mt-3 mb-4">
-              <p className="font-medium text-sm">{profile.first_name || profile.username}</p>
-              <p className="text-xs text-muted-foreground">{profile.email}</p>
+            <div className="mt-3 mb-2">
+              <p className="font-medium text-xs">{profile.first_name || profile.username}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{profile.email}</p>
             </div>
           )}
         </div>
-        <nav className="px-2 space-y-0.5">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2 text-sm ${
-                location.pathname === item.to ? "nav-link-active" : "nav-link-hover text-sidebar-foreground"
-              }`}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          ))}
+
+        <nav className="px-2 pb-4">
+          {navGroups.map((group) => {
+            const isExpanded = expandedGroups[group.label] ?? false;
+            const isActive = group.items.some((item) => location.pathname === item.to);
+
+            return (
+              <div key={group.label} className="mb-1">
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className={cn(
+                    "flex items-center justify-between w-full px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider rounded-md transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span>{group.label}</span>
+                  {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                </button>
+                {isExpanded && (
+                  <div className="ml-1 space-y-0.5 mt-0.5">
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setSidebarOpen(false)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
+                          location.pathname === item.to
+                            ? "bg-primary/15 text-primary font-medium"
+                            : "text-sidebar-foreground hover:bg-accent/50"
+                        )}
+                      >
+                        <item.icon className="h-3.5 w-3.5" />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Admin Panel - only for admins */}
           {isAdminOrSubAdmin && (
-            <Link to="/admin" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-3 py-2 text-sm nav-link-hover text-sidebar-foreground">
-              <Shield className="h-4 w-4" />
-              Admin Panel
-            </Link>
+            <div className="mb-1">
+              <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</p>
+              <div className="ml-1">
+                <Link to="/admin" onClick={() => setSidebarOpen(false)} className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
+                  location.pathname.startsWith("/admin")
+                    ? "bg-primary/15 text-primary font-medium"
+                    : "text-sidebar-foreground hover:bg-accent/50"
+                )}>
+                  <Shield className="h-3.5 w-3.5" />
+                  Admin Panel
+                </Link>
+              </div>
+            </div>
           )}
-          <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 text-sm nav-link-hover text-sidebar-foreground w-full">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
+
+          <div className="mt-2 border-t border-sidebar-border pt-2">
+            <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 text-xs text-sidebar-foreground hover:bg-accent/50 rounded-md w-full transition-colors">
+              <LogOut className="h-3.5 w-3.5" />
+              Logout
+            </button>
+          </div>
         </nav>
       </aside>
 
@@ -123,17 +207,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        {/* Top bar */}
-        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-2.5 flex items-center justify-between">
           <div className="lg:hidden w-8" />
           <div className="flex items-center gap-4 ml-auto">
             {profile && (
               <>
-                <div className="text-right text-sm">
+                <div className="text-right text-xs">
                   <span className="text-muted-foreground">Cash Balance</span>
                   <p className="font-bold text-primary">${Number(profile.cash_balance).toFixed(2)}</p>
                 </div>
-                <div className="text-right text-sm">
+                <div className="text-right text-xs">
                   <span className="text-muted-foreground">Points</span>
                   <p className="font-bold">{profile.points}</p>
                 </div>
@@ -141,7 +224,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
           </div>
         </header>
-        <div className="p-6 animate-fade-in">
+        <div className="p-4 md:p-6 animate-fade-in">
           {children}
         </div>
       </main>
