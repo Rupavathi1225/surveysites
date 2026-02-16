@@ -7,29 +7,33 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import {
   DollarSign, Star, Lock, TrendingUp, Users, Gift, ClipboardList,
-  Wallet, ArrowLeftRight, Copy, CheckCircle, AlertCircle, Send, MessageCircle, X
+  Wallet, ArrowLeftRight, Copy, CheckCircle, AlertCircle, Send, MessageCircle, Activity
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const DashboardHome = () => {
   const { profile, user } = useAuth();
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [lastCredited, setLastCredited] = useState<any[]>([]);
   const [surveyProviders, setSurveyProviders] = useState<any[]>([]);
   const [surveyLinks, setSurveyLinks] = useState<any[]>([]);
-  const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const referralLink = profile ? `${window.location.origin}/auth?ref=${profile.referral_code}` : "";
 
   useEffect(() => {
     if (!profile) return;
+    // Fetch data
+    supabase.from("notifications").select("*").lte("created_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(20).then(({ data }) => setNotifications(data || []));
     supabase.from("earning_history").select("*").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(5).then(({ data }) => setLastCredited(data || []));
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
     supabase.from("survey_links").select("*").eq("status", "active").then(({ data }) => setSurveyLinks(data || []));
+    supabase.from("chat_messages").select("*").order("created_at", { ascending: false }).limit(50).then(({ data }) => setChatMessages((data || []).reverse()));
   }, [profile]);
 
-  const loadChat = async () => {
-    const { data } = await supabase.from("chat_messages").select("*").order("created_at", { ascending: false }).limit(50);
-    setChatMessages((data || []).reverse());
+  const copyReferral = () => {
+    navigator.clipboard.writeText(referralLink);
+    toast({ title: "Copied!", description: "Referral link copied to clipboard" });
   };
 
   const sendChat = async () => {
@@ -45,65 +49,73 @@ const DashboardHome = () => {
       await supabase.from("profiles").update({ points: profile.points - 1 }).eq("id", profile.id);
     }
     setChatInput("");
-    loadChat();
-  };
-
-  const referralLink = profile ? `${window.location.origin}/auth?ref=${profile.referral_code}` : "";
-  const copyReferral = () => {
-    navigator.clipboard.writeText(referralLink);
-    toast({ title: "Copied!", description: "Referral link copied to clipboard" });
+    // Refresh
+    const { data } = await supabase.from("chat_messages").select("*").order("created_at", { ascending: false }).limit(50);
+    setChatMessages((data || []).reverse());
   };
 
   if (!profile) return <div className="text-center py-10 text-muted-foreground">Loading...</div>;
 
   const walletCards = [
-    { icon: DollarSign, label: "Cash", value: `$${Number(profile.cash_balance).toFixed(2)}`, color: "text-primary" },
+    { icon: DollarSign, label: "Cash Balance", value: `$${Number(profile.cash_balance).toFixed(2)}`, color: "text-primary" },
     { icon: Star, label: "Points", value: profile.points.toString(), color: "text-info" },
-    { icon: Lock, label: "Locked", value: profile.locked_points.toString(), color: "text-muted-foreground" },
-    { icon: TrendingUp, label: "Payouts", value: "$0.00", color: "text-success" },
-    { icon: Users, label: "Referrals", value: "0", color: "text-info" },
-    { icon: Gift, label: "Ref. Earn", value: "$0.00", color: "text-primary" },
+    { icon: Lock, label: "Locked Points", value: profile.locked_points.toString(), color: "text-muted-foreground" },
+    { icon: TrendingUp, label: "Lifetime Payouts", value: "$0.00", color: "text-success" },
+    { icon: Users, label: "Referral Count", value: "0", color: "text-info" },
+    { icon: Gift, label: "Referral Earnings", value: "$0.00", color: "text-primary" },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Welcome */}
-      <Card className="border-0 bg-gradient-to-r from-primary/10 to-transparent">
-        <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <Card>
+        <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold">Welcome back, <span className="text-primary">{profile.first_name || profile.username}!</span></h1>
-            <p className="text-muted-foreground text-xs mt-0.5">
+            <h1 className="text-2xl font-bold">Welcome back, <span className="text-primary">{profile.first_name || profile.username}!</span></h1>
+            <p className="text-muted-foreground text-sm mt-1">
               Member since {new Date(profile.created_at).toLocaleDateString()} &nbsp;
               {profile.is_verified ? (
-                <span className="inline-flex items-center gap-1 text-success"><CheckCircle className="h-3 w-3" /> Verified</span>
+                <span className="inline-flex items-center gap-1 text-success"><CheckCircle className="h-3.5 w-3.5" /> Verified</span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-warning"><AlertCircle className="h-3 w-3" /> Unverified</span>
+                <span className="inline-flex items-center gap-1 text-warning"><AlertCircle className="h-3.5 w-3.5" /> Unverified</span>
               )}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-muted-foreground text-[10px]">Available Balance</p>
-            <p className="text-2xl font-bold text-primary">${Number(profile.cash_balance).toFixed(2)}</p>
-            <Link to="/dashboard/withdrawal"><Button size="sm" className="mt-1 h-7 text-xs">Withdraw</Button></Link>
+            <p className="text-muted-foreground text-xs">Available Balance</p>
+            <p className="text-3xl font-bold text-primary">${Number(profile.cash_balance).toFixed(2)}</p>
+            <Link to="/dashboard/withdrawal"><Button size="sm" className="mt-2">Withdraw</Button></Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Refer & Earn */}
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Refer & Earn</h2>
+          <p className="text-muted-foreground text-sm mb-3">Share your referral link and earn points from new members</p>
+          <div className="flex gap-2">
+            <Input value={referralLink} readOnly className="flex-1 text-xs" />
+            <Button onClick={copyReferral} variant="outline" size="sm"><Copy className="h-4 w-4 mr-1" /> Copy</Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: ClipboardList, label: "Surveys", to: "/dashboard/daily-surveys", bg: "bg-info" },
-          { icon: Gift, label: "Offers", to: "/dashboard/offers", bg: "bg-success" },
-          { icon: Wallet, label: "Withdraw", to: "/dashboard/withdrawal", bg: "bg-primary" },
-          { icon: ArrowLeftRight, label: "Convert", to: "/dashboard/convert-points", bg: "bg-warning" },
+          { icon: ClipboardList, label: "Daily Surveys", to: "/dashboard/daily-surveys", bg: "bg-info" },
+          { icon: Gift, label: "Exclusive Offers", to: "/dashboard/offers", bg: "bg-success" },
+          { icon: Wallet, label: "Withdraw Cash", to: "/dashboard/withdrawal", bg: "bg-primary" },
+          { icon: ArrowLeftRight, label: "Convert Points", to: "/dashboard/convert-points", bg: "bg-warning" },
         ].map((action) => (
           <Link key={action.to} to={action.to}>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer border-0">
-              <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
-                <div className={`${action.bg} p-2 rounded-full`}>
-                  <action.icon className="h-4 w-4 text-primary-foreground" />
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className={`${action.bg} p-3 rounded-full`}>
+                  <action.icon className="h-5 w-5 text-primary-foreground" />
                 </div>
-                <span className="text-[11px] font-medium">{action.label}</span>
+                <span className="text-sm font-medium">{action.label}</span>
               </CardContent>
             </Card>
           </Link>
@@ -111,37 +123,34 @@ const DashboardHome = () => {
       </div>
 
       {/* Wallet Summary */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {walletCards.map((card) => (
-          <Card key={card.label} className="border-0">
-            <CardContent className="p-3 flex items-center gap-2">
-              <card.icon className={`h-4 w-4 ${card.color} shrink-0`} />
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground truncate">{card.label}</p>
-                <p className={`text-sm font-bold ${card.color}`}>{card.value}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={card.label} className="stat-card">
+            <card.icon className={`h-5 w-5 ${card.color}`} />
+            <div>
+              <p className="text-xs text-muted-foreground">{card.label}</p>
+              <p className={`font-bold ${card.color}`}>{card.value}</p>
+            </div>
+          </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-6">
         {/* Recommended Offerwalls */}
-        <Card className="border-0">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-semibold">Recommended Offerwalls</CardTitle>
-            <p className="text-[10px] text-muted-foreground">Complete offers to earn points</p>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Recommended Offerwalls</CardTitle><p className="text-sm text-muted-foreground">Complete offers to earn points</p></CardHeader>
+          <CardContent>
             {surveyProviders.length === 0 ? (
-              <p className="text-muted-foreground text-xs text-center py-4">No offerwalls available</p>
+              <p className="text-muted-foreground text-sm text-center py-6">No offerwalls available</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {surveyProviders.map((p) => (
-                  <div key={p.id} className="p-2.5 rounded-lg bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
-                    <p className="font-medium text-xs">{p.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{p.content || "Complete offers"}</p>
-                  </div>
+                  <Card key={p.id} className="hover:border-primary/50 transition-colors cursor-pointer">
+                    <CardContent className="p-3 text-center">
+                      <p className="font-medium text-sm">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.content || "Complete offers"}</p>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
@@ -149,23 +158,20 @@ const DashboardHome = () => {
         </Card>
 
         {/* Daily Surveys */}
-        <Card className="border-0">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-semibold">Daily Surveys</CardTitle>
-            <p className="text-[10px] text-muted-foreground">Complete surveys to earn quick points</p>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Daily Surveys</CardTitle><p className="text-sm text-muted-foreground">Complete surveys to earn quick points</p></CardHeader>
+          <CardContent>
             {surveyLinks.length === 0 ? (
-              <p className="text-muted-foreground text-xs text-center py-4">No surveys available</p>
+              <p className="text-muted-foreground text-sm text-center py-6">No surveys available</p>
             ) : (
-              <div className="space-y-2">
-                {surveyLinks.slice(0, 4).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-accent/40">
+              <div className="space-y-3">
+                {surveyLinks.slice(0, 3).map((s) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/50">
                     <div>
-                      <p className="font-medium text-xs">{s.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{s.content || "Answer questions"}</p>
+                      <p className="font-medium text-sm">{s.name}</p>
+                      <p className="text-xs text-muted-foreground">{s.content || "Answer questions"}</p>
                     </div>
-                    <span className="text-primary font-bold text-xs">{s.payout} pts</span>
+                    <span className="text-primary font-bold text-sm">{s.payout} pts</span>
                   </div>
                 ))}
               </div>
@@ -174,73 +180,88 @@ const DashboardHome = () => {
         </Card>
       </div>
 
-      {/* Last Credited */}
-      <Card className="border-0">
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-semibold">Last Credited</CardTitle>
+      {/* Live Activity Feed */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" /> Live Activity Feed
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Recent activity across the platform</p>
         </CardHeader>
-        <CardContent className="px-4 pb-4">
-          {lastCredited.length === 0 ? (
-            <p className="text-muted-foreground text-xs text-center py-4">No earnings yet</p>
-          ) : (
-            <div className="space-y-1.5">
-              {lastCredited.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-2.5 bg-accent/40 rounded-lg">
-                  <div>
-                    <p className="font-medium text-xs">{e.description || e.offer_name}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
+        <CardContent>
+          <div className="h-48 overflow-y-auto space-y-2">
+            {notifications.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-6">No activity yet</p>
+            ) : (
+              notifications.map((n) => {
+                const iconMap: Record<string, string> = {
+                  signup: "🎉", login: "👋", offer_completed: "✅", promo_redeemed: "🎁", promo_added: "🔥",
+                  offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢", contest_created: "🏆", contest_winner: "🏆", contest_ended: "🏁",
+                };
+                return (
+                  <div key={n.id} className="flex items-start gap-2 p-2 bg-accent/40 rounded-lg text-sm">
+                    <span className="text-base mt-0.5">{iconMap[n.type] || "📢"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm">{n.message}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                    </div>
                   </div>
-                  <span className="text-success font-bold text-xs">+{e.amount} pts</span>
-                </div>
-              ))}
-            </div>
-          )}
+                );
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Floating Chat Button */}
-      <button
-        onClick={() => { setChatOpen(!chatOpen); if (!chatOpen) loadChat(); }}
-        className="fixed bottom-5 right-5 z-50 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors"
-      >
-        {chatOpen ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
-      </button>
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Live Chat */}
+        <Card>
+          <CardHeader><CardTitle className="text-lg flex items-center gap-2"><MessageCircle className="h-5 w-5 text-primary" /> Live Chat</CardTitle></CardHeader>
+          <CardContent>
+            <div className="h-64 overflow-y-auto space-y-2 mb-3 bg-accent/30 rounded-lg p-3">
+              {chatMessages.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-6">No messages yet</p>
+              ) : (
+                chatMessages.map((m) => (
+                  <div key={m.id} className={`text-xs p-2 rounded ${m.is_admin ? "bg-primary/20" : "bg-card"}`}>
+                    <span className="font-medium">{m.is_admin ? "Admin" : "User"}</span>: {m.message}
+                    <span className="text-muted-foreground ml-2">{new Date(m.created_at).toLocaleTimeString()}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Type a message..." onKeyDown={(e) => e.key === "Enter" && sendChat()} />
+              <Button onClick={sendChat} size="sm"><Send className="h-4 w-4" /></Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {profile.free_messages_remaining > 0 ? `${profile.free_messages_remaining} free messages left` : "1 point per message"}
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Floating Affiliates Button */}
-      <Link
-        to="/dashboard/affiliates"
-        className="fixed bottom-5 right-20 z-50 bg-info text-primary-foreground p-3 rounded-full shadow-lg hover:bg-info/90 transition-colors"
-      >
-        <Users className="h-5 w-5" />
-      </Link>
-
-      {/* Chat Panel */}
-      {chatOpen && (
-        <div className="fixed bottom-20 right-5 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
-          <div className="p-3 bg-primary/10 border-b border-border flex items-center justify-between">
-            <h3 className="text-xs font-semibold flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5 text-primary" /> Live Chat</h3>
-            <button onClick={() => setChatOpen(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
-          </div>
-          <div className="h-56 overflow-y-auto p-3 space-y-1.5">
-            {chatMessages.length === 0 ? (
-              <p className="text-muted-foreground text-[10px] text-center py-6">No messages yet</p>
+        {/* Last Credited */}
+        <Card>
+          <CardHeader><CardTitle className="text-lg">Last Credited</CardTitle></CardHeader>
+          <CardContent>
+            {lastCredited.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-6">No earnings yet</p>
             ) : (
-              chatMessages.map((m) => (
-                <div key={m.id} className={`text-[11px] p-1.5 rounded ${m.is_admin ? "bg-primary/15" : "bg-accent/50"}`}>
-                  <span className="font-medium">{m.is_admin ? "Admin" : "You"}</span>: {m.message}
-                </div>
-              ))
+              <div className="space-y-2">
+                {lastCredited.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-sm">{e.description || e.offer_name}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <span className="text-success font-bold text-sm">+{e.amount} pts</span>
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
-          <div className="p-2 border-t border-border flex gap-1.5">
-            <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Type..." className="h-7 text-xs" onKeyDown={(e) => e.key === "Enter" && sendChat()} />
-            <Button onClick={sendChat} size="sm" className="h-7 w-7 p-0"><Send className="h-3 w-3" /></Button>
-          </div>
-          <p className="text-[9px] text-muted-foreground px-2 pb-1.5">
-            {profile.free_messages_remaining > 0 ? `${profile.free_messages_remaining} free left` : "1 pt/msg"}
-          </p>
-        </div>
-      )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
