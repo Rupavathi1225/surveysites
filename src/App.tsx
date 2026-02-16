@@ -42,6 +42,7 @@ import AdminChats from "./pages/admin/AdminChats";
 import AdminClickTracking from "./pages/admin/AdminClickTracking";
 import DownwardPartners from "./pages/admin/DownwardPartners";
 import PostbackLogs from "./pages/admin/PostbackLogs";
+import TestPostback from "./pages/admin/TestPostback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -115,6 +116,7 @@ const App = () => (
           <Route path="/admin/click-tracking" element={<AdminPage><AdminClickTracking /></AdminPage>} />
           <Route path="/admin/downward-partners" element={<AdminPage><DownwardPartners /></AdminPage>} />
           <Route path="/admin/postback-logs" element={<AdminPage><PostbackLogs /></AdminPage>} />
+          <Route path="/admin/test-postback" element={<AdminPage><TestPostback /></AdminPage>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
