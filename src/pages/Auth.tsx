@@ -72,7 +72,7 @@ const Auth = () => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: "https://youtube.com" }
+      options: { emailRedirectTo: `${window.location.origin}/auth` }
     });
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
