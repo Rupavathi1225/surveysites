@@ -11,6 +11,7 @@ import {
   Activity, UserPlus, LogIn, Tag, CreditCard, Bell
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import ActivityTicker from "@/components/ActivityTicker";
 
 const DashboardHome = () => {
   const { profile, user } = useAuth();
@@ -77,6 +78,9 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-4">
+      {/* Activity Ticker */}
+      <ActivityTicker />
+
       {/* Welcome */}
       <Card className="border-0 bg-gradient-to-r from-primary/10 to-transparent">
         <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">

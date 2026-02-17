@@ -83,3 +83,16 @@
     @apply text-muted-foreground hover:text-foreground px-4 py-2 text-sm font-medium rounded-lg hover:bg-accent transition-colors;
   }
 }
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-scroll {
+  animation: scroll-left 30s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
