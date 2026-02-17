@@ -6,11 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import {
-  LogIn, UserPlus, Mail, Lock, User, Globe,
-  DollarSign, Star, ClipboardList, Gift, Wallet, ArrowLeftRight,
-  TrendingUp, Users, Activity, Copy
-} from "lucide-react";
+import { LogIn, UserPlus, Mail, Lock, User, Globe } from "lucide-react";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -158,119 +154,15 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Realistic blurred dashboard background */}
-      <div className="absolute inset-0 bg-background">
-        <div className="blur-[3px] opacity-30 pointer-events-none min-h-screen">
-          {/* Sidebar */}
-          <div className="flex min-h-screen">
-            <div className="w-48 bg-card border-r border-border p-3 space-y-3">
-              <div className="flex items-center gap-2 mb-4">
-                <Globe className="h-5 w-5 text-primary" />
-                <span className="text-sm font-bold text-primary">SurveySite</span>
-              </div>
-              <div className="text-[10px] text-muted-foreground mb-1">user@email.com</div>
-              {["Dashboard", "Daily Surveys", "Offers", "Withdrawal", "Convert Points", "Leaderboard", "Affiliates"].map(item => (
-                <div key={item} className="text-xs py-1.5 px-2 rounded bg-accent/30">{item}</div>
-              ))}
-            </div>
-            {/* Main content area */}
-            <div className="flex-1 p-4 space-y-3">
-              {/* Ticker bar */}
-              <div className="h-8 bg-primary/10 rounded-lg flex items-center px-3 gap-6">
-                {["user1 earned $5.00", "user2 earned $10.00", "user3 earned $2.50", "user4 earned $15.00"].map((t, i) => (
-                  <span key={i} className="text-[10px] text-primary whitespace-nowrap flex items-center gap-1">
-                    <DollarSign className="h-3 w-3" /> {t}
-                  </span>
-                ))}
-              </div>
-              {/* Welcome row */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold">Hi, <span className="text-primary">User</span> ✓</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-primary text-sm font-bold">$8.09</span>
-                  <div className="h-5 w-16 bg-primary rounded text-[8px] text-primary-foreground flex items-center justify-center">Withdraw</div>
-                </div>
-              </div>
-              {/* Quick actions */}
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { icon: ClipboardList, label: "Surveys", bg: "bg-info" },
-                  { icon: Gift, label: "Offers", bg: "bg-success" },
-                  { icon: Wallet, label: "Withdraw", bg: "bg-primary" },
-                  { icon: ArrowLeftRight, label: "Convert", bg: "bg-warning" },
-                ].map((a) => (
-                  <div key={a.label} className="flex flex-col items-center gap-1 p-2 rounded-lg">
-                    <div className={`${a.bg} p-1.5 rounded-full`}>
-                      <a.icon className="h-3 w-3 text-primary-foreground" />
-                    </div>
-                    <span className="text-[8px]">{a.label}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Wallet cards */}
-              <div className="grid grid-cols-6 gap-1.5">
-                {[
-                  { icon: DollarSign, label: "Cash", value: "$8.09" },
-                  { icon: Star, label: "Points", value: "352" },
-                  { icon: Lock, label: "Locked", value: "0" },
-                  { icon: TrendingUp, label: "Payouts", value: "$0.00" },
-                  { icon: Users, label: "Referrals", value: "0" },
-                  { icon: Gift, label: "Ref. Earn", value: "$0.00" },
-                ].map((c) => (
-                  <div key={c.label} className="bg-card border border-border rounded p-1.5">
-                    <div className="text-[7px] text-muted-foreground">{c.label}</div>
-                    <div className="text-[10px] font-bold text-primary">{c.value}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Refer & Earn */}
-              <div className="flex items-center gap-2 p-2 rounded bg-success/10 border border-success/20">
-                <Gift className="h-3 w-3 text-success" />
-                <span className="text-[8px] font-semibold">Refer & Earn</span>
-                <div className="h-4 flex-1 bg-accent/50 rounded px-1 text-[7px] flex items-center">http://localhost/auth?ref=A14CA8CF8B</div>
-                <Copy className="h-3 w-3 text-muted-foreground" />
-              </div>
-              {/* Offerwalls + Surveys */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-card border border-border rounded p-2">
-                  <div className="text-[9px] font-semibold mb-1">Recommended Offerwalls</div>
-                  <div className="grid grid-cols-3 gap-1">
-                    {["moustache", "test", "abc", "hello", "rl.xy", "cricket"].map(n => (
-                      <div key={n} className="bg-accent/40 rounded p-1 text-center text-[8px]">{n}</div>
-                    ))}
-                  </div>
-                </div>
-                <div className="bg-card border border-border rounded p-2">
-                  <div className="text-[9px] font-semibold mb-1">Daily Surveys</div>
-                  <div className="space-y-0.5">
-                    {["hello"].map(n => (
-                      <div key={n} className="flex justify-between bg-accent/40 rounded p-1 text-[8px]">
-                        <span>{n}</span><span className="text-primary">1 pts</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {/* Last Credited + Live Activity */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-card border border-border rounded p-2">
-                  <div className="text-[9px] font-semibold mb-1">Last Credited</div>
-                  {["Postback from cricket", "Postback from tolgate", "Postback from ricky", "Postback from uma"].map((t, i) => (
-                    <div key={i} className="flex justify-between text-[8px] py-0.5">
-                      <span>{t}</span><span className="text-success">+{[7, 20, 10, 30][i]} pts</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="bg-card border border-border rounded p-2">
-                  <div className="text-[9px] font-semibold mb-1 flex items-center gap-1"><Activity className="h-2 w-2 text-primary" /> Live Activity</div>
-                  {["badboysai redeemed promocode", "New promocode added", "New offer added: reshma", "badboysai just logged in"].map((t, i) => (
-                    <div key={i} className="text-[8px] py-0.5">{t}</div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Blurred real dashboard background via iframe */}
+      <div className="absolute inset-0">
+        <iframe
+          src="/dashboard"
+          className="w-full h-full border-0 pointer-events-none"
+          style={{ filter: "blur(4px)", opacity: 0.35 }}
+          tabIndex={-1}
+          title="Background"
+        />
       </div>
 
       {/* Main auth form */}

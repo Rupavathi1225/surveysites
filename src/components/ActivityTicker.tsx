@@ -117,14 +117,11 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           {doubled.map((item, i) => {
             const Icon = iconMap[item.icon || ""] || Bell;
             return (
-              <div key={`${item.id}-${i}`} className="flex items-center gap-1.5 px-2 shrink-0">
-                <div className="h-5 w-5 rounded-full bg-accent flex items-center justify-center shrink-0">
-                  <Icon className="h-2.5 w-2.5 text-muted-foreground" />
+              <div key={`${item.id}-${i}`} className="flex items-center gap-1 px-2 shrink-0">
+                <div className="h-4 w-4 rounded-full bg-accent flex items-center justify-center shrink-0">
+                  <Icon className="h-2 w-2 text-muted-foreground" />
                 </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-[9px] font-medium text-foreground truncate max-w-[100px]">{item.text}</span>
-                  <span className="text-[8px] text-muted-foreground truncate max-w-[100px]">{item.subtext}</span>
-                </div>
+                <span className="text-[9px] font-medium text-foreground truncate max-w-[140px]">{item.text}: {item.subtext}</span>
                 {item.badge && (
                   <span className="text-[9px] font-bold text-success ml-0.5">{item.badge}</span>
                 )}
