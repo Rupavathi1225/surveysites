@@ -4,11 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import {
-  DollarSign, Star, Lock, TrendingUp, Users, Gift, ClipboardList,
-  Wallet, ArrowLeftRight, Copy, CheckCircle, AlertCircle, Send, MessageCircle, X
-} from "lucide-react";
+import { ExternalLink, Monitor, Smartphone, Tablet, Send, MessageCircle, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import ActivityTicker from "@/components/ActivityTicker";
 
@@ -16,6 +14,7 @@ const DashboardHome = () => {
   const { profile, user } = useAuth();
   const [surveyProviders, setSurveyProviders] = useState<any[]>([]);
   const [surveyLinks, setSurveyLinks] = useState<any[]>([]);
+  const [offers, setOffers] = useState<any[]>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -23,7 +22,8 @@ const DashboardHome = () => {
   useEffect(() => {
     if (!profile) return;
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
-    supabase.from("survey_links").select("*").eq("status", "active").then(({ data }) => setSurveyLinks(data || []));
+    supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyLinks(data || []));
+    supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
   }, [profile]);
 
   const loadChat = async () => {
@@ -47,70 +47,105 @@ const DashboardHome = () => {
     loadChat();
   };
 
-  const referralLink = profile ? `${window.location.origin}/auth?ref=${profile.referral_code}` : "";
-  const copyReferral = () => {
-    navigator.clipboard.writeText(referralLink);
-    toast({ title: "Copied!", description: "Referral link copied to clipboard" });
-  };
-
   if (!profile) return <div className="text-center py-10 text-muted-foreground">Loading...</div>;
 
-  const walletCards = [
-    { icon: DollarSign, label: "Cash", value: `$${Number(profile.cash_balance).toFixed(2)}`, color: "text-primary" },
-    { icon: Star, label: "Points", value: profile.points.toString(), color: "text-info" },
-    { icon: Lock, label: "Locked", value: profile.locked_points.toString(), color: "text-muted-foreground" },
-    { icon: TrendingUp, label: "Payouts", value: "$0.00", color: "text-success" },
-    { icon: Users, label: "Referrals", value: "0", color: "text-info" },
-    { icon: Gift, label: "Ref. Earn", value: "$0.00", color: "text-primary" },
-  ];
+  const featuredTasks = [...surveyLinks, ...offers];
 
-  
+  const deviceIcons = (device: string) => {
+    const d = (device || "").toLowerCase();
+    return (
+      <div className="flex gap-0.5">
+        {(d.includes("desktop") || d.includes("all") || !d) && <Monitor className="h-3 w-3 text-muted-foreground" />}
+        {(d.includes("mobile") || d.includes("all") || !d) && <Smartphone className="h-3 w-3 text-muted-foreground" />}
+        {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-3 w-3 text-muted-foreground" />}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-1">
-      {/* Activity Ticker (earnings + last credited + notifications combined) */}
+    <div className="space-y-3">
+      {/* Live Activity Ticker */}
       <ActivityTicker userId={profile.id} />
 
-      {/* 2. Activity Ticker (earnings + last credited + notifications combined) */}
-      <ActivityTicker userId={profile.id} />
-      {/* 6. Offerwalls + Surveys side by side */}
-      <div className="grid lg:grid-cols-2 gap-1.5">
-        <Card className="border-0">
-          <CardContent className="p-1.5">
-            <h3 className="text-[9px] font-semibold mb-1">Recommended Offerwalls</h3>
-            {surveyProviders.length === 0 ? (
-              <p className="text-muted-foreground text-[8px] text-center py-1">No offerwalls available</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-0.5">
-                {surveyProviders.slice(0, 6).map((p) => (
-                  <div key={p.id} className="p-1 rounded bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
-                    <p className="font-medium text-[8px] truncate">{p.name}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Featured Tasks */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <h2 className="text-lg font-bold">Featured Tasks</h2>
+            <p className="text-xs text-muted-foreground">Featured tasks are the best tasks to complete, with the highest rewards</p>
+          </div>
+          <Link to="/dashboard/daily-surveys" className="text-xs text-primary hover:underline">View All</Link>
+        </div>
 
-        <Card className="border-0">
-          <CardContent className="p-1.5">
-            <h3 className="text-[9px] font-semibold mb-1">Daily Surveys</h3>
-            {surveyLinks.length === 0 ? (
-              <p className="text-muted-foreground text-[8px] text-center py-1">No surveys available</p>
-            ) : (
-              <div className="space-y-0.5">
-                {surveyLinks.slice(0, 4).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-0.5 px-1 rounded bg-accent/40">
-                    <p className="font-medium text-[8px] truncate">{s.name}</p>
-                    <span className="text-primary font-bold text-[8px] shrink-0">{s.payout} pts</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {featuredTasks.length === 0 ? (
+          <p className="text-muted-foreground text-xs text-center py-6">No featured tasks available. Check back later!</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+            {featuredTasks.map((item) => {
+              const isOffer = "title" in item && "url" in item && !("link" in item);
+              const name = isOffer ? item.title : item.name;
+              const payout = item.payout;
+              const imgUrl = item.image_url;
+
+              return (
+                <Card key={item.id} className="overflow-hidden hover:border-primary/50 transition-all cursor-pointer group border-0">
+                  <CardContent className="p-0">
+                    {imgUrl ? (
+                      <div className="aspect-square bg-accent overflow-hidden">
+                        <img src={imgUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center">
+                        <span className="text-2xl font-bold text-primary/40">{(name || "?")[0]}</span>
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <p className="font-semibold text-xs truncate">{name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-primary font-bold text-xs">$ {Number(payout || 0).toFixed(2)}</span>
+                        {deviceIcons(item.device || item.devices || "")}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
+      {/* Offer Walls */}
+      {surveyProviders.length > 0 && (
+        <div>
+          <div className="mb-1">
+            <h2 className="text-lg font-bold">Offer Walls</h2>
+            <p className="text-xs text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+            {surveyProviders.map((p) => (
+              <Card key={p.id} className="hover:border-primary/50 transition-colors cursor-pointer border-0 relative">
+                <CardContent className="p-4 text-center">
+                  {p.point_percentage > 100 && (
+                    <Badge className="absolute top-1.5 right-1.5 text-[9px] px-1.5 py-0 bg-primary/90 text-primary-foreground">+{p.point_percentage - 100}%</Badge>
+                  )}
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-12 object-contain mb-2" />
+                  ) : (
+                    <div className="h-12 flex items-center justify-center mb-2">
+                      <span className="text-lg font-bold text-primary/60">{p.name[0]}</span>
+                    </div>
+                  )}
+                  <p className="font-medium text-xs truncate">{p.name}</p>
+                  {p.level && p.level > 0 && (
+                    <p className="text-[9px] text-muted-foreground">Level {p.level}+</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Floating Chat */}
       <button
