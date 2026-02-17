@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { LogIn, UserPlus, Mail, Lock, User, Globe } from "lucide-react";
@@ -23,7 +23,6 @@ const Auth = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const refFromUrl = urlParams.get("ref") || "";
 
-  // Show sign-in popup after 2 seconds
   useEffect(() => {
     const timer = setTimeout(() => setShowPopup(true), 2000);
     return () => clearTimeout(timer);
@@ -101,7 +100,7 @@ const Auth = () => {
     setLoading(false);
   };
 
-  const AuthForm = ({ onClose }: { onClose?: () => void }) => (
+  const formContent = (
     <div>
       <div className="text-center mb-4">
         <div className="flex items-center justify-center gap-2 mb-2">
@@ -163,9 +162,7 @@ const Auth = () => {
             <div className="bg-card rounded-xl p-6 border border-border">
               <div className="h-4 w-48 bg-primary/20 rounded mb-2" />
               <div className="h-3 w-32 bg-muted rounded" />
-              <div className="mt-4 text-right">
-                <div className="h-8 w-24 bg-primary/30 rounded ml-auto" />
-              </div>
+              <div className="mt-4 text-right"><div className="h-8 w-24 bg-primary/30 rounded ml-auto" /></div>
             </div>
             <div className="grid grid-cols-4 gap-3">
               {[1,2,3,4].map(i => (
@@ -183,36 +180,20 @@ const Auth = () => {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-card rounded-xl p-4 border border-border">
-                <div className="h-4 w-40 bg-muted rounded mb-3" />
-                <div className="grid grid-cols-2 gap-2">
-                  {[1,2,3,4].map(i => (<div key={i} className="h-12 bg-accent/40 rounded-lg" />))}
-                </div>
-              </div>
-              <div className="bg-card rounded-xl p-4 border border-border">
-                <div className="h-4 w-32 bg-muted rounded mb-3" />
-                {[1,2,3].map(i => (<div key={i} className="h-10 bg-accent/40 rounded-lg mb-2" />))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Main auth form (centered) */}
+      {/* Main auth form */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-sm bg-card/95 backdrop-blur-md shadow-2xl border-border/50">
-          <CardContent className="p-6">
-            <AuthForm />
-          </CardContent>
+          <CardContent className="p-6">{formContent}</CardContent>
         </Card>
       </div>
 
       {/* Auto Sign-in Popup */}
       <Dialog open={showPopup} onOpenChange={setShowPopup}>
-        <DialogContent className="max-w-sm p-6">
-          <AuthForm onClose={() => setShowPopup(false)} />
-        </DialogContent>
+        <DialogContent className="max-w-sm p-6">{formContent}</DialogContent>
       </Dialog>
     </div>
   );
