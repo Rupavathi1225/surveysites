@@ -154,20 +154,82 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Blurred real dashboard background via iframe */}
-      <div className="absolute inset-0">
-        <iframe
-          src="/dashboard"
-          className="w-full h-full border-0 pointer-events-none"
-          style={{ filter: "blur(4px)", opacity: 0.35 }}
-          tabIndex={-1}
-          title="Background"
-        />
+      {/* Static dashboard mockup background with blur + glass */}
+      <div className="absolute inset-0 bg-background">
+        {/* Fake sidebar */}
+        <div className="absolute left-0 top-0 bottom-0 w-48 bg-sidebar-background border-r border-sidebar-border p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-6">
+            <Globe className="h-5 w-5 text-primary" />
+            <span className="text-sm font-bold text-primary">SurveySite</span>
+          </div>
+          {["Home", "Daily Surveys", "Offers", "Leaderboard", "Affiliates", "Withdrawal", "Balance History", "Contest", "News"].map((item) => (
+            <div key={item} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sidebar-accent/40">
+              <div className="h-3 w-3 rounded bg-muted-foreground/20" />
+              <span className="text-xs text-sidebar-foreground/70">{item}</span>
+            </div>
+          ))}
+        </div>
+        {/* Fake main content */}
+        <div className="absolute left-48 top-0 right-0 bottom-0 p-6">
+          {/* Fake header bar */}
+          <div className="flex items-center justify-between mb-4 bg-card rounded-xl p-3">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-accent" />
+              <div>
+                <div className="h-3 w-20 bg-muted rounded" />
+                <div className="h-2 w-14 bg-muted/60 rounded mt-1" />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="h-8 w-24 bg-accent rounded-lg" />
+              <div className="h-8 w-20 bg-primary/30 rounded-lg" />
+            </div>
+          </div>
+          {/* Fake activity ticker */}
+          <div className="bg-card rounded-lg p-2 mb-4 flex gap-6">
+            {["User1 • $2.50", "User2 • $1.30", "User3 • $5.00", "User4 • $0.80"].map((t, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded-full bg-accent" />
+                <span className="text-[10px] text-muted-foreground">{t}</span>
+              </div>
+            ))}
+          </div>
+          {/* Fake task grid */}
+          <div className="mb-3">
+            <div className="h-4 w-28 bg-muted rounded mb-2" />
+            <div className="grid grid-cols-5 gap-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-xl overflow-hidden">
+                  <div className="aspect-square bg-gradient-to-br from-primary/15 to-accent" />
+                  <div className="p-2 space-y-1">
+                    <div className="h-2.5 w-16 bg-muted rounded" />
+                    <div className="h-2 w-12 bg-muted/50 rounded" />
+                    <div className="h-3 w-10 bg-primary/30 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Fake offer walls */}
+          <div>
+            <div className="h-4 w-24 bg-muted rounded mb-2" />
+            <div className="grid grid-cols-6 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-xl p-3 flex flex-col items-center gap-2">
+                  <div className="h-10 w-10 rounded-lg bg-accent" />
+                  <div className="h-2 w-12 bg-muted rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Glass overlay with blur */}
+        <div className="absolute inset-0 backdrop-blur-[3px] bg-background/30" />
       </div>
 
       {/* Main auth form */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm bg-card/95 backdrop-blur-md shadow-2xl border-border/50">
+        <Card className="w-full max-w-sm bg-card/80 backdrop-blur-xl shadow-2xl border border-border/30" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
           <CardContent className="p-6">{formContent}</CardContent>
         </Card>
       </div>
