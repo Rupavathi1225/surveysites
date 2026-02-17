@@ -111,7 +111,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const doubled = [...items, ...items];
 
   return (
-    <div className="w-full overflow-hidden bg-card/80 backdrop-blur-sm border border-border py-1.5 rounded-lg">
+    <div className="w-full overflow-hidden bg-card/80 backdrop-blur-sm border-b border-border py-1 rounded-lg">
       <div className="relative overflow-hidden">
         <div ref={scrollRef} className="flex gap-4 animate-scroll whitespace-nowrap" style={{ width: "max-content" }}>
           {doubled.map((item, i) => {

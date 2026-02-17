@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Copy, Play, Upload, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Play } from "lucide-react";
 
 const defaultForm = {
   name: "", code: "", point_percentage: 100, is_recommended: false, rating: 0,
@@ -26,21 +26,6 @@ const SurveyProviders = () => {
   const [form, setForm] = useState<any>(defaultForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("survey-provider-images").upload(path, file);
-    if (error) { toast({ title: "Upload failed", description: error.message, variant: "destructive" }); setUploading(false); return; }
-    const { data: { publicUrl } } = supabase.storage.from("survey-provider-images").getPublicUrl(path);
-    setForm((f: any) => ({ ...f, image_url: publicUrl }));
-    setUploading(false);
-    toast({ title: "Image uploaded!" });
-  };
 
   const fetch = () => supabase.from("survey_providers").select("*").order("created_at", { ascending: false }).then(({ data }) => setProviders(data || []));
   useEffect(() => { fetch(); }, []);
@@ -97,19 +82,7 @@ const SurveyProviders = () => {
                 <div><label className="text-xs text-muted-foreground">Color Code</label><Input type="color" value={form.color_code} onChange={(e) => setForm({ ...form, color_code: e.target.value })} /></div>
                 <div><label className="text-xs text-muted-foreground">Button Gradient</label><Input value={form.button_gradient} onChange={(e) => setForm({ ...form, button_gradient: e.target.value })} placeholder="linear-gradient(90deg, #836)" /></div>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Image</label>
-                <div className="flex gap-2 items-center">
-                  <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://example.com/logo.png" className="flex-1" />
-                  <label className="cursor-pointer">
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                    <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
-                      <span>{uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}</span>
-                    </Button>
-                  </label>
-                </div>
-                {form.image_url && <img src={form.image_url} alt="Preview" className="h-12 mt-1 object-contain rounded border border-border" />}
-              </div>
+              <div><label className="text-xs text-muted-foreground">Image URL</label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://example.com/logo.png" /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="text-xs text-muted-foreground">Payout Type</label>
                   <Select value={form.payout_type} onValueChange={v => setForm({ ...form, payout_type: v })}>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Monitor, Smartphone, Tablet, Send, MessageCircle, X } from "lucide-react";
+import { ExternalLink, Monitor, Smartphone, Tablet, Send, MessageCircle, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import ActivityTicker from "@/components/ActivityTicker";
 
@@ -18,8 +18,6 @@ const DashboardHome = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
-  const [showAllTasks, setShowAllTasks] = useState(false);
-  const [showAllWalls, setShowAllWalls] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -52,10 +50,6 @@ const DashboardHome = () => {
   if (!profile) return <div className="text-center py-10 text-muted-foreground">Loading...</div>;
 
   const featuredTasks = [...surveyLinks, ...offers];
-  const TASKS_PER_ROW = 7;
-  const WALLS_PER_ROW = 7;
-  const visibleTasks = showAllTasks ? featuredTasks : featuredTasks.slice(0, TASKS_PER_ROW);
-  const visibleWalls = showAllWalls ? surveyProviders : surveyProviders.slice(0, WALLS_PER_ROW);
 
   const deviceIcons = (device: string) => {
     const d = (device || "").toLowerCase();
@@ -69,29 +63,25 @@ const DashboardHome = () => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Live Activity Ticker - full width */}
+    <div className="space-y-3">
+      {/* Live Activity Ticker */}
       <ActivityTicker userId={profile.id} />
 
       {/* Featured Tasks */}
       <div>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <div>
             <h2 className="text-lg font-bold">Featured Tasks</h2>
             <p className="text-xs text-muted-foreground">Featured tasks are the best tasks to complete, with the highest rewards</p>
           </div>
-          {featuredTasks.length > TASKS_PER_ROW && (
-            <Button variant="link" size="sm" className="text-xs text-primary" onClick={() => setShowAllTasks(!showAllTasks)}>
-              {showAllTasks ? "Show Less" : "View All"}
-            </Button>
-          )}
+          <Link to="/dashboard/daily-surveys" className="text-xs text-primary hover:underline">View All</Link>
         </div>
 
         {featuredTasks.length === 0 ? (
           <p className="text-muted-foreground text-xs text-center py-6">No featured tasks available. Check back later!</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
-            {visibleTasks.map((item) => {
+            {featuredTasks.map((item) => {
               const isOffer = "title" in item && "url" in item && !("link" in item);
               const name = isOffer ? item.title : item.name;
               const payout = item.payout;
@@ -128,19 +118,12 @@ const DashboardHome = () => {
       {/* Offer Walls */}
       {surveyProviders.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h2 className="text-lg font-bold">Offer Walls</h2>
-              <p className="text-xs text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
-            </div>
-            {surveyProviders.length > WALLS_PER_ROW && (
-              <Button variant="link" size="sm" className="text-xs text-primary" onClick={() => setShowAllWalls(!showAllWalls)}>
-                {showAllWalls ? "Show Less" : "View All"}
-              </Button>
-            )}
+          <div className="mb-1">
+            <h2 className="text-lg font-bold">Offer Walls</h2>
+            <p className="text-xs text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
-            {visibleWalls.map((p) => (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+            {surveyProviders.map((p) => (
               <Card key={p.id} className="hover:border-primary/50 transition-colors cursor-pointer border-0 relative">
                 <CardContent className="p-4 text-center">
                   {p.point_percentage > 100 && (
