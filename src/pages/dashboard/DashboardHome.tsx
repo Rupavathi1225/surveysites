@@ -74,80 +74,72 @@ const DashboardHome = () => {
     { icon: Gift, label: "Ref. Earn", value: "$0.00", color: "text-primary" },
   ];
 
+  const iconMap: Record<string, any> = { signup: UserPlus, login: LogIn, promo: Tag, offer: Gift, payment: CreditCard, chat: MessageCircle };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <ActivityTicker />
 
-      {/* Welcome - compact */}
-      <Card className="border-0 bg-gradient-to-r from-primary/10 to-transparent">
-        <CardContent className="p-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-sm font-bold">Welcome, <span className="text-primary">{profile.first_name || profile.username}</span></h1>
-            <p className="text-muted-foreground text-[10px]">
-              Since {new Date(profile.created_at).toLocaleDateString()} {" "}
-              {profile.is_verified ? (
-                <span className="inline-flex items-center gap-0.5 text-success"><CheckCircle className="h-2.5 w-2.5" /> Verified</span>
-              ) : (
-                <span className="inline-flex items-center gap-0.5 text-warning"><AlertCircle className="h-2.5 w-2.5" /> Unverified</span>
-              )}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-primary text-lg font-bold">${Number(profile.cash_balance).toFixed(2)}</p>
-            <Link to="/dashboard/withdrawal"><Button size="sm" className="h-6 text-[10px] px-2">Withdraw</Button></Link>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Welcome - ultra compact */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xs font-bold">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></h1>
+          {profile.is_verified ? (
+            <CheckCircle className="h-3 w-3 text-success" />
+          ) : (
+            <AlertCircle className="h-3 w-3 text-warning" />
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-primary text-sm font-bold">${Number(profile.cash_balance).toFixed(2)}</span>
+          <Link to="/dashboard/withdrawal"><Button size="sm" className="h-5 text-[9px] px-2 rounded">Withdraw</Button></Link>
+        </div>
+      </div>
 
-      {/* Quick Actions - compact */}
-      <div className="grid grid-cols-4 gap-1.5">
+      {/* Quick Actions - small icons */}
+      <div className="grid grid-cols-4 gap-1">
         {[
           { icon: ClipboardList, label: "Surveys", to: "/dashboard/daily-surveys", bg: "bg-info" },
           { icon: Gift, label: "Offers", to: "/dashboard/offers", bg: "bg-success" },
           { icon: Wallet, label: "Withdraw", to: "/dashboard/withdrawal", bg: "bg-primary" },
           { icon: ArrowLeftRight, label: "Convert", to: "/dashboard/convert-points", bg: "bg-warning" },
-        ].map((action) => (
-          <Link key={action.to} to={action.to}>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer border-0">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-1">
-                <div className={`${action.bg} p-1.5 rounded-full`}>
-                  <action.icon className="h-3.5 w-3.5 text-primary-foreground" />
-                </div>
-                <span className="text-[10px] font-medium">{action.label}</span>
-              </CardContent>
-            </Card>
+        ].map((a) => (
+          <Link key={a.to} to={a.to}>
+            <div className="flex flex-col items-center gap-0.5 p-1.5 rounded-md hover:bg-accent/50 transition-colors cursor-pointer">
+              <div className={`${a.bg} p-1 rounded-full`}>
+                <a.icon className="h-3 w-3 text-primary-foreground" />
+              </div>
+              <span className="text-[9px] font-medium">{a.label}</span>
+            </div>
           </Link>
         ))}
       </div>
 
-      {/* Wallet Summary - compact inline */}
-      <div className="grid grid-cols-6 gap-1.5">
-        {walletCards.map((card) => (
-          <Card key={card.label} className="border-0">
-            <CardContent className="p-2 flex items-center gap-1.5">
-              <card.icon className={`h-3 w-3 ${card.color} shrink-0`} />
-              <div className="min-w-0">
-                <p className="text-[9px] text-muted-foreground truncate">{card.label}</p>
-                <p className={`text-xs font-bold ${card.color}`}>{card.value}</p>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Wallet Summary - inline row */}
+      <div className="grid grid-cols-6 gap-1">
+        {walletCards.map((c) => (
+          <div key={c.label} className="flex items-center gap-1 p-1 rounded-md bg-card border border-border/50">
+            <c.icon className={`h-2.5 w-2.5 ${c.color} shrink-0`} />
+            <div className="min-w-0">
+              <p className="text-[8px] text-muted-foreground truncate">{c.label}</p>
+              <p className={`text-[10px] font-bold ${c.color} leading-tight`}>{c.value}</p>
+            </div>
+          </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-3">
-        {/* Recommended Offerwalls - compact */}
+      {/* Offerwalls + Surveys side by side */}
+      <div className="grid lg:grid-cols-2 gap-2">
         <Card className="border-0">
-          <CardContent className="p-3">
-            <h3 className="text-xs font-semibold mb-0.5">Recommended Offerwalls</h3>
-            <p className="text-[9px] text-muted-foreground mb-2">Complete offers to earn points</p>
+          <CardContent className="p-2">
+            <h3 className="text-[10px] font-semibold mb-1">Recommended Offerwalls</h3>
             {surveyProviders.length === 0 ? (
-              <p className="text-muted-foreground text-[10px] text-center py-3">No offerwalls available</p>
+              <p className="text-muted-foreground text-[9px] text-center py-2">No offerwalls available</p>
             ) : (
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-1">
                 {surveyProviders.slice(0, 6).map((p) => (
-                  <div key={p.id} className="p-2 rounded-md bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
-                    <p className="font-medium text-[10px] truncate">{p.name}</p>
+                  <div key={p.id} className="p-1.5 rounded bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
+                    <p className="font-medium text-[9px] truncate">{p.name}</p>
                   </div>
                 ))}
               </div>
@@ -155,19 +147,17 @@ const DashboardHome = () => {
           </CardContent>
         </Card>
 
-        {/* Daily Surveys - compact */}
         <Card className="border-0">
-          <CardContent className="p-3">
-            <h3 className="text-xs font-semibold mb-0.5">Daily Surveys</h3>
-            <p className="text-[9px] text-muted-foreground mb-2">Complete surveys to earn quick points</p>
+          <CardContent className="p-2">
+            <h3 className="text-[10px] font-semibold mb-1">Daily Surveys</h3>
             {surveyLinks.length === 0 ? (
-              <p className="text-muted-foreground text-[10px] text-center py-3">No surveys available</p>
+              <p className="text-muted-foreground text-[9px] text-center py-2">No surveys available</p>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {surveyLinks.slice(0, 4).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-1.5 rounded-md bg-accent/40">
-                    <p className="font-medium text-[10px] truncate">{s.name}</p>
-                    <span className="text-primary font-bold text-[10px] shrink-0">{s.payout} pts</span>
+                  <div key={s.id} className="flex items-center justify-between p-1 rounded bg-accent/40">
+                    <p className="font-medium text-[9px] truncate">{s.name}</p>
+                    <span className="text-primary font-bold text-[9px] shrink-0">{s.payout} pts</span>
                   </div>
                 ))}
               </div>
@@ -177,66 +167,60 @@ const DashboardHome = () => {
       </div>
 
       {/* Refer & Earn - compact */}
-      <Card className="border-0 bg-gradient-to-r from-success/10 to-transparent">
-        <CardContent className="p-3 flex items-center justify-between gap-2">
-          <div className="shrink-0">
-            <h3 className="text-xs font-semibold flex items-center gap-1"><Gift className="h-3 w-3 text-success" /> Refer & Earn</h3>
-            <p className="text-[9px] text-muted-foreground">Share & earn when friends join</p>
-          </div>
-          <div className="flex items-center gap-1.5 flex-1 max-w-xs">
-            <Input value={referralLink} readOnly className="h-6 text-[9px] bg-accent/50" />
-            <Button onClick={copyReferral} size="sm" variant="outline" className="h-6 w-6 p-0 shrink-0"><Copy className="h-2.5 w-2.5" /></Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-2 p-2 rounded-md bg-success/10 border border-success/20">
+        <Gift className="h-3 w-3 text-success shrink-0" />
+        <span className="text-[9px] font-semibold shrink-0">Refer & Earn</span>
+        <Input value={referralLink} readOnly className="h-5 text-[8px] bg-accent/50 flex-1 min-w-0" />
+        <Button onClick={copyReferral} size="sm" variant="outline" className="h-5 w-5 p-0 shrink-0"><Copy className="h-2.5 w-2.5" /></Button>
+      </div>
 
-      {/* Last Credited - compact */}
-      <Card className="border-0">
-        <CardContent className="p-3">
-          <h3 className="text-xs font-semibold mb-2">Last Credited</h3>
-          {lastCredited.length === 0 ? (
-            <p className="text-muted-foreground text-[10px] text-center py-3">No earnings yet</p>
-          ) : (
-            <div className="space-y-1">
-              {lastCredited.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-1.5 bg-accent/40 rounded-md">
-                  <div className="min-w-0">
-                    <p className="font-medium text-[10px] truncate">{e.description || e.offer_name}</p>
-                    <p className="text-[9px] text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <span className="text-success font-bold text-[10px]">+{e.amount} pts</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Live Activity - compact */}
-      <Card className="border-0">
-        <CardContent className="p-3">
-          <h3 className="text-xs font-semibold flex items-center gap-1 mb-2"><Activity className="h-3 w-3 text-primary" /> Live Activity</h3>
-          {activityFeed.length === 0 ? (
-            <p className="text-muted-foreground text-[10px] text-center py-3">No activity yet</p>
-          ) : (
-            <div className="space-y-1 max-h-48 overflow-y-auto">
-              {activityFeed.map((n) => {
-                const iconMap: Record<string, any> = { signup: UserPlus, login: LogIn, promo: Tag, offer: Gift, payment: CreditCard, chat: MessageCircle };
-                const Icon = iconMap[n.type] || Bell;
-                return (
-                  <div key={n.id} className="flex items-start gap-2 p-1.5 bg-accent/40 rounded-md">
-                    <Icon className="h-3 w-3 mt-0.5 text-primary shrink-0" />
+      {/* Last Credited + Live Activity side by side */}
+      <div className="grid lg:grid-cols-2 gap-2">
+        <Card className="border-0">
+          <CardContent className="p-2">
+            <h3 className="text-[10px] font-semibold mb-1">Last Credited</h3>
+            {lastCredited.length === 0 ? (
+              <p className="text-muted-foreground text-[9px] text-center py-2">No earnings yet</p>
+            ) : (
+              <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                {lastCredited.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between p-1 bg-accent/40 rounded">
                     <div className="min-w-0">
-                      <p className="text-[10px]">{n.message}</p>
-                      <p className="text-[9px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                      <p className="font-medium text-[9px] truncate">{e.description || e.offer_name}</p>
+                      <p className="text-[8px] text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
                     </div>
+                    <span className="text-success font-bold text-[9px]">+{e.amount} pts</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-0">
+          <CardContent className="p-2">
+            <h3 className="text-[10px] font-semibold flex items-center gap-1 mb-1"><Activity className="h-2.5 w-2.5 text-primary" /> Live Activity</h3>
+            {activityFeed.length === 0 ? (
+              <p className="text-muted-foreground text-[9px] text-center py-2">No activity yet</p>
+            ) : (
+              <div className="space-y-0.5 max-h-40 overflow-y-auto">
+                {activityFeed.map((n) => {
+                  const Icon = iconMap[n.type] || Bell;
+                  return (
+                    <div key={n.id} className="flex items-start gap-1 p-1 bg-accent/40 rounded">
+                      <Icon className="h-2.5 w-2.5 mt-0.5 text-primary shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[9px] truncate">{n.message}</p>
+                        <p className="text-[8px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Floating Chat */}
       <button
