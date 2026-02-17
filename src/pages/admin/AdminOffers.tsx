@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2 } from "lucide-react";
 
 const defaultForm = {
   offer_id: "", title: "", url: "", payout: 0, currency: "USD", payout_model: "CPA",
@@ -24,6 +24,21 @@ const AdminOffers = () => {
   const [form, setForm] = useState<any>(defaultForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `offers/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("survey-provider-images").upload(path, file);
+    if (error) { toast({ title: "Upload failed", description: error.message, variant: "destructive" }); setUploading(false); return; }
+    const { data: { publicUrl } } = supabase.storage.from("survey-provider-images").getPublicUrl(path);
+    setForm((f: any) => ({ ...f, image_url: publicUrl }));
+    setUploading(false);
+    toast({ title: "Image uploaded!" });
+  };
 
   const load = () => supabase.from("offers").select("*").order("created_at", { ascending: false }).then(({ data }) => setItems(data || []));
   useEffect(() => { load(); }, []);
@@ -135,7 +150,19 @@ const AdminOffers = () => {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground">Preview URL</label><Input value={form.preview_url} onChange={e => setForm({ ...form, preview_url: e.target.value })} placeholder="https://..." /></div>
-              <div><label className="text-xs text-muted-foreground">Image URL</label><Input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." /></div>
+              <div>
+                <label className="text-xs text-muted-foreground">Image</label>
+                <div className="flex gap-2 items-center">
+                  <Input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." className="flex-1" />
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+                      <span>{uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}</span>
+                    </Button>
+                  </label>
+                </div>
+                {form.image_url && <img src={form.image_url} alt="Preview" className="h-12 mt-1 object-contain rounded border border-border" />}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-muted-foreground">Traffic Sources</label><Input value={form.traffic_sources} onChange={e => setForm({ ...form, traffic_sources: e.target.value })} placeholder="Social, Email" /></div>
