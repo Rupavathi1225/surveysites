@@ -68,21 +68,8 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-1">
-      {/* 1. Single top bar: username + cash + points + referral + withdraw */}
-      <div className="flex items-center gap-1.5 px-1 py-0.5 bg-card/80 rounded border border-border/50 overflow-x-auto">
-        <span className="text-[9px] font-semibold whitespace-nowrap">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></span>
-        {profile.is_verified ? <CheckCircle className="h-2 w-2 text-success shrink-0" /> : <AlertCircle className="h-2 w-2 text-warning shrink-0" />}
-        <span className="text-[7px] text-muted-foreground">|</span>
-        <span className="text-primary text-[9px] font-bold whitespace-nowrap">${Number(profile.cash_balance).toFixed(2)}</span>
-        <span className="text-[7px] text-muted-foreground">|</span>
-        <span className="text-info text-[9px] font-bold whitespace-nowrap">{profile.points} pts</span>
-        <span className="text-[7px] text-muted-foreground">|</span>
-        <div className="flex items-center gap-0.5 shrink-0">
-          <Input value={referralLink} readOnly className="h-4 text-[6px] bg-accent/50 w-20 px-1 py-0" />
-          <Button onClick={copyReferral} size="sm" variant="outline" className="h-4 w-4 p-0 shrink-0"><Copy className="h-1.5 w-1.5" /></Button>
-        </div>
-        <Link to="/dashboard/withdrawal" className="shrink-0"><Button size="sm" className="h-4 text-[7px] px-1.5 rounded">Withdraw</Button></Link>
-      </div>
+      {/* Activity Ticker (earnings + last credited + notifications combined) */}
+      <ActivityTicker userId={profile.id} />
 
       {/* 2. Activity Ticker (earnings + last credited + notifications combined) */}
       <ActivityTicker userId={profile.id} />
