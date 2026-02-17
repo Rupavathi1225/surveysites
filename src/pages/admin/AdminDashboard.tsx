@@ -12,6 +12,7 @@ import {
   ClipboardList, ArrowLeftRight, Copy, CheckCircle, AlertCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import ActivityTicker from "@/components/ActivityTicker";
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -85,6 +86,9 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Activity Ticker */}
+      <ActivityTicker />
+
       <div>
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">System overview and statistics</p>
