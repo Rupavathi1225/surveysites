@@ -5,8 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
-  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus
+  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus, Copy
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -207,19 +209,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {sidebarOpen && <div className="lg:hidden fixed inset-0 bg-background/80 z-30" onClick={() => setSidebarOpen(false)} />}
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-2.5 flex items-center justify-between">
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-1.5 flex items-center justify-between">
           <div className="lg:hidden w-8" />
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-2 ml-auto overflow-x-auto">
             {profile && (
               <>
-                <div className="text-right text-xs">
-                  <span className="text-muted-foreground">Cash Balance</span>
-                  <p className="font-bold text-primary">${Number(profile.cash_balance).toFixed(2)}</p>
+                <span className="text-[10px] font-semibold whitespace-nowrap">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></span>
+                <span className="text-[8px] text-muted-foreground">|</span>
+                <span className="text-primary text-[10px] font-bold whitespace-nowrap">${Number(profile.cash_balance).toFixed(2)}</span>
+                <span className="text-[8px] text-muted-foreground">|</span>
+                <span className="text-info text-[10px] font-bold whitespace-nowrap">{profile.points} pts</span>
+                <span className="text-[8px] text-muted-foreground">|</span>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Input
+                    value={`${window.location.origin}/auth?ref=${profile.referral_code}`}
+                    readOnly
+                    className="h-5 text-[7px] bg-accent/50 w-24 px-1 py-0"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-5 w-5 p-0 shrink-0"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/auth?ref=${profile.referral_code}`);
+                      toast({ title: "Copied!", description: "Referral link copied" });
+                    }}
+                  >
+                    <Copy className="h-2 w-2" />
+                  </Button>
                 </div>
-                <div className="text-right text-xs">
-                  <span className="text-muted-foreground">Points</span>
-                  <p className="font-bold">{profile.points}</p>
-                </div>
+                <Link to="/dashboard/withdrawal" className="shrink-0">
+                  <Button size="sm" className="h-5 text-[8px] px-2 rounded">Withdraw</Button>
+                </Link>
               </>
             )}
           </div>
