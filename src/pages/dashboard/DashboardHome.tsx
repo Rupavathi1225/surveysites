@@ -77,26 +77,26 @@ const DashboardHome = () => {
   const iconMap: Record<string, any> = { signup: UserPlus, login: LogIn, promo: Tag, offer: Gift, payment: CreditCard, chat: MessageCircle };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
+      {/* 1. Activity Ticker */}
       <ActivityTicker />
 
-      {/* Welcome - ultra compact */}
+      {/* 2. Welcome row — name left, cash+withdraw right */}
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xs font-bold">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></h1>
-          {profile.is_verified ? (
-            <CheckCircle className="h-3 w-3 text-success" />
-          ) : (
-            <AlertCircle className="h-3 w-3 text-warning" />
-          )}
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-semibold">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></span>
+          {profile.is_verified ? <CheckCircle className="h-2.5 w-2.5 text-success" /> : <AlertCircle className="h-2.5 w-2.5 text-warning" />}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-primary text-sm font-bold">${Number(profile.cash_balance).toFixed(2)}</span>
-          <Link to="/dashboard/withdrawal"><Button size="sm" className="h-5 text-[9px] px-2 rounded">Withdraw</Button></Link>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] text-muted-foreground">Cash Balance</span>
+          <span className="text-primary text-xs font-bold">${Number(profile.cash_balance).toFixed(2)}</span>
+          <span className="text-[9px] text-muted-foreground">Points</span>
+          <span className="text-info text-xs font-bold">{profile.points}</span>
+          <Link to="/dashboard/withdrawal"><Button size="sm" className="h-5 text-[8px] px-1.5 rounded">Withdraw</Button></Link>
         </div>
       </div>
 
-      {/* Quick Actions - small icons */}
+      {/* 3. Quick Actions */}
       <div className="grid grid-cols-4 gap-1">
         {[
           { icon: ClipboardList, label: "Surveys", to: "/dashboard/daily-surveys", bg: "bg-info" },
@@ -105,41 +105,49 @@ const DashboardHome = () => {
           { icon: ArrowLeftRight, label: "Convert", to: "/dashboard/convert-points", bg: "bg-warning" },
         ].map((a) => (
           <Link key={a.to} to={a.to}>
-            <div className="flex flex-col items-center gap-0.5 p-1.5 rounded-md hover:bg-accent/50 transition-colors cursor-pointer">
+            <div className="flex flex-col items-center gap-0.5 p-1 rounded-md hover:bg-accent/50 transition-colors cursor-pointer">
               <div className={`${a.bg} p-1 rounded-full`}>
-                <a.icon className="h-3 w-3 text-primary-foreground" />
+                <a.icon className="h-2.5 w-2.5 text-primary-foreground" />
               </div>
-              <span className="text-[9px] font-medium">{a.label}</span>
+              <span className="text-[8px] font-medium">{a.label}</span>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* Wallet Summary - inline row */}
+      {/* 4. Wallet Summary */}
       <div className="grid grid-cols-6 gap-1">
         {walletCards.map((c) => (
-          <div key={c.label} className="flex items-center gap-1 p-1 rounded-md bg-card border border-border/50">
-            <c.icon className={`h-2.5 w-2.5 ${c.color} shrink-0`} />
+          <div key={c.label} className="flex items-center gap-0.5 p-0.5 px-1 rounded bg-card border border-border/50">
+            <c.icon className={`h-2 w-2 ${c.color} shrink-0`} />
             <div className="min-w-0">
-              <p className="text-[8px] text-muted-foreground truncate">{c.label}</p>
-              <p className={`text-[10px] font-bold ${c.color} leading-tight`}>{c.value}</p>
+              <p className="text-[7px] text-muted-foreground truncate leading-tight">{c.label}</p>
+              <p className={`text-[9px] font-bold ${c.color} leading-tight`}>{c.value}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Offerwalls + Surveys side by side */}
-      <div className="grid lg:grid-cols-2 gap-2">
+      {/* 5. Refer & Earn */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded bg-success/10 border border-success/20">
+        <Gift className="h-2.5 w-2.5 text-success shrink-0" />
+        <span className="text-[8px] font-semibold shrink-0">Refer & Earn</span>
+        <Input value={referralLink} readOnly className="h-4 text-[7px] bg-accent/50 flex-1 min-w-0 px-1 py-0" />
+        <Button onClick={copyReferral} size="sm" variant="outline" className="h-4 w-4 p-0 shrink-0"><Copy className="h-2 w-2" /></Button>
+      </div>
+
+      {/* 6. Offerwalls + Surveys side by side */}
+      <div className="grid lg:grid-cols-2 gap-1.5">
         <Card className="border-0">
-          <CardContent className="p-2">
-            <h3 className="text-[10px] font-semibold mb-1">Recommended Offerwalls</h3>
+          <CardContent className="p-1.5">
+            <h3 className="text-[9px] font-semibold mb-1">Recommended Offerwalls</h3>
             {surveyProviders.length === 0 ? (
-              <p className="text-muted-foreground text-[9px] text-center py-2">No offerwalls available</p>
+              <p className="text-muted-foreground text-[8px] text-center py-1">No offerwalls available</p>
             ) : (
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-0.5">
                 {surveyProviders.slice(0, 6).map((p) => (
-                  <div key={p.id} className="p-1.5 rounded bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
-                    <p className="font-medium text-[9px] truncate">{p.name}</p>
+                  <div key={p.id} className="p-1 rounded bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
+                    <p className="font-medium text-[8px] truncate">{p.name}</p>
                   </div>
                 ))}
               </div>
@@ -148,16 +156,16 @@ const DashboardHome = () => {
         </Card>
 
         <Card className="border-0">
-          <CardContent className="p-2">
-            <h3 className="text-[10px] font-semibold mb-1">Daily Surveys</h3>
+          <CardContent className="p-1.5">
+            <h3 className="text-[9px] font-semibold mb-1">Daily Surveys</h3>
             {surveyLinks.length === 0 ? (
-              <p className="text-muted-foreground text-[9px] text-center py-2">No surveys available</p>
+              <p className="text-muted-foreground text-[8px] text-center py-1">No surveys available</p>
             ) : (
               <div className="space-y-0.5">
                 {surveyLinks.slice(0, 4).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-1 rounded bg-accent/40">
-                    <p className="font-medium text-[9px] truncate">{s.name}</p>
-                    <span className="text-primary font-bold text-[9px] shrink-0">{s.payout} pts</span>
+                  <div key={s.id} className="flex items-center justify-between p-0.5 px-1 rounded bg-accent/40">
+                    <p className="font-medium text-[8px] truncate">{s.name}</p>
+                    <span className="text-primary font-bold text-[8px] shrink-0">{s.payout} pts</span>
                   </div>
                 ))}
               </div>
@@ -166,30 +174,22 @@ const DashboardHome = () => {
         </Card>
       </div>
 
-      {/* Refer & Earn - compact */}
-      <div className="flex items-center gap-2 p-2 rounded-md bg-success/10 border border-success/20">
-        <Gift className="h-3 w-3 text-success shrink-0" />
-        <span className="text-[9px] font-semibold shrink-0">Refer & Earn</span>
-        <Input value={referralLink} readOnly className="h-5 text-[8px] bg-accent/50 flex-1 min-w-0" />
-        <Button onClick={copyReferral} size="sm" variant="outline" className="h-5 w-5 p-0 shrink-0"><Copy className="h-2.5 w-2.5" /></Button>
-      </div>
-
-      {/* Last Credited + Live Activity side by side */}
-      <div className="grid lg:grid-cols-2 gap-2">
+      {/* 7. Last Credited + Live Activity side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1.5">
         <Card className="border-0">
-          <CardContent className="p-2">
-            <h3 className="text-[10px] font-semibold mb-1">Last Credited</h3>
+          <CardContent className="p-1.5">
+            <h3 className="text-[9px] font-semibold mb-0.5">Last Credited</h3>
             {lastCredited.length === 0 ? (
-              <p className="text-muted-foreground text-[9px] text-center py-2">No earnings yet</p>
+              <p className="text-muted-foreground text-[8px] text-center py-1">No earnings yet</p>
             ) : (
-              <div className="space-y-0.5 max-h-40 overflow-y-auto">
+              <div className="space-y-0.5 max-h-32 overflow-y-auto">
                 {lastCredited.map((e) => (
-                  <div key={e.id} className="flex items-center justify-between p-1 bg-accent/40 rounded">
+                  <div key={e.id} className="flex items-center justify-between p-0.5 px-1 bg-accent/40 rounded">
                     <div className="min-w-0">
-                      <p className="font-medium text-[9px] truncate">{e.description || e.offer_name}</p>
-                      <p className="text-[8px] text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
+                      <p className="font-medium text-[8px] truncate">{e.description || e.offer_name}</p>
+                      <p className="text-[7px] text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
                     </div>
-                    <span className="text-success font-bold text-[9px]">+{e.amount} pts</span>
+                    <span className="text-success font-bold text-[8px]">+{e.amount} pts</span>
                   </div>
                 ))}
               </div>
@@ -198,20 +198,20 @@ const DashboardHome = () => {
         </Card>
 
         <Card className="border-0">
-          <CardContent className="p-2">
-            <h3 className="text-[10px] font-semibold flex items-center gap-1 mb-1"><Activity className="h-2.5 w-2.5 text-primary" /> Live Activity</h3>
+          <CardContent className="p-1.5">
+            <h3 className="text-[9px] font-semibold flex items-center gap-0.5 mb-0.5"><Activity className="h-2 w-2 text-primary" /> Live Activity</h3>
             {activityFeed.length === 0 ? (
-              <p className="text-muted-foreground text-[9px] text-center py-2">No activity yet</p>
+              <p className="text-muted-foreground text-[8px] text-center py-1">No activity yet</p>
             ) : (
-              <div className="space-y-0.5 max-h-40 overflow-y-auto">
+              <div className="space-y-0.5 max-h-32 overflow-y-auto">
                 {activityFeed.map((n) => {
                   const Icon = iconMap[n.type] || Bell;
                   return (
-                    <div key={n.id} className="flex items-start gap-1 p-1 bg-accent/40 rounded">
-                      <Icon className="h-2.5 w-2.5 mt-0.5 text-primary shrink-0" />
+                    <div key={n.id} className="flex items-start gap-0.5 p-0.5 px-1 bg-accent/40 rounded">
+                      <Icon className="h-2 w-2 mt-0.5 text-primary shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[9px] truncate">{n.message}</p>
-                        <p className="text-[8px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                        <p className="text-[8px] truncate">{n.message}</p>
+                        <p className="text-[7px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
                       </div>
                     </div>
                   );
