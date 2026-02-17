@@ -209,9 +209,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {sidebarOpen && <div className="lg:hidden fixed inset-0 bg-background/80 z-30" onClick={() => setSidebarOpen(false)} />}
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-1.5 flex items-center justify-between">
-          <div className="lg:hidden w-8" />
-          <div className="flex items-center gap-2 ml-auto overflow-x-auto">
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-1.5 flex items-center gap-2 overflow-x-auto">
+          <div className="lg:hidden w-8 shrink-0" />
+          <div className="flex items-center gap-2 ml-auto">
             {profile && (
               <>
                 <span className="text-[10px] font-semibold whitespace-nowrap">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></span>
@@ -220,11 +220,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <span className="text-[8px] text-muted-foreground">|</span>
                 <span className="text-info text-[10px] font-bold whitespace-nowrap">{profile.points} pts</span>
                 <span className="text-[8px] text-muted-foreground">|</span>
+                <span className="text-[8px] font-semibold text-success whitespace-nowrap">Refer & Earn</span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Input
                     value={`${window.location.origin}/auth?ref=${profile.referral_code}`}
                     readOnly
-                    className="h-5 text-[7px] bg-accent/50 w-24 px-1 py-0"
+                    className="h-5 text-[8px] bg-accent/50 w-36 px-1.5 py-0"
                   />
                   <Button
                     size="sm"
@@ -235,7 +236,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       toast({ title: "Copied!", description: "Referral link copied" });
                     }}
                   >
-                    <Copy className="h-2 w-2" />
+                    <Copy className="h-2.5 w-2.5" />
                   </Button>
                 </div>
                 <Link to="/dashboard/withdrawal" className="shrink-0">
