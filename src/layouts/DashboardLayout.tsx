@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
-  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, Image
+  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface NavGroup {
   label: string;
@@ -17,9 +19,7 @@ interface NavGroup {
 const navGroups: NavGroup[] = [
   {
     label: "Dashboard",
-    items: [
-      { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    ],
+    items: [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }],
   },
   {
     label: "Account & Finance",
@@ -57,17 +57,16 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-// Module-level flag: resets on every page refresh/new tab (JS re-executes)
 let sessionTrackedThisLoad = false;
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { profile, signOut, isAdminOrSubAdmin } = useAuth();
+  const { profile, user, signOut, isAdminOrSubAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
-  // Auto-expand the group that contains the active route
   useEffect(() => {
     const expanded: Record<string, boolean> = {};
     navGroups.forEach((group) => {
@@ -78,7 +77,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setExpandedGroups((prev) => ({ ...prev, ...expanded }));
   }, [location.pathname]);
 
-  // Track session
   useEffect(() => {
     if (!profile?.id || sessionTrackedThisLoad) return;
     sessionTrackedThisLoad = true;
@@ -91,14 +89,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }).catch(e => console.error("Session tracking failed:", e));
   }, [profile?.id]);
 
-  // Track page visits
   useEffect(() => {
     if (profile?.id) {
       const loginLogId = sessionStorage.getItem("login_log_id");
       supabase.from("page_visits").insert({
-        user_id: profile.id,
-        login_log_id: loginLogId || null,
-        page_path: location.pathname,
+        user_id: profile.id, login_log_id: loginLogId || null, page_path: location.pathname,
       }).then(() => {});
     }
   }, [location.pathname, profile?.id]);
@@ -112,14 +107,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  // Guard: if not logged in, show auth prompt when clicking sidebar links
+  const handleNavClick = (e: React.MouseEvent, to: string) => {
+    if (!user) {
+      e.preventDefault();
+      setShowAuthPrompt(true);
+    } else {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Mobile toggle */}
       <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card rounded-lg border border-border">
         {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-60 bg-sidebar border-r border-sidebar-border transform transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}>
         <div className="p-4 pb-2">
           <Link to="/dashboard" className="flex items-center gap-2">
@@ -157,7 +160,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <Link
                         key={item.to}
                         to={item.to}
-                        onClick={() => setSidebarOpen(false)}
+                        onClick={(e) => handleNavClick(e, item.to)}
                         className={cn(
                           "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
                           location.pathname === item.to
@@ -175,12 +178,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             );
           })}
 
-          {/* Admin Panel - only for admins */}
           {isAdminOrSubAdmin && (
             <div className="mb-1">
               <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</p>
               <div className="ml-1">
-                <Link to="/admin" onClick={() => setSidebarOpen(false)} className={cn(
+                <Link to="/admin" onClick={(e) => handleNavClick(e, "/admin")} className={cn(
                   "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
                   location.pathname.startsWith("/admin")
                     ? "bg-primary/15 text-primary font-medium"
@@ -202,10 +204,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
       </aside>
 
-      {/* Overlay */}
       {sidebarOpen && <div className="lg:hidden fixed inset-0 bg-background/80 z-30" onClick={() => setSidebarOpen(false)} />}
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto">
         <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-6 py-2.5 flex items-center justify-between">
           <div className="lg:hidden w-8" />
@@ -228,6 +228,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* Auth Prompt Dialog */}
+      <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
+        <DialogContent className="max-w-xs text-center">
+          <div className="py-4 space-y-3">
+            <UserPlus className="h-10 w-10 text-primary mx-auto" />
+            <h3 className="text-lg font-bold">Sign Up Required</h3>
+            <p className="text-sm text-muted-foreground">Create an account or sign in to access this feature.</p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => { setShowAuthPrompt(false); navigate("/auth"); }}>
+                Sign Up / Sign In
+              </Button>
+              <Button variant="outline" onClick={() => setShowAuthPrompt(false)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

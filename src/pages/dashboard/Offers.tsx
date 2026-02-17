@@ -36,7 +36,6 @@ const Offers = () => {
   const trackClick = async (offer: any) => {
     if (!profile) return;
     const ipInfo = await fetchIpInfo();
-
     const utmParams: Record<string, string> = {};
     const urlParams = new URLSearchParams(window.location.search);
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
@@ -51,17 +50,14 @@ const Offers = () => {
           const v = refParams.get(k);
           if (v) utmParams[k] = v;
         });
-        if (Object.keys(utmParams).length === 0) {
-          utmParams["referrer"] = refUrl.hostname;
-        }
+        if (Object.keys(utmParams).length === 0) utmParams["referrer"] = refUrl.hostname;
       } catch {}
     }
     utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
     const { data: inserted } = await supabase.from("offer_clicks").insert({
-      user_id: profile.id,
-      offer_id: offer.id,
+      user_id: profile.id, offer_id: offer.id,
       session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
       user_agent: navigator.userAgent,
       device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
@@ -69,12 +65,9 @@ const Offers = () => {
       os: navigator.platform || "Unknown",
       source: document.referrer || window.location.href,
       completion_status: "clicked",
-      ip_address: ipInfo.ip || null,
-      country: ipInfo.country || null,
+      ip_address: ipInfo.ip || null, country: ipInfo.country || null,
       vpn_proxy_flag: ipInfo.proxy || false,
-      utm_params: utmParams,
-      session_start: sessionStart,
-      session_end: sessionStart,
+      utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
     }).select("id").single();
 
     if (inserted?.id) {
@@ -103,28 +96,28 @@ const Offers = () => {
   const platforms = [...new Set(offers.map(o => o.platform).filter(Boolean))];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold">Offers</h1>
-        <p className="text-muted-foreground">Complete offers to earn rewards</p>
+        <h1 className="text-lg font-bold">Offers</h1>
+        <p className="text-xs text-muted-foreground">Complete offers to earn rewards</p>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-4 flex flex-col md:flex-row gap-3 items-center">
+      {/* Compact filters */}
+      <Card className="border-0">
+        <CardContent className="p-2 flex flex-col md:flex-row gap-2 items-center">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search offers..." className="pl-10" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search offers..." className="pl-8 h-7 text-xs" />
           </div>
           <Select value={countryFilter} onValueChange={setCountryFilter}>
-            <SelectTrigger className="w-44"><Globe className="h-4 w-4 mr-2" /><SelectValue placeholder="All Countries" /></SelectTrigger>
+            <SelectTrigger className="w-36 h-7 text-xs"><Globe className="h-3 w-3 mr-1" /><SelectValue placeholder="All Countries" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Countries</SelectItem>
               {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={platformFilter} onValueChange={setPlatformFilter}>
-            <SelectTrigger className="w-44"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="All Platforms" /></SelectTrigger>
+            <SelectTrigger className="w-36 h-7 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue placeholder="All Platforms" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Platforms</SelectItem>
               {platforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
@@ -133,35 +126,33 @@ const Offers = () => {
         </CardContent>
       </Card>
 
-      {/* Offers Grid - card style like reference */}
+      {/* Compact offer cards */}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {filtered.map((o) => (
-            <Card key={o.id} className="overflow-hidden hover:border-primary/50 transition-colors">
+            <Card key={o.id} className="overflow-hidden hover:border-primary/50 transition-colors border-0">
               <CardContent className="p-0">
                 {o.image_url && (
-                  <div className="h-40 bg-accent overflow-hidden">
+                  <div className="h-24 bg-accent overflow-hidden">
                     <img src={o.image_url} alt={o.title} className="w-full h-full object-cover" />
                   </div>
                 )}
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-base truncate">{o.title}</h3>
-                      <Badge variant="secondary" className="mt-1">{o.payout_model || "CPA"}</Badge>
-                    </div>
-                    <Badge className="bg-primary text-primary-foreground shrink-0">
-                      $ {o.currency || "USD"} {Number(o.payout).toFixed(2)}
+                <div className="p-2">
+                  <h3 className="font-semibold text-xs truncate">{o.title}</h3>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Badge variant="secondary" className="text-[8px] px-1 py-0">{o.payout_model || "CPA"}</Badge>
+                    <Badge className="bg-primary text-primary-foreground text-[8px] px-1 py-0">
+                      ${Number(o.payout).toFixed(2)}
                     </Badge>
                   </div>
                   {o.countries && (
-                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                      <Globe className="h-3 w-3" /> {o.countries}
+                    <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
+                      <Globe className="h-2.5 w-2.5 shrink-0" /> {o.countries}
                     </p>
                   )}
                   {o.url && (
-                    <Button className="mt-3 w-full" onClick={async () => { await trackClick(o); window.open(o.url, "_blank"); }}>
-                      <ExternalLink className="h-4 w-4 mr-2" /> Start Offer
+                    <Button className="mt-1.5 w-full h-6 text-[10px]" onClick={async () => { await trackClick(o); window.open(o.url, "_blank"); }}>
+                      <ExternalLink className="h-2.5 w-2.5 mr-1" /> Start
                     </Button>
                   )}
                 </div>
@@ -171,19 +162,19 @@ const Offers = () => {
         </div>
       )}
 
-      {/* Partner Offerwalls */}
+      {/* Compact Offer Walls */}
       {providers.length > 0 && (
         <>
-          <h2 className="text-lg font-semibold mt-8">Offer Walls</h2>
-          <p className="text-sm text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <h2 className="text-sm font-semibold mt-4">Offer Walls</h2>
+          <p className="text-[10px] text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {providers.map((p) => (
-              <Card key={p.id} className="hover:border-primary/50 transition-colors">
-                <CardContent className="p-4 text-center">
-                  {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-16 object-contain mb-2" />}
-                  <h3 className="font-semibold text-sm">{p.name}</h3>
+              <Card key={p.id} className="hover:border-primary/50 transition-colors border-0">
+                <CardContent className="p-2.5 text-center">
+                  {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-10 object-contain mb-1" />}
+                  <h3 className="font-semibold text-[10px] truncate">{p.name}</h3>
                   {p.point_percentage > 100 && (
-                    <Badge className="bg-primary/20 text-primary text-xs mt-1">+{p.point_percentage - 100}%</Badge>
+                    <Badge className="bg-primary/20 text-primary text-[8px] px-1 py-0 mt-0.5">+{p.point_percentage - 100}%</Badge>
                   )}
                 </CardContent>
               </Card>
@@ -193,7 +184,7 @@ const Offers = () => {
       )}
 
       {filtered.length === 0 && providers.length === 0 && (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">No offers available. Check back later!</CardContent></Card>
+        <Card><CardContent className="p-6 text-center text-muted-foreground text-xs">No offers available. Check back later!</CardContent></Card>
       )}
     </div>
   );
