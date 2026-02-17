@@ -3,20 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Monitor, Smartphone, Tablet, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const DailySurveys = () => {
   const { profile } = useAuth();
   const [surveys, setSurveys] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
+  const [providers, setProviders] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
   const [selectedType, setSelectedType] = useState<"survey" | "offer">("survey");
 
   useEffect(() => {
     supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveys(data || []));
     supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
+    supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setProviders(data || []));
   }, []);
 
   const fetchIpInfo = async () => {
@@ -34,15 +36,12 @@ const DailySurveys = () => {
   const trackClick = async (item: any, type: "survey" | "offer") => {
     if (!profile) return;
     const ipInfo = await fetchIpInfo();
-
-    // Collect UTM from current URL
     const utmParams: Record<string, string> = {};
     const urlParams = new URLSearchParams(window.location.search);
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
       const v = urlParams.get(k);
       if (v) utmParams[k] = v;
     });
-    // If no UTM params found, try to extract from referrer
     if (Object.keys(utmParams).length === 0 && document.referrer) {
       try {
         const refUrl = new URL(document.referrer);
@@ -51,13 +50,9 @@ const DailySurveys = () => {
           const v = refParams.get(k);
           if (v) utmParams[k] = v;
         });
-        // If still no UTM, store referrer domain as source info
-        if (Object.keys(utmParams).length === 0) {
-          utmParams["referrer"] = refUrl.hostname;
-        }
+        if (Object.keys(utmParams).length === 0) utmParams["referrer"] = refUrl.hostname;
       } catch {}
     }
-    // Always include current page as context
     utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
@@ -75,40 +70,25 @@ const DailySurveys = () => {
       vpn_proxy_flag: ipInfo.proxy || false,
       utm_params: utmParams,
       session_start: sessionStart,
-      session_end: sessionStart, // Will be updated on page unload
+      session_end: sessionStart,
     };
     if (type === "offer") payload.offer_id = item.id;
     else payload.survey_link_id = item.id;
 
     const { data: inserted } = await supabase.from("offer_clicks").insert(payload).select("id").single();
-
-    // Track session_end when user leaves
     if (inserted?.id) {
       const updateEnd = () => {
         const endTime = new Date().toISOString();
-        const startMs = new Date(sessionStart).getTime();
-        const endMs = Date.now();
-        const timeSpent = Math.round((endMs - startMs) / 1000);
-        navigator.sendBeacon(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/offer_clicks?id=eq.${inserted.id}`,
-          JSON.stringify({ session_end: endTime, time_spent: timeSpent })
-        );
-        // Fallback: direct update
+        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
         supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
       };
       window.addEventListener("beforeunload", updateEnd, { once: true });
-      // Also update after 30 seconds as fallback
       setTimeout(async () => {
         const endTime = new Date().toISOString();
         const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
         await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
       }, 30000);
     }
-  };
-
-  const openDetail = (item: any, type: "survey" | "offer") => {
-    setSelected(item);
-    setSelectedType(type);
   };
 
   const handleStart = async (item: any, type: "survey" | "offer") => {
@@ -120,125 +100,155 @@ const DailySurveys = () => {
   const deviceIcons = (device: string) => {
     const d = (device || "").toLowerCase();
     return (
-      <div className="flex gap-1">
-        {(d.includes("desktop") || d.includes("all") || !d) && <Monitor className="h-3 w-3" />}
-        {(d.includes("mobile") || d.includes("all") || !d) && <Smartphone className="h-3 w-3" />}
-        {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-3 w-3" />}
+      <div className="flex gap-0.5">
+        {(d.includes("desktop") || d.includes("all") || !d) && <Monitor className="h-2.5 w-2.5 text-muted-foreground" />}
+        {(d.includes("mobile") || d.includes("all") || !d) && <Smartphone className="h-2.5 w-2.5 text-muted-foreground" />}
+        {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-2.5 w-2.5 text-muted-foreground" />}
       </div>
     );
   };
 
-  const allItems = [
-    ...offers.map(o => ({ ...o, _type: "offer" as const })),
-    ...surveys.map(s => ({ ...s, _type: "survey" as const })),
-  ];
+  // Featured Tasks = survey_links (single link providers)
+  const featuredTasks = [...surveys, ...offers];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Featured Tasks - compact cards like EarnLab */}
       <div>
-        <h1 className="text-2xl font-bold">Featured Tasks</h1>
-        <p className="text-muted-foreground">Featured tasks are the best tasks to complete, with the highest rewards</p>
+        <h2 className="text-lg font-bold">Featured Tasks</h2>
+        <p className="text-xs text-muted-foreground">Featured tasks are the best tasks to complete, with the highest rewards</p>
       </div>
 
-      {allItems.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">No tasks available. Check back later!</CardContent></Card>
+      {featuredTasks.length === 0 ? (
+        <p className="text-muted-foreground text-xs text-center py-6">No featured tasks available. Check back later!</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          {allItems.map((item) => (
-            <Card
-              key={item.id}
-              className="hover:border-primary/50 transition-all cursor-pointer group overflow-hidden"
-              onClick={() => openDetail(item, item._type)}
-            >
-              <CardContent className="p-0">
-                {item.image_url ? (
-                  <div className="aspect-square bg-accent overflow-hidden">
-                    <img src={item.image_url} alt={item.title || item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2">
+          {featuredTasks.map((item) => {
+            const isOffer = 'title' in item && 'url' in item && !('link' in item);
+            const name = isOffer ? item.title : item.name;
+            const payout = item.payout;
+            const imgUrl = item.image_url;
+
+            return (
+              <Card
+                key={item.id}
+                className="hover:border-primary/50 transition-all cursor-pointer group overflow-hidden border-0"
+                onClick={() => { setSelected(item); setSelectedType(isOffer ? "offer" : "survey"); }}
+              >
+                <CardContent className="p-0">
+                  {imgUrl ? (
+                    <div className="aspect-[4/3] bg-accent overflow-hidden">
+                      <img src={imgUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    </div>
+                  ) : (
+                    <div className="aspect-[4/3] bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center">
+                      <span className="text-xl font-bold text-primary/40">{(name || "?")[0]}</span>
+                    </div>
+                  )}
+                  <div className="p-1.5">
+                    <p className="font-medium text-[10px] truncate">{name}</p>
+                    <p className="text-[9px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-primary font-bold text-[10px]">
+                        $ {Number(payout || 0).toFixed(2)}
+                      </span>
+                      {deviceIcons(item.device || item.devices || "")}
+                    </div>
                   </div>
-                ) : (
-                  <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center">
-                    <span className="text-3xl font-bold text-primary/40">{(item.title || item.name || "?")[0]}</span>
-                  </div>
-                )}
-                <div className="p-2">
-                  <p className="font-medium text-xs truncate">{item.title || item.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-primary font-bold text-xs">
-                      $ {item._type === "offer" ? `${Number(item.payout).toFixed(2)}` : `${item.payout}`}
-                    </span>
-                    {deviceIcons(item.device || item.devices || "")}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
+      )}
+
+      {/* Offer Walls = survey_providers (iframes) */}
+      {providers.length > 0 && (
+        <>
+          <div className="mt-4">
+            <h2 className="text-lg font-bold">Offer Walls</h2>
+            <p className="text-xs text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+            {providers.map((p) => (
+              <Card key={p.id} className="hover:border-primary/50 transition-colors cursor-pointer border-0 relative">
+                <CardContent className="p-3 text-center">
+                  {p.point_percentage > 100 && (
+                    <Badge className="absolute top-1 right-1 text-[8px] px-1 py-0 bg-primary/90">+{p.point_percentage - 100}%</Badge>
+                  )}
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-10 object-contain mb-1.5" />
+                  ) : (
+                    <div className="h-10 flex items-center justify-center mb-1.5">
+                      <span className="text-sm font-bold text-primary/60">{p.name[0]}</span>
+                    </div>
+                  )}
+                  <p className="font-medium text-[10px] truncate">{p.name}</p>
+                  {p.level && p.level > 0 && (
+                    <p className="text-[8px] text-muted-foreground">Level {p.level}+</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {featuredTasks.length === 0 && providers.length === 0 && (
+        <Card><CardContent className="p-6 text-center text-muted-foreground text-xs">No tasks available. Check back later!</CardContent></Card>
       )}
 
       {/* Detail Dialog */}
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Task Details</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="text-sm">Task Details</DialogTitle></DialogHeader>
           {selected && (
-            <div className="space-y-4">
-              <div className="flex gap-4">
+            <div className="space-y-3">
+              <div className="flex gap-3">
                 {selected.image_url ? (
-                  <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-accent">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-accent">
                     <img src={selected.image_url} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-24 h-24 rounded-lg bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center flex-shrink-0">
-                    <span className="text-2xl font-bold text-primary/40">{(selected.title || selected.name || "?")[0]}</span>
+                  <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg font-bold text-primary/40">{(selected.title || selected.name || "?")[0]}</span>
                   </div>
                 )}
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold">{selected.title || selected.name}</h3>
-                  <p className="text-primary font-bold text-lg">
+                  <h3 className="text-sm font-bold">{selected.title || selected.name}</h3>
+                  <p className="text-primary font-bold text-sm">
                     {selectedType === "offer" ? `${selected.currency || "$"} ${selected.payout}` : `${selected.payout} pts`}
                   </p>
-                  <div className="mt-1">{deviceIcons(selected.device || selected.devices || "")}</div>
+                  <div className="mt-0.5">{deviceIcons(selected.device || selected.devices || "")}</div>
                 </div>
               </div>
 
-              {/* All available fields */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {selectedType === "offer" && (
                   <>
-                    {selected.offer_id && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Offer ID</p><p className="text-sm font-medium">{selected.offer_id}</p></div>}
-                    {selected.payout_model && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Payout Model</p><p className="text-sm font-medium">{selected.payout_model}</p></div>}
-                    {selected.currency && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Currency</p><p className="text-sm font-medium">{selected.currency}</p></div>}
-                    {selected.vertical && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Category</p><p className="text-sm font-medium">{selected.vertical}</p></div>}
-                    {selected.countries && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Countries</p><p className="text-sm font-medium">{selected.countries}</p></div>}
-                    {selected.allowed_countries && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Allowed Countries</p><p className="text-sm font-medium">{selected.allowed_countries}</p></div>}
-                    {selected.platform && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Platform</p><p className="text-sm font-medium">{selected.platform}</p></div>}
-                    {selected.device && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Device</p><p className="text-sm font-medium">{selected.device}</p></div>}
-                    {selected.traffic_sources && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Traffic Sources</p><p className="text-sm font-medium">{selected.traffic_sources}</p></div>}
-                    {selected.percent > 0 && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Percent</p><p className="text-sm font-medium">{selected.percent}%</p></div>}
-                    {selected.expiry_date && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Expires</p><p className="text-sm font-medium">{new Date(selected.expiry_date).toLocaleDateString()}</p></div>}
+                    {selected.offer_id && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Offer ID</p><p className="text-xs font-medium">{selected.offer_id}</p></div>}
+                    {selected.payout_model && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Model</p><p className="text-xs font-medium">{selected.payout_model}</p></div>}
+                    {selected.countries && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Countries</p><p className="text-xs font-medium">{selected.countries}</p></div>}
+                    {selected.platform && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Platform</p><p className="text-xs font-medium">{selected.platform}</p></div>}
                   </>
                 )}
                 {selectedType === "survey" && (
                   <>
-                    {selected.country && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Country</p><p className="text-sm font-medium">{selected.country}</p></div>}
-                    {selected.level && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Level</p><p className="text-sm font-medium">{selected.level}</p></div>}
-                    {selected.rating > 0 && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Rating</p><p className="text-sm font-medium">⭐ {selected.rating}</p></div>}
-                    {selected.is_recommended && <div className="bg-accent/50 rounded-lg p-3"><p className="text-xs text-muted-foreground">Status</p><p className="text-sm font-medium">⭐ Recommended</p></div>}
+                    {selected.country && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Country</p><p className="text-xs font-medium">{selected.country}</p></div>}
+                    {selected.level && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Level</p><p className="text-xs font-medium">{selected.level}</p></div>}
+                    {selected.rating > 0 && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Rating</p><p className="text-xs font-medium">⭐ {selected.rating}</p></div>}
                   </>
                 )}
               </div>
 
               {(selected.description || selected.content) && (
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">Description</h4>
-                  <div className="bg-accent/30 rounded-lg p-3 text-sm">{selected.description || selected.content}</div>
-                </div>
+                <div className="bg-accent/30 rounded-md p-2 text-xs">{selected.description || selected.content}</div>
               )}
 
-              <Button className="w-full" onClick={() => handleStart(selected, selectedType)}
+              <Button className="w-full h-8 text-xs" onClick={() => handleStart(selected, selectedType)}
                 style={selected.button_gradient ? { background: selected.button_gradient } : undefined}>
-                <ExternalLink className="h-4 w-4 mr-2" />
-                {selected.button_text || "Sign Up"}
+                <ExternalLink className="h-3 w-3 mr-1.5" />
+                {selected.button_text || "Start Task"}
               </Button>
             </div>
           )}

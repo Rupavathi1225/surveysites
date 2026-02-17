@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -30,11 +30,9 @@ const DashboardHome = () => {
     supabase.from("survey_links").select("*").eq("status", "active").then(({ data }) => setSurveyLinks(data || []));
     supabase.from("notifications").select("*").lte("created_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(15).then(({ data }) => setActivityFeed(data || []));
 
-    // Realtime subscription for activity feed
     const channel = supabase.channel("activity-feed").on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
       setActivityFeed((prev) => [payload.new as any, ...prev].slice(0, 15));
     }).subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [profile]);
 
@@ -77,34 +75,32 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Activity Ticker */}
+    <div className="space-y-3">
       <ActivityTicker />
 
-      {/* Welcome */}
+      {/* Welcome - compact */}
       <Card className="border-0 bg-gradient-to-r from-primary/10 to-transparent">
-        <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <CardContent className="p-3 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">Welcome back, <span className="text-primary">{profile.first_name || profile.username}!</span></h1>
-            <p className="text-muted-foreground text-xs mt-0.5">
-              Member since {new Date(profile.created_at).toLocaleDateString()} &nbsp;
+            <h1 className="text-sm font-bold">Welcome, <span className="text-primary">{profile.first_name || profile.username}</span></h1>
+            <p className="text-muted-foreground text-[10px]">
+              Since {new Date(profile.created_at).toLocaleDateString()} {" "}
               {profile.is_verified ? (
-                <span className="inline-flex items-center gap-1 text-success"><CheckCircle className="h-3 w-3" /> Verified</span>
+                <span className="inline-flex items-center gap-0.5 text-success"><CheckCircle className="h-2.5 w-2.5" /> Verified</span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-warning"><AlertCircle className="h-3 w-3" /> Unverified</span>
+                <span className="inline-flex items-center gap-0.5 text-warning"><AlertCircle className="h-2.5 w-2.5" /> Unverified</span>
               )}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-muted-foreground text-[10px]">Available Balance</p>
-            <p className="text-2xl font-bold text-primary">${Number(profile.cash_balance).toFixed(2)}</p>
-            <Link to="/dashboard/withdrawal"><Button size="sm" className="mt-1 h-7 text-xs">Withdraw</Button></Link>
+            <p className="text-primary text-lg font-bold">${Number(profile.cash_balance).toFixed(2)}</p>
+            <Link to="/dashboard/withdrawal"><Button size="sm" className="h-6 text-[10px] px-2">Withdraw</Button></Link>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* Quick Actions - compact */}
+      <div className="grid grid-cols-4 gap-1.5">
         {[
           { icon: ClipboardList, label: "Surveys", to: "/dashboard/daily-surveys", bg: "bg-info" },
           { icon: Gift, label: "Offers", to: "/dashboard/offers", bg: "bg-success" },
@@ -113,48 +109,45 @@ const DashboardHome = () => {
         ].map((action) => (
           <Link key={action.to} to={action.to}>
             <Card className="hover:border-primary/50 transition-colors cursor-pointer border-0">
-              <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
-                <div className={`${action.bg} p-2 rounded-full`}>
-                  <action.icon className="h-4 w-4 text-primary-foreground" />
+              <CardContent className="p-2 flex flex-col items-center text-center gap-1">
+                <div className={`${action.bg} p-1.5 rounded-full`}>
+                  <action.icon className="h-3.5 w-3.5 text-primary-foreground" />
                 </div>
-                <span className="text-[11px] font-medium">{action.label}</span>
+                <span className="text-[10px] font-medium">{action.label}</span>
               </CardContent>
             </Card>
           </Link>
         ))}
       </div>
 
-      {/* Wallet Summary */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+      {/* Wallet Summary - compact inline */}
+      <div className="grid grid-cols-6 gap-1.5">
         {walletCards.map((card) => (
           <Card key={card.label} className="border-0">
-            <CardContent className="p-3 flex items-center gap-2">
-              <card.icon className={`h-4 w-4 ${card.color} shrink-0`} />
+            <CardContent className="p-2 flex items-center gap-1.5">
+              <card.icon className={`h-3 w-3 ${card.color} shrink-0`} />
               <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground truncate">{card.label}</p>
-                <p className={`text-sm font-bold ${card.color}`}>{card.value}</p>
+                <p className="text-[9px] text-muted-foreground truncate">{card.label}</p>
+                <p className={`text-xs font-bold ${card.color}`}>{card.value}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Recommended Offerwalls */}
+      <div className="grid lg:grid-cols-2 gap-3">
+        {/* Recommended Offerwalls - compact */}
         <Card className="border-0">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-semibold">Recommended Offerwalls</CardTitle>
-            <p className="text-[10px] text-muted-foreground">Complete offers to earn points</p>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="p-3">
+            <h3 className="text-xs font-semibold mb-0.5">Recommended Offerwalls</h3>
+            <p className="text-[9px] text-muted-foreground mb-2">Complete offers to earn points</p>
             {surveyProviders.length === 0 ? (
-              <p className="text-muted-foreground text-xs text-center py-4">No offerwalls available</p>
+              <p className="text-muted-foreground text-[10px] text-center py-3">No offerwalls available</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {surveyProviders.map((p) => (
-                  <div key={p.id} className="p-2.5 rounded-lg bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
-                    <p className="font-medium text-xs">{p.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{p.content || "Complete offers"}</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {surveyProviders.slice(0, 6).map((p) => (
+                  <div key={p.id} className="p-2 rounded-md bg-accent/40 hover:bg-accent/60 transition-colors cursor-pointer text-center">
+                    <p className="font-medium text-[10px] truncate">{p.name}</p>
                   </div>
                 ))}
               </div>
@@ -162,24 +155,19 @@ const DashboardHome = () => {
           </CardContent>
         </Card>
 
-        {/* Daily Surveys */}
+        {/* Daily Surveys - compact */}
         <Card className="border-0">
-          <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm font-semibold">Daily Surveys</CardTitle>
-            <p className="text-[10px] text-muted-foreground">Complete surveys to earn quick points</p>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="p-3">
+            <h3 className="text-xs font-semibold mb-0.5">Daily Surveys</h3>
+            <p className="text-[9px] text-muted-foreground mb-2">Complete surveys to earn quick points</p>
             {surveyLinks.length === 0 ? (
-              <p className="text-muted-foreground text-xs text-center py-4">No surveys available</p>
+              <p className="text-muted-foreground text-[10px] text-center py-3">No surveys available</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {surveyLinks.slice(0, 4).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-accent/40">
-                    <div>
-                      <p className="font-medium text-xs">{s.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{s.content || "Answer questions"}</p>
-                    </div>
-                    <span className="text-primary font-bold text-xs">{s.payout} pts</span>
+                  <div key={s.id} className="flex items-center justify-between p-1.5 rounded-md bg-accent/40">
+                    <p className="font-medium text-[10px] truncate">{s.name}</p>
+                    <span className="text-primary font-bold text-[10px] shrink-0">{s.payout} pts</span>
                   </div>
                 ))}
               </div>
@@ -188,37 +176,35 @@ const DashboardHome = () => {
         </Card>
       </div>
 
-      {/* Refer & Earn */}
+      {/* Refer & Earn - compact */}
       <Card className="border-0 bg-gradient-to-r from-success/10 to-transparent">
-        <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold flex items-center gap-1.5"><Gift className="h-4 w-4 text-success" /> Refer & Earn</h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Share your referral link and earn when friends join</p>
+        <CardContent className="p-3 flex items-center justify-between gap-2">
+          <div className="shrink-0">
+            <h3 className="text-xs font-semibold flex items-center gap-1"><Gift className="h-3 w-3 text-success" /> Refer & Earn</h3>
+            <p className="text-[9px] text-muted-foreground">Share & earn when friends join</p>
           </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Input value={referralLink} readOnly className="h-7 text-[10px] bg-accent/50 w-full md:w-64" />
-            <Button onClick={copyReferral} size="sm" variant="outline" className="h-7 px-2 shrink-0"><Copy className="h-3 w-3" /></Button>
+          <div className="flex items-center gap-1.5 flex-1 max-w-xs">
+            <Input value={referralLink} readOnly className="h-6 text-[9px] bg-accent/50" />
+            <Button onClick={copyReferral} size="sm" variant="outline" className="h-6 w-6 p-0 shrink-0"><Copy className="h-2.5 w-2.5" /></Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Last Credited */}
+      {/* Last Credited - compact */}
       <Card className="border-0">
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-semibold">Last Credited</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
+        <CardContent className="p-3">
+          <h3 className="text-xs font-semibold mb-2">Last Credited</h3>
           {lastCredited.length === 0 ? (
-            <p className="text-muted-foreground text-xs text-center py-4">No earnings yet</p>
+            <p className="text-muted-foreground text-[10px] text-center py-3">No earnings yet</p>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {lastCredited.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-2.5 bg-accent/40 rounded-lg">
-                  <div>
-                    <p className="font-medium text-xs">{e.description || e.offer_name}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
+                <div key={e.id} className="flex items-center justify-between p-1.5 bg-accent/40 rounded-md">
+                  <div className="min-w-0">
+                    <p className="font-medium text-[10px] truncate">{e.description || e.offer_name}</p>
+                    <p className="text-[9px] text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</p>
                   </div>
-                  <span className="text-success font-bold text-xs">+{e.amount} pts</span>
+                  <span className="text-success font-bold text-[10px]">+{e.amount} pts</span>
                 </div>
               ))}
             </div>
@@ -226,26 +212,23 @@ const DashboardHome = () => {
         </CardContent>
       </Card>
 
-      {/* Live Activity Feed */}
+      {/* Live Activity - compact */}
       <Card className="border-0">
-        <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-semibold flex items-center gap-1.5"><Activity className="h-4 w-4 text-primary" /> Live Activity</CardTitle>
-          <p className="text-[10px] text-muted-foreground">Real-time platform activity</p>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
+        <CardContent className="p-3">
+          <h3 className="text-xs font-semibold flex items-center gap-1 mb-2"><Activity className="h-3 w-3 text-primary" /> Live Activity</h3>
           {activityFeed.length === 0 ? (
-            <p className="text-muted-foreground text-xs text-center py-4">No activity yet</p>
+            <p className="text-muted-foreground text-[10px] text-center py-3">No activity yet</p>
           ) : (
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            <div className="space-y-1 max-h-48 overflow-y-auto">
               {activityFeed.map((n) => {
                 const iconMap: Record<string, any> = { signup: UserPlus, login: LogIn, promo: Tag, offer: Gift, payment: CreditCard, chat: MessageCircle };
                 const Icon = iconMap[n.type] || Bell;
                 return (
-                  <div key={n.id} className="flex items-start gap-2.5 p-2 bg-accent/40 rounded-lg">
-                    <Icon className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                  <div key={n.id} className="flex items-start gap-2 p-1.5 bg-accent/40 rounded-md">
+                    <Icon className="h-3 w-3 mt-0.5 text-primary shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xs">{n.message}</p>
-                      <p className="text-[10px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                      <p className="text-[10px]">{n.message}</p>
+                      <p className="text-[9px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
                     </div>
                   </div>
                 );
@@ -255,38 +238,36 @@ const DashboardHome = () => {
         </CardContent>
       </Card>
 
-      {/* Floating Chat Button */}
+      {/* Floating Chat */}
       <button
         onClick={() => { setChatOpen(!chatOpen); if (!chatOpen) loadChat(); }}
-        className="fixed bottom-5 right-5 z-50 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-colors"
+        className="fixed bottom-5 right-5 z-50 bg-primary text-primary-foreground p-2.5 rounded-full shadow-lg hover:bg-primary/90 transition-colors"
       >
-        {chatOpen ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        {chatOpen ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
       </button>
 
-
-      {/* Chat Panel */}
       {chatOpen && (
-        <div className="fixed bottom-20 right-5 z-50 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
-          <div className="p-3 bg-primary/10 border-b border-border flex items-center justify-between">
-            <h3 className="text-xs font-semibold flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5 text-primary" /> Live Chat</h3>
-            <button onClick={() => setChatOpen(false)}><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+        <div className="fixed bottom-16 right-5 z-50 w-72 bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
+          <div className="p-2 bg-primary/10 border-b border-border flex items-center justify-between">
+            <h3 className="text-[10px] font-semibold flex items-center gap-1"><MessageCircle className="h-3 w-3 text-primary" /> Live Chat</h3>
+            <button onClick={() => setChatOpen(false)}><X className="h-3 w-3 text-muted-foreground" /></button>
           </div>
-          <div className="h-56 overflow-y-auto p-3 space-y-1.5">
+          <div className="h-48 overflow-y-auto p-2 space-y-1">
             {chatMessages.length === 0 ? (
-              <p className="text-muted-foreground text-[10px] text-center py-6">No messages yet</p>
+              <p className="text-muted-foreground text-[9px] text-center py-6">No messages yet</p>
             ) : (
               chatMessages.map((m) => (
-                <div key={m.id} className={`text-[11px] p-1.5 rounded ${m.is_admin ? "bg-primary/15" : "bg-accent/50"}`}>
+                <div key={m.id} className={`text-[10px] p-1 rounded ${m.is_admin ? "bg-primary/15" : "bg-accent/50"}`}>
                   <span className="font-medium">{m.is_admin ? "Admin" : "You"}</span>: {m.message}
                 </div>
               ))
             )}
           </div>
-          <div className="p-2 border-t border-border flex gap-1.5">
-            <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Type..." className="h-7 text-xs" onKeyDown={(e) => e.key === "Enter" && sendChat()} />
-            <Button onClick={sendChat} size="sm" className="h-7 w-7 p-0"><Send className="h-3 w-3" /></Button>
+          <div className="p-1.5 border-t border-border flex gap-1">
+            <Input value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Type..." className="h-6 text-[10px]" onKeyDown={(e) => e.key === "Enter" && sendChat()} />
+            <Button onClick={sendChat} size="sm" className="h-6 w-6 p-0"><Send className="h-2.5 w-2.5" /></Button>
           </div>
-          <p className="text-[9px] text-muted-foreground px-2 pb-1.5">
+          <p className="text-[8px] text-muted-foreground px-2 pb-1">
             {profile.free_messages_remaining > 0 ? `${profile.free_messages_remaining} free left` : "1 pt/msg"}
           </p>
         </div>
