@@ -154,20 +154,21 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Blurred real dashboard background via iframe */}
+      {/* Blurred real dashboard background via iframe - light blur with glass effect */}
       <div className="absolute inset-0">
         <iframe
           src="/dashboard"
           className="w-full h-full border-0 pointer-events-none"
-          style={{ filter: "blur(4px)", opacity: 0.35 }}
+          style={{ filter: "blur(2px)", opacity: 0.55 }}
           tabIndex={-1}
           title="Background"
         />
+        <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px]" />
       </div>
 
       {/* Main auth form */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm bg-card/95 backdrop-blur-md shadow-2xl border-border/50">
+        <Card className="w-full max-w-sm bg-card/80 backdrop-blur-xl shadow-2xl border border-border/30" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
           <CardContent className="p-6">{formContent}</CardContent>
         </Card>
       </div>
