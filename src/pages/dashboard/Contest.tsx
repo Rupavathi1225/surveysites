@@ -5,10 +5,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Reward { rank: number; prize: number; }
 
 const Contest = () => {
+  const isMobile = useIsMobile();
   const [contests, setContests] = useState<any[]>([]);
   const [entries, setEntries] = useState<any[]>([]);
   const [activeContest, setActiveContest] = useState<any>(null);
@@ -84,17 +86,17 @@ const Contest = () => {
   const podiumColors = ["bg-yellow-500/20 border-yellow-500", "bg-gray-300/20 border-gray-400", "bg-amber-600/20 border-amber-600"];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold flex items-center gap-2">
-        <Trophy className="h-6 w-6 text-primary" /> Contests
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+        <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> Contests
       </h1>
 
       {contests.length > 1 && (
         <Tabs defaultValue={contests[0]?.id} onValueChange={(v) => setActiveContest(contests.find(c => c.id === v))}>
-          <TabsList>
+          <TabsList className="grid grid-cols-auto gap-2 w-full h-auto">
             {contests.map(c => (
-              <TabsTrigger key={c.id} value={c.id}>
-                <Trophy className="h-4 w-4 mr-1" /> {c.title}
+              <TabsTrigger key={c.id} value={c.id} className="text-xs sm:text-sm">
+                <Trophy className="h-3 w-3 sm:h-4 sm:w-4 mr-1" /> {isMobile ? c.title.substring(0, 10) : c.title}
                 {c.status === "ended" && <Badge variant="secondary" className="ml-1 text-xs">Ended</Badge>}
               </TabsTrigger>
             ))}
@@ -108,18 +110,18 @@ const Contest = () => {
         <>
           {/* Prize Banner */}
           <Card className="bg-gradient-to-r from-primary/20 via-accent to-primary/20 border-primary/30">
-            <CardContent className="p-8 text-center">
-              <p className="text-4xl md:text-5xl font-extrabold text-primary">${Number(activeContest.amount).toFixed(2)}</p>
-              <p className="text-xl font-bold mt-2">{activeContest.title}</p>
-              {activeContest.description && <p className="text-sm text-muted-foreground mt-1">{activeContest.description}</p>}
-              <p className="text-xs text-muted-foreground mt-2">
+            <CardContent className="p-4 sm:p-8 text-center">
+              <p className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-primary">${Number(activeContest.amount).toFixed(2)}</p>
+              <p className="text-base sm:text-xl font-bold mt-2">{activeContest.title}</p>
+              {activeContest.description && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{activeContest.description}</p>}
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
                 Users are automatically entered when earning points during the contest window.
               </p>
 
               {ended ? (
-                <Badge variant="destructive" className="mt-6 text-lg px-6 py-2">Contest Ended</Badge>
+                <Badge variant="destructive" className="mt-4 sm:mt-6 text-base sm:text-lg px-4 sm:px-6 py-1 sm:py-2">Contest Ended</Badge>
               ) : (
-                <div className="flex justify-center gap-2 sm:gap-4 mt-6 flex-wrap">
+                <div className="flex justify-center gap-1 sm:gap-2 md:gap-4 mt-4 sm:mt-6 flex-wrap">
                   {[
                     { val: countdown.days, label: "Days" },
                     { val: countdown.hours, label: "Hours" },
@@ -127,12 +129,12 @@ const Contest = () => {
                     { val: countdown.seconds, label: "Sec" },
                   ].map(({ val, label }) => (
                     <div key={label} className="text-center">
-                      <div className="flex gap-0.5 sm:gap-1">
+                      <div className="flex gap-0.5">
                         {pad(val).split("").map((d, i) => (
-                          <div key={i} className="bg-background border rounded-lg w-7 h-9 sm:w-10 sm:h-12 flex items-center justify-center text-base sm:text-xl font-bold">{d}</div>
+                          <div key={i} className="bg-background border rounded w-6 h-8 sm:w-8 sm:h-10 md:w-10 md:h-12 flex items-center justify-center text-xs sm:text-lg md:text-xl font-bold">{d}</div>
                         ))}
                       </div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{label}</p>
+                      <p className="text-[8px] sm:text-xs text-muted-foreground mt-1">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -140,9 +142,9 @@ const Contest = () => {
 
               {/* Reward tiers */}
               {rewards.length > 0 && (
-                <div className="flex justify-center gap-3 mt-4 flex-wrap">
+                <div className="flex justify-center gap-2 sm:gap-3 mt-3 sm:mt-4 flex-wrap">
                   {rewards.map((r) => (
-                    <Badge key={r.rank} variant="outline" className="text-sm">
+                    <Badge key={r.rank} variant="outline" className="text-xs sm:text-sm">
                       Rank #{r.rank}: {r.prize} pts bonus
                     </Badge>
                   ))}
@@ -153,36 +155,36 @@ const Contest = () => {
 
           {/* Podium (top 3) */}
           {entries.length >= 1 && (
-            <div className="flex flex-col sm:flex-row justify-center items-end gap-4 sm:gap-6 py-6">
+            <div className={`flex ${isMobile ? 'flex-col items-stretch' : 'flex-row justify-center items-end'} gap-3 sm:gap-4 md:gap-6 py-4 sm:py-6`}>
               {entries.length >= 2 && (
-                <div className="text-center">
-                  <Card className={`p-4 ${podiumColors[1]} border-2`}>
-                    <div className="text-3xl mb-1">🥈</div>
-                    <p className="font-semibold text-sm">{(entries[1] as any)?.profiles?.username || "Anonymous"}</p>
+                <div className={`text-center ${isMobile ? 'order-3' : ''}`}>
+                  <Card className={`p-3 sm:p-4 ${podiumColors[1]} border-2`}>
+                    <div className="text-2xl sm:text-3xl mb-1">🥈</div>
+                    <p className="font-semibold text-xs sm:text-sm">{(entries[1] as any)?.profiles?.username || "Anonymous"}</p>
                     <p className="text-xs text-muted-foreground">{(entries[1] as any)?.profiles?.country || ""}</p>
-                    <Badge className="mt-2 bg-muted text-foreground">{entries[1].points?.toLocaleString()} pts</Badge>
+                    <Badge className="mt-2 bg-muted text-foreground text-xs">{entries[1].points?.toLocaleString()} pts</Badge>
                   </Card>
-                  {getPrize(2) > 0 && <p className="text-primary font-bold mt-2">{getPrize(2)} pts bonus</p>}
+                  {getPrize(2) > 0 && <p className="text-primary font-bold mt-1 sm:mt-2 text-xs sm:text-sm">{getPrize(2)} pts bonus</p>}
                 </div>
               )}
-              <div className="text-center -mt-4">
-                <Card className={`p-6 ${podiumColors[0]} border-2`}>
-                  <div className="text-4xl mb-1">👑</div>
-                  <p className="font-bold">{(entries[0] as any)?.profiles?.username || "Anonymous"}</p>
+              <div className={`text-center ${isMobile ? 'order-1' : '-mt-4'}`}>
+                <Card className={`p-4 sm:p-6 ${podiumColors[0]} border-2`}>
+                  <div className="text-3xl sm:text-4xl mb-1">👑</div>
+                  <p className="font-bold text-sm sm:text-base">{(entries[0] as any)?.profiles?.username || "Anonymous"}</p>
                   <p className="text-xs text-muted-foreground">{(entries[0] as any)?.profiles?.country || ""}</p>
-                  <Badge className="mt-2 bg-primary text-primary-foreground">{entries[0].points?.toLocaleString()} pts</Badge>
+                  <Badge className="mt-2 bg-primary text-primary-foreground text-xs sm:text-sm">{entries[0].points?.toLocaleString()} pts</Badge>
                 </Card>
-                {getPrize(1) > 0 && <p className="text-primary font-bold text-lg mt-2">{getPrize(1)} pts bonus</p>}
+                {getPrize(1) > 0 && <p className="text-primary font-bold text-sm sm:text-lg mt-1 sm:mt-2">{getPrize(1)} pts bonus</p>}
               </div>
               {entries.length >= 3 && (
-                <div className="text-center">
-                  <Card className={`p-4 ${podiumColors[2]} border-2`}>
-                    <div className="text-3xl mb-1">🥉</div>
-                    <p className="font-semibold text-sm">{(entries[2] as any)?.profiles?.username || "Anonymous"}</p>
+                <div className={`text-center ${isMobile ? 'order-2' : ''}`}>
+                  <Card className={`p-3 sm:p-4 ${podiumColors[2]} border-2`}>
+                    <div className="text-2xl sm:text-3xl mb-1">🥉</div>
+                    <p className="font-semibold text-xs sm:text-sm">{(entries[2] as any)?.profiles?.username || "Anonymous"}</p>
                     <p className="text-xs text-muted-foreground">{(entries[2] as any)?.profiles?.country || ""}</p>
-                    <Badge className="mt-2 bg-muted text-foreground">{entries[2].points?.toLocaleString()} pts</Badge>
+                    <Badge className="mt-2 bg-muted text-foreground text-xs">{entries[2].points?.toLocaleString()} pts</Badge>
                   </Card>
-                  {getPrize(3) > 0 && <p className="text-primary font-bold mt-2">{getPrize(3)} pts bonus</p>}
+                  {getPrize(3) > 0 && <p className="text-primary font-bold mt-1 sm:mt-2 text-xs sm:text-sm">{getPrize(3)} pts bonus</p>}
                 </div>
               )}
             </div>
@@ -191,48 +193,89 @@ const Contest = () => {
           {/* Full Rankings Table */}
           <Card>
             <CardContent className="p-0">
-              <div className="p-4 border-b">
-                <h3 className="font-semibold flex items-center gap-2"><Trophy className="h-4 w-4" /> Full Rankings</h3>
+              <div className="p-3 sm:p-4 border-b">
+                <h3 className="font-semibold flex items-center gap-2 text-sm sm:text-base"><Trophy className="h-4 w-4" /> Full Rankings</h3>
                 <p className="text-xs text-muted-foreground">Top 100 users by points earned during contest</p>
               </div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Rank</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Country</TableHead>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Prize</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              
+              {/* Mobile View - Card based */}
+              {isMobile ? (
+                <div className="space-y-2 p-3 sm:p-4">
                   {entries.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No entries yet. Earn points to participate!</TableCell></TableRow>
+                    <div className="text-center text-muted-foreground py-8 text-sm">No entries yet. Earn points to participate!</div>
                   ) : entries.map((e: any, i) => {
                     const rank = i + 1;
                     const prize = getPrize(rank);
                     const medals = ["🥇", "🥈", "🥉"];
                     return (
-                      <TableRow key={e.id} className={rank <= 3 ? "bg-primary/5" : ""}>
-                        <TableCell className="font-bold">
-                          {rank <= 3 ? <span className="text-lg">{medals[rank - 1]}</span> : `#${rank}`}
-                        </TableCell>
-                        <TableCell className="font-medium flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold">
-                            {e.profiles?.avatar_url
-                              ? <img src={e.profiles.avatar_url} className="w-full h-full rounded-full object-cover" />
-                              : (e.profiles?.username?.[0] || "?")}
+                      <div key={e.id} className={`border rounded-lg p-3 ${rank <= 3 ? 'bg-primary/5 border-primary/30' : 'bg-background'}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="flex-shrink-0 font-bold text-lg">
+                              {rank <= 3 ? medals[rank - 1] : `#${rank}`}
+                            </div>
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <div className="w-8 h-8 rounded-full bg-accent flex-shrink-0 flex items-center justify-center text-sm font-bold overflow-hidden">
+                                {e.profiles?.avatar_url
+                                  ? <img src={e.profiles.avatar_url} className="w-full h-full object-cover" />
+                                  : (e.profiles?.username?.[0] || "?")}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm truncate">{e.profiles?.username || "Anonymous"}</p>
+                                <p className="text-xs text-muted-foreground">{e.profiles?.country || "-"}</p>
+                              </div>
+                            </div>
                           </div>
-                          {e.profiles?.username || "Anonymous"}
-                        </TableCell>
-                        <TableCell className="text-sm">{e.profiles?.country || "-"}</TableCell>
-                        <TableCell className="font-bold">{e.points?.toLocaleString()} Points</TableCell>
-                        <TableCell className="text-primary font-bold">{prize > 0 ? `${prize} pts bonus` : "-"}</TableCell>
-                      </TableRow>
+                        </div>
+                        <div className="flex items-center justify-between mt-2 gap-2">
+                          <span className="font-bold text-sm">{e.points?.toLocaleString()} Points</span>
+                          {prize > 0 && <span className="text-primary font-bold text-xs">{prize} pts bonus</span>}
+                        </div>
+                      </div>
                     );
                   })}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                /* Desktop View - Table */
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs sm:text-sm">Rank</TableHead>
+                      <TableHead className="text-xs sm:text-sm">User</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Country</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Points</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Prize</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {entries.length === 0 ? (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8 text-sm">No entries yet. Earn points to participate!</TableCell></TableRow>
+                    ) : entries.map((e: any, i) => {
+                      const rank = i + 1;
+                      const prize = getPrize(rank);
+                      const medals = ["🥇", "🥈", "🥉"];
+                      return (
+                        <TableRow key={e.id} className={rank <= 3 ? "bg-primary/5" : ""}>
+                          <TableCell className="font-bold text-sm">
+                            {rank <= 3 ? <span className="text-lg">{medals[rank - 1]}</span> : `#${rank}`}
+                          </TableCell>
+                          <TableCell className="font-medium text-sm flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden">
+                              {e.profiles?.avatar_url
+                                ? <img src={e.profiles.avatar_url} className="w-full h-full object-cover" />
+                                : (e.profiles?.username?.[0] || "?")}
+                            </div>
+                            {e.profiles?.username || "Anonymous"}
+                          </TableCell>
+                          <TableCell className="text-sm">{e.profiles?.country || "-"}</TableCell>
+                          <TableCell className="font-bold text-sm">{e.points?.toLocaleString()} Points</TableCell>
+                          <TableCell className="text-primary font-bold text-sm">{prize > 0 ? `${prize} pts bonus` : "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </>
