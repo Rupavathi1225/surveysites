@@ -79,7 +79,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   };
 
   return (
-    <div className="w-full overflow-hidden bg-card border-b border-border py-2">
+    <div className="w-full overflow-hidden bg-card border border-border rounded-lg py-3 px-2">
       <div className="relative overflow-hidden">
         <div className="flex gap-6 animate-scroll whitespace-nowrap" style={{ width: "max-content" }}>
           {doubled.map((item, i) => (
