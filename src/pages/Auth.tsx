@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { LogIn, UserPlus, Mail, Lock, User, Globe } from "lucide-react";
+import { LogIn, UserPlus, Mail, Lock, User, Globe, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +20,8 @@ const Auth = () => {
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [showAuthCard, setShowAuthCard] = useState(true);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const navigate = useNavigate();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -27,6 +31,20 @@ const Auth = () => {
     const timer = setTimeout(() => setShowPopup(true), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Check if user comes from email confirmation
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get("type");
+    if (type === "signup" || type === "email") {
+      // Email confirmed, auto-redirect to dashboard
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          navigate("/dashboard");
+        }
+      });
+    }
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,10 +83,14 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreedToTerms) {
+      toast({ title: "Terms Required", description: "You must agree to the Terms of Service and Privacy Policy.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: `${window.location.origin}/auth` }
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` }
     });
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
@@ -105,7 +127,7 @@ const Auth = () => {
       <div className="text-center mb-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Globe className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold text-primary">SurveySite</span>
+          <span className="text-xl font-bold text-primary">SurveyForever</span>
         </div>
         <h2 className="text-lg font-semibold">{isLogin ? "Welcome Back" : "Create Account"}</h2>
         <p className="text-muted-foreground text-xs">{isLogin ? "Sign in to your account" : "Join and start earning today"}</p>
@@ -138,7 +160,23 @@ const Auth = () => {
           <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 h-9 text-sm" required minLength={6} />
         </div>
         {!isLogin && (
-          <Input placeholder="Referral Code (optional)" value={referralCode || refFromUrl} onChange={(e) => setReferralCode(e.target.value)} className="h-9 text-sm" />
+          <>
+            <Input placeholder="Referral Code (optional)" value={referralCode || refFromUrl} onChange={(e) => setReferralCode(e.target.value)} className="h-9 text-sm" />
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="terms"
+                checked={agreedToTerms}
+                onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                className="mt-0.5"
+              />
+              <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight">
+                By creating this account, you agree to the{" "}
+                <Link to="/terms" className="text-primary hover:underline font-medium">Terms of Service</Link>{" "}
+                and{" "}
+                <Link to="/terms" className="text-primary hover:underline font-medium">Privacy Policy</Link>
+              </label>
+            </div>
+          </>
         )}
         <Button type="submit" className="w-full h-9 text-sm" disabled={loading}>
           {loading ? "Please wait..." : isLogin ? (<><LogIn className="mr-2 h-4 w-4" /> Sign In</>) : (<><UserPlus className="mr-2 h-4 w-4" /> Create Account</>)}
@@ -154,13 +192,13 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Static dashboard mockup background with blur + glass */}
+      {/* Static dashboard mockup background — very light blur like EarnLab */}
       <div className="absolute inset-0 bg-background">
         {/* Fake sidebar */}
         <div className="absolute left-0 top-0 bottom-0 w-48 bg-sidebar-background border-r border-sidebar-border p-4 space-y-3">
           <div className="flex items-center gap-2 mb-6">
             <Globe className="h-5 w-5 text-primary" />
-            <span className="text-sm font-bold text-primary">SurveySite</span>
+            <span className="text-sm font-bold text-primary">SurveyForever</span>
           </div>
           {["Home", "Daily Surveys", "Offers", "Leaderboard", "Affiliates", "Withdrawal", "Balance History", "Contest", "News"].map((item) => (
             <div key={item} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sidebar-accent/40">
@@ -223,19 +261,41 @@ const Auth = () => {
             </div>
           </div>
         </div>
-        {/* Glass overlay with blur */}
-        <div className="absolute inset-0 backdrop-blur-[3px] bg-background/30" />
+        {/* Very light glass overlay — barely blurred so dashboard is clearly visible */}
+        <div className="absolute inset-0 backdrop-blur-[1.5px] bg-background/15" />
       </div>
 
-      {/* Main auth form */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm bg-card/80 backdrop-blur-xl shadow-2xl border border-border/30" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
-          <CardContent className="p-6">{formContent}</CardContent>
-        </Card>
-      </div>
+      {/* Main auth form — closeable */}
+      {showAuthCard && (
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm bg-card/85 backdrop-blur-xl shadow-2xl border border-border/30 relative" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}>
+            <button
+              onClick={() => setShowAuthCard(false)}
+              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground z-10"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <CardContent className="p-6">{formContent}</CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* When auth card is closed, show a floating sign-in button + intercept clicks */}
+      {!showAuthCard && (
+        <div className="relative z-10 min-h-screen" onClick={() => setShowAuthCard(true)}>
+          <div className="fixed top-4 right-4 z-50 flex gap-2">
+            <Button onClick={(e) => { e.stopPropagation(); setIsLogin(true); setShowAuthCard(true); }} size="sm">
+              Sign In
+            </Button>
+            <Button onClick={(e) => { e.stopPropagation(); setIsLogin(false); setShowAuthCard(true); }} variant="outline" size="sm">
+              Sign Up
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Auto Sign-in Popup */}
-      <Dialog open={showPopup} onOpenChange={setShowPopup}>
+      <Dialog open={showPopup && showAuthCard} onOpenChange={setShowPopup}>
         <DialogContent className="max-w-sm p-6">{formContent}</DialogContent>
       </Dialog>
     </div>

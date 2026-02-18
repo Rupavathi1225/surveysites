@@ -44,6 +44,7 @@ import DownwardPartners from "./pages/admin/DownwardPartners";
 import PostbackLogs from "./pages/admin/PostbackLogs";
 import TestPostback from "./pages/admin/TestPostback";
 import NotFound from "./pages/NotFound";
+import Terms from "./pages/Terms";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +78,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/dashboard" element={<DashboardPage><DashboardHome /></DashboardPage>} />
           <Route path="/dashboard/balance-history" element={<DashboardPage><BalanceHistory /></DashboardPage>} />
           <Route path="/dashboard/update-account" element={<DashboardPage><UpdateAccount /></DashboardPage>} />
