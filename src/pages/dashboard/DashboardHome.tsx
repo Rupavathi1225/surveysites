@@ -98,27 +98,29 @@ const DashboardHome = () => {
               const imgUrl = item.image_url;
 
               return (
-                <Card key={item.id} className="overflow-hidden hover:border-primary/50 transition-all cursor-pointer group border-0">
-                  <CardContent className="p-0">
-                    {imgUrl ? (
-                      <div className="aspect-square bg-accent overflow-hidden">
-                        <img src={imgUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                <Link key={item.id} to={isOffer ? "/dashboard/offers" : "/dashboard/daily-surveys"}>
+                  <Card className="overflow-hidden hover:border-primary/50 transition-all cursor-pointer group border-0">
+                    <CardContent className="p-0">
+                      {imgUrl ? (
+                        <div className="aspect-square bg-accent overflow-hidden">
+                          <img src={imgUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        </div>
+                      ) : (
+                        <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center">
+                          <span className="text-2xl font-bold text-primary/40">{(name || "?")[0]}</span>
+                        </div>
+                      )}
+                      <div className="p-2">
+                        <p className="font-semibold text-xs truncate">{name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-primary font-bold text-xs">$ {Number(payout || 0).toFixed(2)}</span>
+                          {deviceIcons(item.device || item.devices || "")}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center">
-                        <span className="text-2xl font-bold text-primary/40">{(name || "?")[0]}</span>
-                      </div>
-                    )}
-                    <div className="p-2">
-                      <p className="font-semibold text-xs truncate">{name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-primary font-bold text-xs">$ {Number(payout || 0).toFixed(2)}</span>
-                        {deviceIcons(item.device || item.devices || "")}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>
@@ -141,7 +143,8 @@ const DashboardHome = () => {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
             {visibleWalls.map((p) => (
-              <Card key={p.id} className="hover:border-primary/50 transition-colors cursor-pointer border-0 relative">
+              <Link key={p.id} to="/dashboard/daily-surveys">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer border-0 relative">
                 <CardContent className="p-4 text-center">
                   {p.point_percentage > 100 && (
                     <Badge className="absolute top-1.5 right-1.5 text-[9px] px-1.5 py-0 bg-primary/90 text-primary-foreground">+{p.point_percentage - 100}%</Badge>
@@ -159,6 +162,7 @@ const DashboardHome = () => {
                   )}
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
         </div>
