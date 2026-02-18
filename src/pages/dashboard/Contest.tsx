@@ -119,20 +119,20 @@ const Contest = () => {
               {ended ? (
                 <Badge variant="destructive" className="mt-6 text-lg px-6 py-2">Contest Ended</Badge>
               ) : (
-                <div className="flex justify-center gap-4 mt-6">
+                <div className="flex justify-center gap-2 sm:gap-4 mt-6 flex-wrap">
                   {[
                     { val: countdown.days, label: "Days" },
                     { val: countdown.hours, label: "Hours" },
-                    { val: countdown.minutes, label: "Minutes" },
-                    { val: countdown.seconds, label: "Seconds" },
+                    { val: countdown.minutes, label: "Min" },
+                    { val: countdown.seconds, label: "Sec" },
                   ].map(({ val, label }) => (
                     <div key={label} className="text-center">
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5 sm:gap-1">
                         {pad(val).split("").map((d, i) => (
-                          <div key={i} className="bg-background border rounded-lg w-10 h-12 flex items-center justify-center text-xl font-bold">{d}</div>
+                          <div key={i} className="bg-background border rounded-lg w-7 h-9 sm:w-10 sm:h-12 flex items-center justify-center text-base sm:text-xl font-bold">{d}</div>
                         ))}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{label}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -153,7 +153,7 @@ const Contest = () => {
 
           {/* Podium (top 3) */}
           {entries.length >= 1 && (
-            <div className="flex justify-center items-end gap-6 py-6">
+            <div className="flex flex-col sm:flex-row justify-center items-end gap-4 sm:gap-6 py-6">
               {entries.length >= 2 && (
                 <div className="text-center">
                   <Card className={`p-4 ${podiumColors[1]} border-2`}>

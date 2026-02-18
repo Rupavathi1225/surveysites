@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="p-4 pb-2">
           <Link to="/dashboard" className="flex items-center gap-2">
             <Globe className="h-5 w-5 text-primary" />
-            <span className="text-base font-bold text-primary">SurveySite</span>
+            <span className="text-base font-bold text-primary">SurveyForever</span>
           </Link>
           {profile && (
             <div className="mt-3 mb-2">
