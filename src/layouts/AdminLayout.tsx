@@ -136,7 +136,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 bg-card border-b border-border overflow-x-auto">
+      <header className="sticky top-0 z-30 bg-card border-b border-border">
         <div className="flex items-center justify-between px-4 py-2">
           <span className="text-lg font-bold text-primary">Admin Panel</span>
           <div className="flex items-center gap-3">
@@ -148,7 +148,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto min-w-0">
+        <div className="flex items-center gap-1 px-4 py-2 overflow-x-auto">
           {directTabs.map(tab => (
             <Link
               key={tab.to}
