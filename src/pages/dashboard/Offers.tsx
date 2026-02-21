@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, Search, Globe, Filter } from "lucide-react";
+import { ExternalLink, Search, Globe, Filter, Zap, Clock } from "lucide-react";
 
 const Offers = () => {
   const { profile } = useAuth();
@@ -15,11 +15,76 @@ const Offers = () => {
   const [search, setSearch] = useState("");
   const [countryFilter, setCountryFilter] = useState("all");
   const [platformFilter, setPlatformFilter] = useState("all");
+  const [deviceFilter, setDeviceFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setProviders(data || []));
-    supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
+    console.log("Offers page loading...");
+    
+    supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false })
+      .then(({ data, error }) => {
+        console.log("Providers loaded:", data?.length, "error:", error);
+        setProviders(data || []);
+      });
+    
+    // Fetch all offers - show them regardless of status, but exclude deleted offers
+    const fetchOffers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("offers")
+          .select("*")
+          .eq("is_deleted", false)
+          .order("created_at", { ascending: false });
+        
+        console.log("Offers response:", data?.length, "error:", error);
+        
+        if (error) {
+          console.error("Offers error details:", JSON.stringify(error));
+        }
+        
+        setOffers(data || []);
+      } catch (err) {
+        console.error("Offers fetch exception:", err);
+        setOffers([]);
+      }
+    };
+    
+    fetchOffers();
   }, []);
+
+  // Timer for boosted offers
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      const newTimeLeft: Record<string, number> = {};
+      
+      offers.forEach(offer => {
+        if (offer.expiry_date && new Date(offer.expiry_date).getTime() > now) {
+          newTimeLeft[offer.id] = new Date(offer.expiry_date).getTime() - now;
+        }
+      });
+      
+      setTimeLeft(newTimeLeft);
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timer);
+  }, [offers]);
+
+  const formatTimeLeft = (ms: number): string => {
+    if (ms <= 0) return "Expired";
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+    
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}d ${hours % 24}h`;
+    }
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
 
   const fetchIpInfo = async () => {
     try {
@@ -89,11 +154,24 @@ const Offers = () => {
     if (search && !o.title.toLowerCase().includes(search.toLowerCase())) return false;
     if (countryFilter !== "all" && o.countries && !o.countries.toLowerCase().includes(countryFilter.toLowerCase())) return false;
     if (platformFilter !== "all" && o.platform && !o.platform.toLowerCase().includes(platformFilter.toLowerCase())) return false;
+    if (deviceFilter !== "all" && o.device && !o.device.toLowerCase().includes(deviceFilter.toLowerCase())) return false;
+    if (categoryFilter !== "all" && o.category && !o.category.toLowerCase().includes(categoryFilter.toLowerCase())) return false;
     return true;
   });
 
+  // Separate boosted offers (with expiry_date and percent > 0)
+  const boostedOffers = filtered.filter(o => o.expiry_date && o.percent && o.percent > 0 && timeLeft[o.id] > 0);
+  const regularOffers = filtered.filter(o => !o.expiry_date || !o.percent || o.percent === 0 || timeLeft[o.id] <= 0);
+
   const countries = [...new Set(offers.flatMap(o => (o.countries || "").split(",").map((c: string) => c.trim())).filter(Boolean))];
   const platforms = [...new Set(offers.map(o => o.platform).filter(Boolean))];
+  const devices = [...new Set(offers.map(o => o.device).filter(Boolean))];
+  const categories = [...new Set(offers.map(o => o.category).filter(Boolean))];
+
+  const calculateBoostedPayout = (offer: any): number => {
+    if (!offer.percent || offer.percent === 0) return Number(offer.payout) || 0;
+    return (Number(offer.payout) || 0) * (1 + (Number(offer.percent) || 0) / 100);
+  };
 
   return (
     <div className="space-y-4">
@@ -123,13 +201,89 @@ const Offers = () => {
               {platforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={deviceFilter} onValueChange={setDeviceFilter}>
+            <SelectTrigger className="w-36 h-7 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue placeholder="All Devices" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Devices</SelectItem>
+              {devices.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-36 h-7 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue placeholder="All Categories" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
+      {/* Boosted Offers Section */}
+      {boostedOffers.length > 0 && (
+        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-4 w-4 text-yellow-600" />
+              <h2 className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Limited Time Offers!</h2>
+              <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-700 text-xs">
+                <Clock className="h-3 w-3 mr-1" />
+                {boostedOffers.length} Active
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {boostedOffers.map((o) => (
+                <Card key={o.id} className="overflow-hidden hover:border-yellow-500/50 transition-colors border-yellow-500 border-2">
+                  <CardContent className="p-0">
+                    {o.image_url && (
+                      <div className="h-24 bg-accent overflow-hidden relative">
+                        <img src={o.image_url} alt={o.title} className="w-full h-full object-cover" />
+                        <div className="absolute top-1 right-1 bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Zap className="h-2.5 w-2.5" /> +{o.percent}%
+                        </div>
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <h3 className="font-semibold text-xs truncate">{o.title}</h3>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Badge variant="secondary" className="text-[8px] px-1 py-0">{o.payout_model || "CPA"}</Badge>
+                        <Badge className="bg-yellow-500 text-white text-[8px] px-1 py-0">
+                          ${calculateBoostedPayout(o).toFixed(2)}
+                        </Badge>
+                        {o.percent > 0 && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 border-yellow-500 text-yellow-700">
+                            +{o.percent}%
+                          </Badge>
+                        )}
+                      </div>
+                      {o.countries && (
+                        <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
+                          <Globe className="h-2.5 w-2.5 shrink-0" /> {o.countries}
+                        </p>
+                      )}
+                      {timeLeft[o.id] > 0 && (
+                        <div className="mt-1 text-[10px] text-red-600 font-medium flex items-center gap-1">
+                          <Clock className="h-2.5 w-2.5" />
+                          {formatTimeLeft(timeLeft[o.id])}
+                        </div>
+                      )}
+                      {o.url && (
+                        <Button className="mt-1.5 w-full h-6 text-[10px] bg-yellow-500 hover:bg-yellow-600" onClick={async () => { await trackClick(o); window.open(o.url, "_blank"); }}>
+                          <ExternalLink className="h-2.5 w-2.5 mr-1" /> Start
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Compact offer cards */}
-      {filtered.length > 0 && (
+      {regularOffers.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-          {filtered.map((o) => (
+          {regularOffers.map((o) => (
             <Card key={o.id} className="overflow-hidden hover:border-primary/50 transition-colors border-0">
               <CardContent className="p-0">
                 {o.image_url && (

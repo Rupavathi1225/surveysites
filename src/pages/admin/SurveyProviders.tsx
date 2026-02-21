@@ -10,15 +10,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Copy, Play, Upload, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Play, Upload, Loader2, ExternalLink } from "lucide-react";
 
 const defaultForm = {
-  name: "", code: "", point_percentage: 100, is_recommended: false, rating: 0,
-  button_text: "Open Survey", color_code: "#3B82F6", button_gradient: "linear-gradient(90deg, #836)",
-  content: "", image_url: "", level: 1, iframe_code: "", iframe_keys: "{user_id}",
-  postback_url: "", postback_username_key: "user_id", postback_status_key: "status",
-  postback_payout_key: "payout", postback_txn_key: "txn_id",
-  different_postback_link: "", payout_type: "points", status: "active"
+  name: "", 
+  code: "", 
+  point_percentage: 100, 
+  is_recommended: false, 
+  rating: 0,
+  button_text: "Open Survey", 
+  color_code: "#3B82F6", 
+  button_gradient: "linear-gradient(90deg, #836)",
+  content: "", 
+  image_url: "", 
+  level: 1, 
+  iframe_url: "",
+  iframe_code: "", 
+  iframe_keys: "{user_id}",
+  postback_url: "", 
+  postback_username_key: "user_id", 
+  postback_status_key: "status",
+  postback_payout_key: "payout", 
+  postback_txn_key: "txn_id",
+  different_postback_link: "", 
+  payout_type: "points", 
+  status: "active"
 };
 
 const SurveyProviders = () => {
@@ -129,11 +145,50 @@ const SurveyProviders = () => {
 
               <div className="border border-border rounded-lg p-4 space-y-3">
                 <h3 className="font-semibold text-sm text-primary">Iframe Configuration</h3>
-                <div><label className="text-xs text-muted-foreground">Iframe Code</label><Textarea value={form.iframe_code} onChange={(e) => setForm({ ...form, iframe_code: e.target.value })} placeholder='<iframe src="..."></iframe>' /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-xs text-muted-foreground">User ID Key</label><Input value={form.iframe_keys?.split(",")[0] || "{user_id}"} onChange={(e) => setForm({ ...form, iframe_keys: e.target.value })} /></div>
-                  <div><label className="text-xs text-muted-foreground">Username Key</label><Input defaultValue="{username}" /></div>
+                
+                <div>
+                  <label className="text-xs text-muted-foreground">Iframe URL (Direct link to offer wall)</label>
+                  <Input 
+                    value={form.iframe_url || ""} 
+                    onChange={(e) => setForm({ ...form, iframe_url: e.target.value })} 
+                    placeholder="https://offerwall.moustacheleads.com/offerwall?placement_id=XXX&user_id={user_id}&api_key=XXX" 
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Enter the direct URL to the offer wall. Use {'{user_id}'} as placeholder for user ID.</p>
                 </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground">Iframe Code (Alternative to URL)</label>
+                  <Textarea 
+                    value={form.iframe_code || ""} 
+                    onChange={(e) => setForm({ ...form, iframe_code: e.target.value })} 
+                    placeholder='<iframe src="https://example.com/offerwall" width="100%" height="600"></iframe>' 
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">User ID Key</label>
+                    <Input 
+                      value={form.iframe_keys || "{user_id}"} 
+                      onChange={(e) => setForm({ ...form, iframe_keys: e.target.value })} 
+                      placeholder="{user_id}"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Username Key</label>
+                    <Input defaultValue="{username}" placeholder="{username}" disabled />
+                  </div>
+                </div>
+
+                {form.iframe_url && (
+                  <div className="bg-accent/30 rounded-md p-2">
+                    <p className="text-xs font-medium flex items-center gap-1">
+                      <ExternalLink className="h-3 w-3" /> Preview URL:
+                    </p>
+                    <p className="text-[10px] break-all text-muted-foreground">{form.iframe_url}</p>
+                  </div>
+                )}
               </div>
 
               <div className="border border-border rounded-lg p-4 space-y-3">
@@ -172,14 +227,34 @@ const SurveyProviders = () => {
       <Card><CardContent className="p-4"><p className="text-sm font-medium">📋 Provider List</p></CardContent></Card>
       <Card><CardContent className="p-0">
         <Table>
-          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Code</TableHead><TableHead>Point %</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Code</TableHead>
+              <TableHead>Point %</TableHead>
+              <TableHead>Iframe URL</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
-            {providers.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No providers</TableCell></TableRow> :
+            {providers.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No providers</TableCell></TableRow> :
             providers.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell className="text-sm">{p.code}</TableCell>
                 <TableCell>{p.point_percentage}%</TableCell>
+                <TableCell>
+                  {p.iframe_url ? (
+                    <a href={p.iframe_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs flex items-center gap-1">
+                      <ExternalLink className="h-3 w-3" /> View
+                    </a>
+                  ) : p.iframe_code ? (
+                    <Badge variant="outline" className="text-[10px]">Has Code</Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">No URL</span>
+                  )}
+                </TableCell>
                 <TableCell><Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
                 <TableCell className="flex gap-1">
                   {p.code && <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => { window.open(getTestUrl(p.code, p), '_blank'); toast({ title: `Test postback sent for ${p.name}!` }); }}><Play className="h-3 w-3" /></Button>}
@@ -194,4 +269,5 @@ const SurveyProviders = () => {
     </div>
   );
 };
+
 export default SurveyProviders;

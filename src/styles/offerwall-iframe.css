@@ -1,0 +1,380 @@
+/**
+ * OFFERWALL IFRAME - CSS FIXES
+ * 
+ * This file contains all CSS patterns needed to fix iframe click issues
+ * Copy & paste these patterns into your project
+ */
+
+/* ============================================
+   1. DIALOG/MODAL CONTAINER (Wrapping iframe)
+   ============================================ */
+
+/* Raw CSS */
+.offerwall-modal {
+  max-width: 56rem;        /* 4xl */
+  height: 90vh;
+  padding: 0;
+  pointer-events: auto;    /* CRITICAL: MUST HAVE */
+  background: var(--background);
+  border-radius: var(--radius);
+}
+
+.offerwall-modal-header {
+  position: sticky;
+  top: 0;
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
+  z-index: 50;
+  padding: 1rem;
+}
+
+.offerwall-modal-body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;    /* CRITICAL: MUST HAVE */
+}
+
+
+/* ============================================
+   2. IFRAME ELEMENT STYLING
+   ============================================ */
+
+/* Raw CSS */
+.offerwall-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: auto;    /* CRITICAL: MUST HAVE */
+  display: block;          /* Removes inline spacing */
+}
+
+/* Note: Can also be applied as inline styles on the iframe element if needed */
+/* Example: style={{ width: '100%', height: '100%', border: 'none', pointerEvents: 'auto', display: 'block' }} */
+
+
+/* ============================================
+   3. LOADING OVERLAY (While iframe loads)
+   ============================================ */
+
+/* Raw CSS version */
+.offerwall-loading-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(var(--background), 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+.offerwall-spinner {
+  height: 2rem;
+  width: 2rem;
+  animation: spin 1s linear infinite;
+  border-radius: 9999px;
+  border: 4px solid var(--primary);
+  border-right-color: transparent;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+/* ============================================
+   4. ERROR STATE
+   ============================================ */
+
+.offerwall-error-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.offerwall-error-message {
+  text-align: center;
+}
+
+.offerwall-error-message > * + * {
+  margin-top: 0.75rem;
+}
+
+.offerwall-error-icon {
+  height: 2rem;
+  width: 2rem;
+  color: var(--destructive);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.offerwall-error-button {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 0.375rem;
+  transition: all 0.3s ease;
+}
+
+.offerwall-error-button:hover {
+  opacity: 0.9;
+}
+
+
+/* ============================================
+   5. MOBILE RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+/* Small screens - full width, full height */
+@media (max-width: 640px) {
+  .offerwall-modal {
+    max-width: 100%;
+    height: 100vh;
+    padding: 0;
+  }
+
+  .offerwall-modal-header {
+    padding: 0.75rem;
+  }
+
+  .offerwall-modal-body {
+    height: calc(100vh - 3rem);
+  }
+}
+
+
+/* ============================================
+   6. RESPONSIVE DIALOG WRAPPER
+   ============================================ */
+
+.offerwall-dialog-content {
+  /* For shadcn Dialog component */
+  pointer-events: auto !important;
+}
+
+.offerwall-dialog-content[data-state="open"] {
+  pointer-events: auto !important;
+}
+
+
+/* ============================================
+   7. CLOSE BUTTON STYLING
+   ============================================ */
+
+.offerwall-close-button {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  border-radius: 0.125rem;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+  z-index: 50;
+}
+
+.offerwall-close-button:hover {
+  opacity: 1;
+}
+
+
+/* ============================================
+   8. PROVIDER IMAGE HEADER
+   ============================================ */
+
+.offerwall-provider-image {
+  height: 1.5rem;
+  width: auto;
+  object-fit: contain;
+  margin-right: 0.5rem;
+}
+
+.offerwall-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+
+/* ============================================
+   9. NOTE: ANTI-PATTERNS TO AVOID
+   ============================================ */
+
+/* ❌ DON'T USE: pointer-events: none on containers/overlays - BLOCKS CLICKS!
+   ❌ DON'T USE: z-index: 999 on overlays that sit on top of iframes
+   ❌ DON'T USE: Missing height and width on iframe containers
+   ❌ DON'T USE: z-index: -1 on modals - puts them behind everything */
+
+
+/* ============================================
+   10. COMPLETE WORKING EXAMPLE (Standalone)
+   ============================================ */
+
+.offerwall-container {
+  display: flex;
+  flex-direction: column;
+  max-width: 56rem;
+  height: 90vh;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  pointer-events: auto;        /* ESSENTIAL */
+}
+
+.offerwall-container--header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+.offerwall-container--title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.offerwall-container--body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;        /* ESSENTIAL */
+}
+
+.offerwall-container--iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;              /* Removes inline spacing */
+  pointer-events: auto;        /* ESSENTIAL */
+}
+
+.offerwall-container--loading {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+.offerwall-container--spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 4px solid #000;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .offerwall-container {
+    max-width: 100%;
+    height: 100%;
+  }
+}
+
+
+/* ============================================
+   11. DIALOG OVERLAY FIX (for shadcn)
+   ============================================ */
+
+/* If using shadcn Dialog, ensure this: */
+[role="dialog"] {
+  pointer-events: auto !important;
+}
+
+[role="dialog"] > div {
+  pointer-events: auto !important;
+}
+
+[data-dialog-overlay] {
+  pointer-events: auto !important;
+}
+
+
+/* ============================================
+   12. FLEXBOX PARENT (Most Common Fix)
+   ============================================ */
+
+.dialog-parent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.dialog-header {
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+
+.dialog-body {
+  flex: 1;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.dialog-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: auto;
+  display: block;
+}
+
+
+/* ============================================
+   13. TESTING STYLES (Temporary Debug)
+   ============================================ */
+
+/* Use these classes temporarily to debug click issues */
+
+.debug-show-bounds {
+  outline: 2px dashed red;
+}
+
+.debug-show-events {
+  outline: 2px dashed blue;
+}
+
+.debug-show-clickable {
+  outline: 2px dashed green;
+}
+
+/* Add to elements to see if they're blocking clicks */
+.test-pointer-events {
+  background: rgba(0, 0, 0, 0.1);
+  pointer-events: all;
+  cursor: pointer;
+}
+
+/* Before/After comparison: */
+/* Before fix (iframe not working): */
+.before {
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* After fix (iframe working): */
+.after {
+  pointer-events: auto;
+  z-index: auto;
+}

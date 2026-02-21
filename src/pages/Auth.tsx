@@ -158,18 +158,18 @@ const Auth = () => {
         {!isLogin && (
           <>
             <Input placeholder="Referral Code (optional)" value={referralCode || refFromUrl} onChange={(e) => setReferralCode(e.target.value)} className="h-9 text-sm" />
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 pointer-events-auto">
               <Checkbox
                 id="terms"
                 checked={agreedToTerms}
                 onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
-                className="mt-0.5"
+                className="mt-0.5 pointer-events-auto"
               />
-              <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight">
+              <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer pointer-events-auto">
                 By creating this account, you agree to the{" "}
-                <Link to="/terms" className="text-primary hover:underline font-medium">Terms of Service</Link>{" "}
+                <Link to="/terms" className="text-primary hover:underline font-medium pointer-events-auto">Terms of Service</Link>{" "}
                 and{" "}
-                <Link to="/terms" className="text-primary hover:underline font-medium">Privacy Policy</Link>
+                <Link to="/terms" className="text-primary hover:underline font-medium pointer-events-auto">Privacy Policy</Link>
               </label>
             </div>
           </>

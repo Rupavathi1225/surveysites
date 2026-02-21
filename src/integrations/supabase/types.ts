@@ -491,6 +491,8 @@ export type Database = {
           percent: number | null
           platform: string | null
           preview_url: string | null
+          provider: string | null
+          source: string | null
           status: string | null
           title: string
           traffic_sources: string | null
@@ -516,6 +518,8 @@ export type Database = {
           percent?: number | null
           platform?: string | null
           preview_url?: string | null
+          provider?: string | null
+          source?: string | null
           status?: string | null
           title: string
           traffic_sources?: string | null
@@ -541,12 +545,44 @@ export type Database = {
           percent?: number | null
           platform?: string | null
           preview_url?: string | null
+          provider?: string | null
+          source?: string | null
           status?: string | null
           title?: string
           traffic_sources?: string | null
           updated_at?: string | null
           url?: string | null
           vertical?: string | null
+        }
+        Relationships: []
+      }
+      api_import_configs: {
+        Row: {
+          id: string
+          provider_name: string
+          api_endpoint: string
+          api_key_secret_name: string
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          provider_name: string
+          api_endpoint: string
+          api_key_secret_name: string
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          provider_name?: string
+          api_endpoint?: string
+          api_key_secret_name?: string
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
