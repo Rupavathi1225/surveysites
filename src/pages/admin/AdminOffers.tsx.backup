@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Plus, Pencil, Trash2, Upload, Loader2, FileUp, Eye, BarChart3,
   Download, Zap, Filter, CheckCircle, Copy, Clipboard, Info, Calendar, Clock,
-  ChevronLeft, ChevronRight, X, Link2, RefreshCw, AlertTriangle, Check, XCircle, SkipForward, Pause, Play
+  ChevronLeft, ChevronRight, X, Link2, RefreshCw, AlertTriangle, Check, XCircle, SkipForward
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -92,7 +92,7 @@ const defaultForm: OfferData = {
   expiry_date: "", 
   percent: 0, 
   non_access_url: "", 
-  status: "pending",
+  status: "active",
   approval_status: "pending", 
   approved_date: "", 
   approved_by: "", 
@@ -105,7 +105,6 @@ const defaultForm: OfferData = {
 
 const AdminOffers = () => {
   const [items, setItems] = useState<any[]>([]);
-  const [allOffersData, setAllOffersData] = useState<any[]>([]);
   const [form, setForm] = useState<any>(defaultForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -131,19 +130,6 @@ const AdminOffers = () => {
   const [copying, setCopying] = useState(false);
   const [generatingTrackingUrl, setGeneratingTrackingUrl] = useState(false);
   const [generatingForOffer, setGeneratingForOffer] = useState<string | null>(null);
-  const [bulkSelectCount, setBulkSelectCount] = useState(50);
-  
-  // Tab-specific selection states
-  const [selectedActiveOffers, setSelectedActiveOffers] = useState<Set<string>>(new Set());
-  const [selectedInactiveOffers, setSelectedInactiveOffers] = useState<Set<string>>(new Set());
-  
-  // Tab-specific bulk selection dropdowns
-  const [activeBulkSelect, setActiveBulkSelect] = useState("");
-  const [inactiveBulkSelect, setInactiveBulkSelect] = useState("");
-  const [boostedBulkSelect, setBoostedBulkSelect] = useState("");
-  
-  // Bulk upload status selector
-  const [bulkUploadStatus, setBulkUploadStatus] = useState("pending");
 
   // Filter states for offers
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -454,9 +440,9 @@ const idsToRestore = Array.from(selectedRecycleBin);
   const devices = [...new Set(items.map(o => o.device || o.devices).filter(Boolean))];
   const countries = [...new Set(items.flatMap(o => (o.countries || "").split(",").map((c: string) => c.trim())).filter(Boolean))];
 
-  // Separate active, inactive, and boosted offers
+  // Separate active and inactive offers
   const activeOffers = items.filter(o => o.status === "active");
-  const inactiveOffers = items.filter(o => o.status === "inactive");
+  const inactiveOffers = items.filter(o => o.status !== "active");
 
   // Filter offers based on selected filters
   const filterOffers = (offers: any[]) => {
@@ -498,8 +484,7 @@ const filteredActiveOffers = filterOffers(activeOffers);
       const { data, error } = await supabase
         .from("offers")
         .select("*")
-        .eq("is_deleted", false)
-        .or("status.eq.boosted,percent.gt.0,expiry_date.not.is.null")
+        .or("percent.gt.0,expiry_date.not.is.null")
         .order("expiry_date", { ascending: false });
       
       if (error) {
@@ -515,7 +500,6 @@ const filteredActiveOffers = filterOffers(activeOffers);
 
   useEffect(() => {
     load();
-    loadAllOffers();
     loadRecycleBin();
     loadMissingOffersReports();
     loadBoostedOffers();
@@ -524,7 +508,6 @@ const filteredActiveOffers = filterOffers(activeOffers);
     // Listen for offers imported event from ApiImport component
     const handleOffersImported = () => {
       load();
-      loadAllOffers();
       loadBoostedOffers();
       fetchNetworks();
     };
@@ -545,28 +528,6 @@ const filteredActiveOffers = filterOffers(activeOffers);
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab]);
-
-  // Handle bulk selection dropdown changes
-  useEffect(() => {
-    if (activeBulkSelect) {
-      handleActiveBulkSelect();
-      setActiveBulkSelect("");
-    }
-  }, [activeBulkSelect]);
-
-  useEffect(() => {
-    if (inactiveBulkSelect) {
-      handleInactiveBulkSelect();
-      setInactiveBulkSelect("");
-    }
-  }, [inactiveBulkSelect]);
-
-  useEffect(() => {
-    if (boostedBulkSelect) {
-      handleBoostedBulkSelect();
-      setBoostedBulkSelect("");
-    }
-  }, [boostedBulkSelect]);
 
   // View single offer details
   const viewOfferDetails = (offer: any) => {
@@ -621,7 +582,7 @@ const copyOffer = async (offer: any) => {
         id: undefined,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        status: "pending"
+        status: "active"
       };
       
       const { error } = await supabase.from("offers").insert(newOffer);
@@ -748,7 +709,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       setSelectedOffers(new Set());
       load();
-      loadAllOffers();
     } catch (error) {
       toast({ title: "Status update failed", description: String(error), variant: "destructive" });
     }
@@ -775,7 +735,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       setSelectedOffers(new Set());
       load();
-      loadAllOffers();
     } catch (error) {
       toast({ title: "Status update failed", description: String(error), variant: "destructive" });
     }
@@ -800,194 +759,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
     setCountryFilter("all");
     setNetworkFilter("all");
     setStatusFilter("all");
-  };
-
-  // Bulk select function
-  const handleBulkSelect = () => {
-    const offersToSelect = allOffersData.slice(0, bulkSelectCount);
-    const newSelected = new Set(selectedOffers);
-    offersToSelect.forEach(offer => newSelected.add(offer.id));
-    setSelectedOffers(newSelected);
-    toast({ 
-      title: "Bulk Selection Complete", 
-      description: `Selected ${offersToSelect.length} offers` 
-    });
-  };
-
-  // Tab-specific bulk selection functions
-  const handleActiveBulkSelect = () => {
-    const count = parseInt(activeBulkSelect);
-    if (!count) return;
-    
-    const offersToSelect = filteredActiveOffers.slice(0, count);
-    const newSelected = new Set(selectedActiveOffers);
-    offersToSelect.forEach(offer => newSelected.add(offer.id));
-    setSelectedActiveOffers(newSelected);
-    toast({ 
-      title: "Bulk Selection Complete", 
-      description: `Selected ${offersToSelect.length} active offers` 
-    });
-  };
-
-  const handleInactiveBulkSelect = () => {
-    const count = parseInt(inactiveBulkSelect);
-    if (!count) return;
-    
-    const offersToSelect = filteredInactiveOffers.slice(0, count);
-    const newSelected = new Set(selectedInactiveOffers);
-    offersToSelect.forEach(offer => newSelected.add(offer.id));
-    setSelectedInactiveOffers(newSelected);
-    toast({ 
-      title: "Bulk Selection Complete", 
-      description: `Selected ${offersToSelect.length} inactive offers` 
-    });
-  };
-
-  const handleBoostedBulkSelect = () => {
-    const count = parseInt(boostedBulkSelect);
-    if (!count) return;
-    
-    const offersToSelect = filteredBoostedOffers.slice(0, count);
-    const newSelected = new Set(selectedBoostedOffers);
-    offersToSelect.forEach(offer => newSelected.add(offer.id));
-    setSelectedBoostedOffers(newSelected);
-    toast({ 
-      title: "Bulk Selection Complete", 
-      description: `Selected ${offersToSelect.length} boosted offers` 
-    });
-  };
-
-  // Bulk status management functions
-  const handleBulkMakeInactive = async () => {
-    if (selectedActiveOffers.size === 0) {
-      toast({ title: "No offers selected", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("offers")
-        .update({ 
-          status: "inactive",
-          updated_at: new Date().toISOString()
-        })
-        .in("id", Array.from(selectedActiveOffers));
-
-      if (error) throw error;
-
-      toast({ 
-        title: "Bulk Update Complete", 
-        description: `Made ${selectedActiveOffers.size} offers inactive` 
-      });
-      
-      setSelectedActiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
-    } catch (error: any) {
-      toast({ 
-        title: "Error", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    }
-  };
-
-  const handleBulkMakeActive = async () => {
-    if (selectedInactiveOffers.size === 0) {
-      toast({ title: "No offers selected", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("offers")
-        .update({ 
-          status: "active",
-          updated_at: new Date().toISOString()
-        })
-        .in("id", Array.from(selectedInactiveOffers));
-
-      if (error) throw error;
-
-      toast({ 
-        title: "Bulk Update Complete", 
-        description: `Made ${selectedInactiveOffers.size} offers active` 
-      });
-      
-      setSelectedInactiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
-    } catch (error: any) {
-      toast({ 
-        title: "Error", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    }
-  };
-
-  const handleBulkBoost = async () => {
-    if (selectedActiveOffers.size === 0) {
-      toast({ title: "No offers selected", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("offers")
-        .update({ 
-          status: "boosted",
-          updated_at: new Date().toISOString()
-        })
-        .in("id", Array.from(selectedActiveOffers));
-
-      if (error) throw error;
-
-      toast({ 
-        title: "Bulk Boost Complete", 
-        description: `Boosted ${selectedActiveOffers.size} offers` 
-      });
-      
-      setSelectedActiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
-    } catch (error: any) {
-      toast({ 
-        title: "Error", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    }
-  };
-
-  const handleBulkUnboost = async () => {
-    if (selectedBoostedOffers.size === 0) {
-      toast({ title: "No offers selected", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from("offers")
-        .update({ 
-          status: "active",
-          updated_at: new Date().toISOString()
-        })
-        .in("id", Array.from(selectedBoostedOffers));
-
-      if (error) throw error;
-
-      toast({ 
-        title: "Bulk Unboost Complete", 
-        description: `Unboosted ${selectedBoostedOffers.size} offers` 
-      });
-      
-      setSelectedBoostedOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
-    } catch (error: any) {
-      toast({ 
-        title: "Error", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    }
   };
 
   // Copy multiple offers (duplicate records)
@@ -1022,7 +793,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
             id: undefined,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            status: "pending"
+            status: "active"
           };
           
           const { error } = await supabase.from("offers").insert(newOffer);
@@ -1037,7 +808,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
       setCopyDialogOpen(false);
       setSelectedOffers(new Set());
       load();
-      loadAllOffers();
     } catch (error) {
       toast({ title: "Copy failed", description: String(error), variant: "destructive" });
     } finally {
@@ -1242,26 +1012,13 @@ Expiry Date: ${o.expiry_date || "-"}`;
   };
 
   const load = () => {
-    supabase.from("offers").select("*").eq("is_deleted", false).order("created_at", { ascending: false })
+    supabase.from("offers").select("*").order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
           console.error("Error loading offers:", error);
           toast({ title: "Error loading offers", variant: "destructive" });
         } else {
           setItems(data || []);
-        }
-      });
-  };
-
-  // Load pending offers for All Offers section (offers not yet assigned to Active/Inactive/Boosted)
-  const loadAllOffers = () => {
-    supabase.from("offers").select("*").eq("is_deleted", false).eq("status", "pending").order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error loading all offers:", error);
-        } else {
-          // Store pending offers separately for All Offers section
-          setAllOffersData(data || []);
         }
       });
   };
@@ -1310,7 +1067,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
           payout: offer.payout ? Number(offer.payout) : 0,
           currency: offer.currency || "USD",
           payout_model: offer.payout_model || "CPA",
-          status: "pending",
+          status: "active",
           is_public: offer.is_public !== "false" && offer.is_public !== "0",
         };
         return autoFillOfferData(withDefaults);
@@ -1371,7 +1128,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
           payout: offer.payout ? Number(offer.payout) : 0,
           currency: offer.currency || "USD",
           payout_model: offer.payout_model || "CPA",
-          status: "pending",
+          status: "active",
           is_public: offer.is_public !== "false" && offer.is_public !== "0",
         };
         return autoFillOfferData(withDefaults);
@@ -1425,11 +1182,11 @@ Expiry Date: ${o.expiry_date || "-"}`;
     }
 
     // If no duplicates, proceed with import
-    await doProcessBulkImport(false, bulkUploadStatus);
+    await doProcessBulkImport();
   };
 
   // Actual import function
-  const doProcessBulkImport = async (forceUploadAll = false, status = "pending") => {
+  const doProcessBulkImport = async (forceUploadAll = false) => {
     setBulkUploading(true);
     setUploadProgress(0);
     const batchId = crypto.randomUUID();
@@ -1483,7 +1240,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
           expiry_date: offer.expiry_date || null, 
           non_access_url: offer.non_access_url || null, 
           percent: offer.percent || 0, 
-          status: status,
+          status: "active",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -1513,13 +1270,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       setShowBulkPreview(false); 
       setDuplicateMatches(new Map()); 
       setDuplicateOffersDialogOpen(false);
-      
-      // Reload all relevant data based on upload status
-      if (bulkUploadStatus === "boosted") {
-        await Promise.all([load(), loadBoostedOffers(), loadAllOffers()]);
-      } else {
-        await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
-      }
+      load();
     } catch (error) {
       console.error("Error processing bulk import:", error);
       toast({ title: "Bulk Import Error", description: String(error), variant: "destructive" });
@@ -1531,12 +1282,12 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
   // Handle upload anyway (force upload all including duplicates)
   const handleUploadAnyway = async () => {
-    await doProcessBulkImport(true, bulkUploadStatus);
+    await doProcessBulkImport(true);
   };
 
   // Handle skip duplicates
   const handleSkipDuplicates = async () => {
-    await doProcessBulkImport(false, bulkUploadStatus);
+    await doProcessBulkImport(false);
   };
 
   // Handle remove duplicates (filter out duplicates from preview)
@@ -1559,25 +1310,11 @@ Expiry Date: ${o.expiry_date || "-"}`;
       if (offer) offerMap.set(id, offer); 
     });
 
-    try {
-      const result = await moveMultipleToRecycleBin(Array.from(selectedOffers), offerMap);
-      toast({ title: "Offers Deleted", description: `Successfully deleted ${result.successful} offer${result.successful !== 1 ? 's' : ''}` });
-      setSelectedOffers(new Set()); 
-      
-      // Add small delay to ensure database operations complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Reload all data
-      await Promise.all([
-        load(),
-        loadAllOffers(),
-        loadBoostedOffers(),
-        loadRecycleBin()
-      ]);
-    } catch (error) {
-      console.error("Error in bulk delete:", error);
-      toast({ title: "Delete failed", description: String(error), variant: "destructive" });
-    }
+    const result = await moveMultipleToRecycleBin(Array.from(selectedOffers), offerMap);
+    toast({ title: "Offers Deleted", description: `Successfully deleted ${result.successful} offer${result.successful !== 1 ? 's' : ''}` });
+    setSelectedOffers(new Set()); 
+    load(); 
+    loadRecycleBin();
   };
 
   const handleCheckMissingOffers = async () => {
@@ -1615,7 +1352,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
       let successCount = 0;
       for (const offerId of selectedOffers) {
         const { error } = await supabase.from("offers").update({ 
-          status: "boosted",
           percent: boostPercent, 
           expiry_date: boostDate,
           updated_at: new Date().toISOString()
@@ -1629,7 +1365,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
       setShowBoostDialog(false);
       setSelectedOffers(new Set());
       load();
-      loadAllOffers();
     } catch (error) {
       toast({ title: "Boost failed", description: String(error), variant: "destructive" });
     } finally {
@@ -1732,17 +1467,9 @@ Expiry Date: ${o.expiry_date || "-"}`;
         description: `Successfully deleted ${successCount} boosted offer${successCount !== 1 ? 's' : ''}` 
       });
       setSelectedBoostedOffers(new Set());
-      
-      // Add small delay to ensure database operations complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Reload all data
-      await Promise.all([
-        loadBoostedOffers(),
-        load(),
-        loadAllOffers(),
-        loadRecycleBin()
-      ]);
+      loadBoostedOffers();
+      load();
+      loadRecycleBin();
     } catch (error) {
       toast({ title: "Delete failed", description: String(error), variant: "destructive" });
     }
@@ -1824,7 +1551,14 @@ Expiry Date: ${o.expiry_date || "-"}`;
     toast({ title: "Image uploaded!" });
   };
 
-  const renderAllOffersTable = () => (
+  const clearFilters = () => {
+    setCategoryFilter("all");
+    setDeviceFilter("all");
+    setCountryFilter("all");
+    setNetworkFilter("all");
+  };
+
+  const renderOfferTable = (offers: any[], type: 'active' | 'inactive') => (
     <Card>
       <CardContent className="p-0">
         <Table>
@@ -1832,214 +1566,14 @@ Expiry Date: ${o.expiry_date || "-"}`;
             <TableRow>
               <TableHead className="w-8">
                 <Checkbox 
-                  checked={selectedOffers.size === allOffersData.length && allOffersData.length > 0} 
+                  checked={selectedOffers.size === offers.length && offers.length > 0} 
                   onCheckedChange={(checked) => { 
-                    if (checked) setSelectedOffers(new Set(allOffersData.map((o) => o.id))); 
+                    if (checked) setSelectedOffers(new Set(offers.map((o) => o.id))); 
                     else setSelectedOffers(new Set()); 
                   }} 
                 />
               </TableHead>
               <TableHead>Offer ID</TableHead>
-              <TableHead>Network ID</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Payout</TableHead>
-              <TableHead>Countries</TableHead>
-              <TableHead>Platform</TableHead>
-              <TableHead>Device</TableHead>
-              <TableHead>Vertical</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Tracking URL</TableHead>
-              <TableHead>Timeline</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {allOffersData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
-                  No offers found
-                </TableCell>
-              </TableRow>
-            ) : (
-              allOffersData.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell>
-                    <Checkbox 
-                      checked={selectedOffers.has(o.id)} 
-                      onCheckedChange={(checked) => { 
-                        const newSelected = new Set(selectedOffers); 
-                        if (checked) newSelected.add(o.id); 
-                        else newSelected.delete(o.id); 
-                        setSelectedOffers(newSelected); 
-                      }} 
-                    />
-                  </TableCell>
-                  <TableCell className="text-sm font-mono font-semibold text-blue-600">
-                    {o.offer_id || "-"}
-                  </TableCell>
-                  <TableCell className="text-sm font-mono">{o.network_id || "-"}</TableCell>
-                  <TableCell className="font-medium max-w-[200px] truncate" title={o.title}>
-                    {o.title}
-                  </TableCell>
-                  <TableCell>${Number(o.payout || 0).toFixed(2)}</TableCell>
-                  <TableCell className="text-xs">{o.countries || "-"}</TableCell>
-                  <TableCell>{o.platform || "-"}</TableCell>
-                  <TableCell>{o.device || "-"}</TableCell>
-                  <TableCell>{o.vertical || "-"}</TableCell>
-                  <TableCell>{o.category || "-"}</TableCell>
-                  <TableCell>
-                    {o.tracking_url ? (
-                      <div className="flex items-center gap-1">
-                        <a 
-                          href={o.tracking_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline truncate max-w-[150px]"
-                          title={o.tracking_url}
-                        >
-                          {o.tracking_url.substring(0, 20)}...
-                        </a>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                          onClick={() => generateTrackingUrl(o)}
-                          disabled={generatingTrackingUrl && generatingForOffer === o.id}
-                          title="Regenerate Tracking URL"
-                        >
-                          <RefreshCw className={`h-3 w-3 ${generatingTrackingUrl && generatingForOffer === o.id ? 'animate-spin' : ''}`} />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7"
-                        onClick={() => generateTrackingUrl(o)}
-                        disabled={!o.offer_id || (generatingTrackingUrl && generatingForOffer === o.id)}
-                        title={!o.offer_id ? "Offer ID required first" : "Generate Tracking URL"}
-                      >
-                        {generatingTrackingUrl && generatingForOffer === o.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        ) : (
-                          <Link2 className="h-3 w-3 mr-1" />
-                        )}
-                        {!o.offer_id ? "Need ID" : "Generate"}
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col gap-1 text-xs">
-                      {o.status === "active" && o.created_at && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3 text-green-500" />
-                          <span>Active since: {new Date(o.created_at).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      {o.status === "inactive" && o.updated_at && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-red-500" />
-                          <span>Inactive since: {new Date(o.updated_at).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      {o.expiry_date && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-orange-500" />
-                          <span>Expires: {new Date(o.expiry_date).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 justify-end">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="bg-green-500 hover:bg-green-600 text-white" 
-                        onClick={() => {
-                          setSelectedOffers(new Set([o.id]));
-                          handleMakeActive();
-                        }} 
-                        title="Make Active"
-                      >
-                        <CheckCircle className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="bg-gray-500 hover:bg-gray-600 text-white"
-                        onClick={() => {
-                          setSelectedOffers(new Set([o.id]));
-                          handleMakeInactive();
-                        }} 
-                        title="Make Inactive"
-                      >
-                        <XCircle className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                        onClick={() => {
-                          setSelectedOffers(new Set([o.id]));
-                          handleMakeBoosted();
-                        }} 
-                        title="Make Boosted"
-                      >
-                        <Zap className="h-3 w-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={async () => {
-                          await moveToRecycleBin(o.id, o);
-                          // Reload data after individual delete
-                          await Promise.all([
-                            load(),
-                            loadAllOffers(),
-                            loadBoostedOffers(),
-                            loadRecycleBin()
-                          ]);
-                        }}
-                        title="Delete"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-
-  const renderOfferTable = (offers: any[], type: 'active' | 'inactive') => {
-    const currentSelected = type === 'active' ? selectedActiveOffers : selectedInactiveOffers;
-    const setCurrentSelected = type === 'active' ? setSelectedActiveOffers : setSelectedInactiveOffers;
-    
-    return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8">
-                <Checkbox 
-                  checked={currentSelected.size === offers.length && offers.length > 0} 
-                  onCheckedChange={(checked) => { 
-                    if (checked) {
-                      const newSelected = new Set(currentSelected);
-                      offers.forEach(o => newSelected.add(o.id));
-                      setCurrentSelected(newSelected);
-                    } else {
-                      setCurrentSelected(new Set());
-                    }
-                  }} 
-                />
-              </TableHead>
               <TableHead>Network ID</TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Payout</TableHead>
@@ -2066,12 +1600,12 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <TableRow key={o.id}>
                   <TableCell>
                     <Checkbox 
-                      checked={currentSelected.has(o.id)} 
+                      checked={selectedOffers.has(o.id)} 
                       onCheckedChange={(checked) => { 
-                        const newSelected = new Set(currentSelected); 
+                        const newSelected = new Set(selectedOffers); 
                         if (checked) newSelected.add(o.id); 
                         else newSelected.delete(o.id); 
-                        setCurrentSelected(newSelected); 
+                        setSelectedOffers(newSelected); 
                       }} 
                     />
                   </TableCell>
@@ -2208,16 +1742,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
                         size="sm" 
                         variant="outline" 
                         className="bg-red-500 hover:bg-red-600 text-white"
-                        onClick={async () => {
-                          await moveToRecycleBin(o.id, o);
-                          // Reload data after individual delete
-                          await Promise.all([
-                            load(),
-                            loadAllOffers(),
-                            loadBoostedOffers(),
-                            loadRecycleBin()
-                          ]);
-                        }}
+                        onClick={() => moveToRecycleBin(o.id, o)}
                         title="Delete"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -2231,14 +1756,13 @@ Expiry Date: ${o.expiry_date || "-"}`;
         </Table>
       </CardContent>
     </Card>
-    );
-  };
+  );
 
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="offers">All Offers ({allOffersData.length})</TabsTrigger>
+          <TabsTrigger value="offers">All Offers ({items.length})</TabsTrigger>
           <TabsTrigger value="active">Active ({activeOffers.length})</TabsTrigger>
           <TabsTrigger value="inactive">Inactive ({inactiveOffers.length})</TabsTrigger>
           <TabsTrigger value="boosted">Boosted ({boostedOffers.length})</TabsTrigger>
@@ -2254,7 +1778,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
             <div>
               <h1 className="text-2xl font-bold">All Offers Management</h1>
               <p className="text-sm text-muted-foreground">
-                Manage pending offers - Assign to Active, Inactive, or Boosted sections
+                Manage all offers - Active and Inactive
               </p>
             </div>
             <div className="flex gap-2">
@@ -2262,7 +1786,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <Plus className="h-4 w-4 mr-2" /> Add Offer
               </Button>
               <Button 
-                onClick={() => exportToCsv(allOffersData, `all_offers_${new Date().toISOString().split('T')[0]}.csv`)} 
+                onClick={() => exportToCsv(items, `all_offers_${new Date().toISOString().split('T')[0]}.csv`)} 
                 variant="outline"
               >
                 <Download className="h-4 w-4 mr-2" /> Export CSV
@@ -2371,25 +1895,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
             )}
           </div>
 
-          {/* Bulk Selection */}
-          <div className="flex items-center gap-2">
-            <Select value={String(bulkSelectCount)} onValueChange={(v) => setBulkSelectCount(Number(v))}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="50">50 offers</SelectItem>
-                <SelectItem value="100">100 offers</SelectItem>
-                <SelectItem value="200">200 offers</SelectItem>
-                <SelectItem value="300">300 offers</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={handleBulkSelect} variant="outline">
-              <CheckCircle className="h-4 w-4 mr-2" /> Select {bulkSelectCount} offers
-            </Button>
-          </div>
-
-          {renderAllOffersTable()}
+          {renderOfferTable(items, 'active')}
         </TabsContent>
 
         {/* Active Offers Tab */}
@@ -2411,39 +1917,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
               >
                 <Download className="h-4 w-4 mr-2" /> Export CSV
               </Button>
-              
-              {/* Bulk Selection Dropdown */}
-              <Select value={activeBulkSelect} onValueChange={setActiveBulkSelect}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="50">Select 50</SelectItem>
-                  <SelectItem value="100">Select 100</SelectItem>
-                  <SelectItem value="200">Select 200</SelectItem>
-                  <SelectItem value="300">Select 300</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {/* Bulk Status Management Buttons */}
-              {selectedActiveOffers.size > 0 && (
-                <>
-                  <Button 
-                    onClick={handleBulkMakeInactive} 
-                    variant="outline"
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    <Pause className="h-4 w-4 mr-2" /> Make Inactive ({selectedActiveOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleBulkBoost} 
-                    variant="outline" 
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                  >
-                    <Zap className="h-4 w-4 mr-2" /> Make Boosted ({selectedActiveOffers.size})
-                  </Button>
-                </>
-              )}
               {selectedOffers.size > 0 && (
                 <>
                   <Button 
@@ -2608,39 +2081,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
               <Button onClick={openAdd} variant="default">
                 <Plus className="h-4 w-4 mr-2" /> Add Offer
               </Button>
-              
-              {/* Bulk Selection Dropdown */}
-              <Select value={inactiveBulkSelect} onValueChange={setInactiveBulkSelect}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="50">Select 50</SelectItem>
-                  <SelectItem value="100">Select 100</SelectItem>
-                  <SelectItem value="200">Select 200</SelectItem>
-                  <SelectItem value="300">Select 300</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {/* Bulk Status Management Buttons */}
-              {selectedInactiveOffers.size > 0 && (
-                <>
-                  <Button 
-                    onClick={handleBulkMakeActive} 
-                    variant="outline"
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    <Play className="h-4 w-4 mr-2" /> Make Active ({selectedInactiveOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleBulkBoost} 
-                    variant="outline" 
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                  >
-                    <Zap className="h-4 w-4 mr-2" /> Make Boosted ({selectedInactiveOffers.size})
-                  </Button>
-                </>
-              )}
               {selectedOffers.size > 0 && (
                 <>
                   <Button 
@@ -2793,54 +2233,19 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <h2 className="text-2xl font-bold">Boosted Offers</h2>
                 <p className="text-sm text-muted-foreground">Manage offers with boost percentages</p>
               </div>
-              <div className="flex gap-2">
-                {/* Bulk Selection Dropdown */}
-                <Select value={boostedBulkSelect} onValueChange={setBoostedBulkSelect}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="50">Select 50</SelectItem>
-                    <SelectItem value="100">Select 100</SelectItem>
-                    <SelectItem value="200">Select 200</SelectItem>
-                    <SelectItem value="300">Select 300</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                {/* Bulk Status Management Buttons */}
-                {selectedBoostedOffers.size > 0 && (
-                  <>
-                    <Button 
-                      onClick={handleBulkUnboost} 
-                      variant="outline"
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
-                    >
-                      <Pause className="h-4 w-4 mr-2" /> Make Active ({selectedBoostedOffers.size})
-                    </Button>
-                    <Button 
-                      onClick={handleBulkMakeInactive} 
-                      variant="outline"
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
-                    >
-                      <Pause className="h-4 w-4 mr-2" /> Make Inactive ({selectedBoostedOffers.size})
-                    </Button>
-                  </>
-                )}
-                
-                {selectedBoostedOffers.size > 0 && (
-                  <>
-                    <Button onClick={() => setExtraBoostDialog(true)} variant="outline" className="bg-green-500 hover:bg-green-600 text-white">
-                      <Zap className="h-4 w-4 mr-2" /> Extra Boost ({selectedBoostedOffers.size})
-                    </Button>
-                    <Button onClick={handlePauseBoostedOffers} variant="outline" className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                      <Zap className="h-4 w-4 mr-2" /> Pause ({selectedBoostedOffers.size})
-                    </Button>
-                    <Button onClick={handleDeleteBoostedOffers} variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedBoostedOffers.size})
-                    </Button>
-                  </>
-                )}
-              </div>
+              {selectedBoostedOffers.size > 0 && (
+                <div className="flex gap-2">
+                  <Button onClick={() => setExtraBoostDialog(true)} variant="outline" className="bg-green-500 hover:bg-green-600 text-white">
+                    <Zap className="h-4 w-4 mr-2" /> Extra Boost ({selectedBoostedOffers.size})
+                  </Button>
+                  <Button onClick={handlePauseBoostedOffers} variant="outline" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                    <Zap className="h-4 w-4 mr-2" /> Pause ({selectedBoostedOffers.size})
+                  </Button>
+                  <Button onClick={handleDeleteBoostedOffers} variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedBoostedOffers.size})
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Filters for Boosted Offers */}
@@ -3167,22 +2572,9 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <h2 className="text-2xl font-bold mb-2">Bulk Offer Upload</h2>
                 <p className="text-sm text-muted-foreground">Upload CSV file or import from Google Sheets.</p>
               </div>
-              <div className="flex gap-2">
-                <Select value={bulkUploadStatus} onValueChange={setBulkUploadStatus}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="Upload Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="boosted">Boosted</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" onClick={() => downloadTemplate()}>
-                  <Download className="h-4 w-4 mr-2" /> Download Template
-                </Button>
-              </div>
+              <Button variant="outline" onClick={() => downloadTemplate()}>
+                <Download className="h-4 w-4 mr-2" /> Download Template
+              </Button>
             </div>
             
             {/* Google Sheets Import */}

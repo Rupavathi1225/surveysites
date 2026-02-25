@@ -29,13 +29,14 @@ const Offers = () => {
         setProviders(data || []);
       });
     
-    // Fetch all offers - show them regardless of status, but exclude deleted offers
+    // Fetch only active offers - exclude deleted and inactive offers
     const fetchOffers = async () => {
       try {
         const { data, error } = await supabase
           .from("offers")
           .select("*")
           .eq("is_deleted", false)
+          .eq("status", "active")
           .order("created_at", { ascending: false }) as any;
         
         console.log("Offers response:", data?.length, "error:", error);
@@ -162,7 +163,19 @@ const Offers = () => {
   });
 
   // Separate boosted offers (with expiry_date and percent > 0)
-  const boostedOffers = filtered.filter(o => o.expiry_date && o.percent && o.percent > 0 && timeLeft[o.id] > 0);
+  const allBoostedOffers = offers.filter(o => o.expiry_date && o.percent && o.percent > 0 && timeLeft[o.id] > 0);
+  
+  // Apply filters to boosted offers separately
+  const filteredBoostedOffers = allBoostedOffers.filter(o => {
+    if (search && !o.title.toLowerCase().includes(search.toLowerCase())) return false;
+    if (countryFilter !== "all" && o.countries && !o.countries.toLowerCase().includes(countryFilter.toLowerCase())) return false;
+    if (platformFilter !== "all" && o.platform && !o.platform.toLowerCase().includes(platformFilter.toLowerCase())) return false;
+    if (deviceFilter !== "all" && o.device && !o.device.toLowerCase().includes(deviceFilter.toLowerCase())) return false;
+    if (categoryFilter !== "all" && o.category && !o.category.toLowerCase().includes(categoryFilter.toLowerCase())) return false;
+    if (networkFilter !== "all" && o.network_id !== networkFilter) return false;
+    return true;
+  });
+  
   const regularOffers = filtered.filter(o => !o.expiry_date || !o.percent || o.percent === 0 || timeLeft[o.id] <= 0);
 
   const countries = [...new Set(offers.flatMap(o => (o.countries || "").split(",").map((c: string) => c.trim())).filter(Boolean))];
@@ -246,7 +259,7 @@ const Offers = () => {
       </Card>
 
       {/* Boosted Offers Section */}
-      {boostedOffers.length > 0 && (
+      {filteredBoostedOffers.length > 0 && (
         <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-3">
@@ -254,11 +267,11 @@ const Offers = () => {
               <h2 className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Limited Time Offers!</h2>
               <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-700 text-xs">
                 <Clock className="h-3 w-3 mr-1" />
-                {boostedOffers.length} Active
+                {filteredBoostedOffers.length} Active
               </Badge>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {boostedOffers.map((o) => (
+              {filteredBoostedOffers.map((o) => (
                 <Card key={o.id} className="overflow-hidden hover:border-yellow-500/50 transition-colors border-yellow-500 border-2">
                   <CardContent className="p-0">
                     {o.image_url && (

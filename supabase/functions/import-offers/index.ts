@@ -696,7 +696,7 @@ function mapOffer(offer: HasOffersOffer, idx: number, provider: string, networkI
     devices: devices.join(", "), // Database expects devices as string
     traffic_sources: trafficSources.join(", "), // Database expects as string
     image_url: imageUrl,
-    status: (offer.status || offerCore?.status || "active") === "active" ? "active" : "inactive",
+    status: "pending",
     provider,
     source: "api",
     network_id: networkId, // Store the network_id from the import form
@@ -945,7 +945,7 @@ serve(async (req: Request) => {
               currency: offer.currency,
               url: offer.url,
               image_url: offer.image_url,
-              status: importOptions.autoActivate ? "active" : offer.status,
+              status: "pending",
               countries: offer.countries,
               network_id: networkId, // Include network_id in update
               is_public: importOptions.showInOfferwall,
@@ -982,7 +982,7 @@ serve(async (req: Request) => {
             ...offer,
             network_id: networkId, // Include network_id in insert
             is_public: importOptions.showInOfferwall,
-            status: importOptions.autoActivate ? "active" : (offer.status || "active"),
+            status: "pending",
           };
 
           const { error: upsertError } = await supabase

@@ -71,8 +71,8 @@ const ApiImport = () => {
   const [importOptions, setImportOptions] = useState<ImportOptions>({
     skipDuplicates: true,
     updateExisting: true,
-    autoActivate: true,
-    showInOfferwall: true,
+    autoActivate: false,
+    showInOfferwall: false,
   });
 
   const isHasOffers = configForm.network_type.toLowerCase().includes("has") ||
@@ -275,6 +275,18 @@ const ApiImport = () => {
       
       const { data: { session } } = await supabase.auth.getSession();
 
+      const requestBody = {
+        provider,
+        network_id: configForm.network_id,
+        api_key: configForm.api_key,
+        action: "import",
+        // Pass import options to the backend
+        import_options: importOptions,
+        offers: offersToSend, // Send all offers to backend
+      };
+      
+      console.log('Sending request with body:', JSON.stringify(requestBody, null, 2));
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-offers`,
         {
@@ -284,15 +296,7 @@ const ApiImport = () => {
             "Authorization": `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({
-            provider,
-            network_id: configForm.network_id,
-            api_key: configForm.api_key,
-            action: "import",
-            // Pass import options to the backend
-            import_options: importOptions,
-            offers: offersToSend, // Send all offers to backend
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -307,7 +311,9 @@ const ApiImport = () => {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to import offers");
+        console.error('Response not OK:', response.status, response.statusText);
+        console.error('Response body:', data);
+        throw new Error(data.error || `Failed to import offers: ${response.status} ${response.statusText}`);
       }
 
       // summary toast

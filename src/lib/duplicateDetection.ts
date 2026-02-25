@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeOfferForComparison } from "./bulkImportUtils";
 
 export interface DuplicateMatch {
   existingOfferId: string;
@@ -10,8 +9,34 @@ export interface DuplicateMatch {
 }
 
 /**
+ * Normalize offer data for comparison
+ * Handles country field normalization and device for duplicate detection
+ */
+function normalizeOfferForComparison(offer: any): any {
+  // Handle country - could be in 'countries' or 'country' field
+  // Normalize comma-separated countries to sorted array for comparison
+  const rawCountry = offer.country || offer.countries || "";
+  
+  // Handle device - could be 'device' or 'devices' field
+  const rawDevice = offer.device || offer.devices || "";
+  
+  return {
+    title: (offer.title || "").toLowerCase().trim(),
+    description: (offer.description || "").toLowerCase().trim(),
+    country: rawCountry.toLowerCase().trim(),
+    countriesRaw: rawCountry,
+    // Normalize countries to sorted array for comparison
+    countriesArray: rawCountry.split(",").map((c: string) => c.trim().toLowerCase()).sort(),
+    platform: (offer.platform || "").toLowerCase().trim(),
+    payout: Number(offer.payout) || 0,
+    offer_id: (offer.offer_id || "").toLowerCase().trim(),
+    device: rawDevice.toLowerCase().trim(),
+  };
+}
+
+/**
  * Check if an offer already exists in the database
- * Matches on multiple criteria: name, description, country, platform
+ * Matches on 5 criteria: offer_id, title, device, country, payout
  */
 export async function checkOfferDuplicate(
   newOffer: any
@@ -39,7 +64,7 @@ export async function checkOfferDuplicate(
       const normalizedExisting = normalizeOfferForComparison(existing);
       const matchResult = compareOffers(normalizedNew, normalizedExisting);
 
-      // Only consider as duplicate if ALL 4 criteria match (strict mode)
+      // Only consider as duplicate if ALL 5 criteria match (strict mode)
       if (matchResult && matchResult.allCriteriaMatched && (!bestMatch || matchResult.score > (bestMatch?.matchScore || 0))) {
         bestMatch = {
           existingOfferId: existing.id,
@@ -51,7 +76,7 @@ export async function checkOfferDuplicate(
       }
     }
 
-    // Only return if match is critical (ALL 4 criteria matched)
+    // Only return if match is critical (ALL 5 criteria matched)
     return bestMatch && bestMatch.isCriticalMatch ? bestMatch : null;
   } catch (error) {
     console.error("Error in checkOfferDuplicate:", error);
@@ -61,12 +86,12 @@ export async function checkOfferDuplicate(
 
 /**
  * Compare two normalized offers and return match score
- * STRICT MODE: ALL 3 criteria must match for a duplicate to be detected
- * - offer_id (serial number)
- * - country
- * - title (name)
- * 
- * Description is NOT checked for duplicate detection anymore
+ * STRICT MODE: ALL 5 criteria must match for a duplicate to be detected
+ * - offer_id (exact match)
+ * - title (exact match)
+ * - device (exact match)
+ * - countries (exact match - handle comma-separated)
+ * - payout (exact match)
  */
 function compareOffers(
   newOffer: any,
@@ -80,7 +105,10 @@ function compareOffers(
   const matchingFields: string[] = [];
   let score = 0;
 
-  // Check offer_id match (serial number)
+  // Each field contributes 20 points (5 fields * 20 = 100)
+  const fieldWeight = 20;
+
+  // Check offer_id match (exact match required)
   const offerIdMatch = !!(
     newOffer.offer_id &&
     existingOffer.offer_id &&
@@ -89,58 +117,65 @@ function compareOffers(
   );
   if (offerIdMatch) {
     matchingFields.push("offer_id");
-    score += 33.33;
+    score += fieldWeight;
   }
 
-  // Check title match (offer name)
+  // Check title match (exact match required)
   const titleMatch = !!(
     newOffer.title &&
     existingOffer.title &&
-    compareStrings(newOffer.title, existingOffer.title) > 0.8
+    newOffer.title.trim() !== "" &&
+    newOffer.title === existingOffer.title
   );
   if (titleMatch) {
     matchingFields.push("title");
-    score += 33.33;
+    score += fieldWeight;
   }
 
-  // Check country match
+  // Check device match (exact match required)
+  const deviceMatch = !!(
+    newOffer.device &&
+    existingOffer.device &&
+    newOffer.device.trim() !== "" &&
+    newOffer.device === existingOffer.device
+  );
+  if (deviceMatch) {
+    matchingFields.push("device");
+    score += fieldWeight;
+  }
+
+  // Check country match (exact match required - handle comma-separated)
+  // Compare sorted arrays of countries
+  const newCountries = newOffer.countriesArray || [];
+  const existingCountries = existingOffer.countriesArray || [];
+  
   const countryMatch = !!(
-    newOffer.country &&
-    existingOffer.country &&
-    newOffer.country.trim() !== "" &&
-    newOffer.country === existingOffer.country
+    newCountries.length > 0 &&
+    existingCountries.length > 0 &&
+    JSON.stringify(newCountries) === JSON.stringify(existingCountries)
   );
   if (countryMatch) {
-    matchingFields.push("country");
-    score += 33.33;
+    matchingFields.push("countries");
+    score += fieldWeight;
   }
 
-  // Description is NOT checked for duplicate detection anymore
-  // Platform match (optional - not required for strict duplicate detection)
-  if (
-    newOffer.platform &&
-    existingOffer.platform &&
-    newOffer.platform === existingOffer.platform
-  ) {
-    matchingFields.push("platform");
-    score += 5;
-  }
-
-  // Payout match (optional - not required for strict duplicate detection)
-  if (
-    newOffer.payout &&
-    existingOffer.payout &&
-    Math.abs(newOffer.payout - existingOffer.payout) / existingOffer.payout < 0.1
-  ) {
+  // Check payout match (exact match required)
+  const payoutMatch = !!(
+    newOffer.payout !== undefined &&
+    existingOffer.payout !== undefined &&
+    newOffer.payout === existingOffer.payout &&
+    newOffer.payout > 0
+  );
+  if (payoutMatch) {
     matchingFields.push("payout");
-    score += 5;
+    score += fieldWeight;
   }
 
-  // STRICT MODE: ALL 3 criteria must match for duplicate to be detected
-  // This means: offer_id AND title AND country ALL must match
-  const allCriteriaMatched = offerIdMatch && titleMatch && countryMatch;
+  // STRICT MODE: ALL 5 criteria must match for duplicate to be detected
+  // This means: offer_id AND title AND device AND countries AND payout ALL must match
+  const allCriteriaMatched = offerIdMatch && titleMatch && deviceMatch && countryMatch && payoutMatch;
 
-  // isCritical is true only when ALL 3 required criteria match
+  // isCritical is true only when ALL 5 required criteria match
   const isCritical = allCriteriaMatched;
 
   return {
@@ -248,4 +283,100 @@ export async function logDuplicateDetection(
   // } catch (error) {
   //   console.error("Error logging duplicate detection:", error);
   // }
+}
+
+/**
+ * Find duplicate offers in the database
+ * Groups offers by offer_id + title + device + countries + payout
+ * Returns grouped duplicates with list of matching offers
+ */
+export async function findDuplicateOffers(): Promise<{
+  duplicateGroups: Array<{
+    key: string;
+    offer_id: string;
+    title: string;
+    device: string;
+    countries: string;
+    payout: number;
+    offers: any[];
+  }>;
+  totalDuplicates: number;
+}> {
+  try {
+    // Fetch all offers (both active and inactive)
+    const { data: allOffers, error } = await supabase
+      .from("offers")
+      .select("*")
+      .eq("is_deleted", false)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching offers for duplicate detection:", error);
+      return { duplicateGroups: [], totalDuplicates: 0 };
+    }
+
+    if (!allOffers || allOffers.length === 0) {
+      return { duplicateGroups: [], totalDuplicates: 0 };
+    }
+
+    // Group offers by the 5 key fields
+    const groups = new Map<string, any[]>();
+
+    for (const offer of allOffers) {
+      // Normalize the key fields
+      const offerId = (offer.offer_id || "").toLowerCase().trim();
+      const title = (offer.title || "").toLowerCase().trim();
+      const device = (offer.device || offer.devices || "").toLowerCase().trim();
+      const countries = (offer.countries || "").toLowerCase().trim().split(",").map((c: string) => c.trim()).sort().join(",");
+      const payout = Number(offer.payout) || 0;
+
+      // Skip offers without required fields
+      if (!offerId || !title || !device || !countries) {
+        continue;
+      }
+
+      const key = `${offerId}|${title}|${device}|${countries}|${payout}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(offer);
+    }
+
+    // Filter to only groups with more than 1 offer (actual duplicates)
+    const duplicateGroups: Array<{
+      key: string;
+      offer_id: string;
+      title: string;
+      device: string;
+      countries: string;
+      payout: number;
+      offers: any[];
+    }> = [];
+
+    let totalDuplicates = 0;
+
+    groups.forEach((offers, key) => {
+      if (offers.length > 1) {
+        const [offer_id, title, device, countries, payoutStr] = key.split("|");
+        const payout = Number(payoutStr);
+        
+        duplicateGroups.push({
+          key,
+          offer_id,
+          title,
+          device,
+          countries,
+          payout,
+          offers
+        });
+        totalDuplicates += offers.length;
+      }
+    });
+
+    return { duplicateGroups, totalDuplicates };
+  } catch (error) {
+    console.error("Error in findDuplicateOffers:", error);
+    return { duplicateGroups: [], totalDuplicates: 0 };
+  }
 }

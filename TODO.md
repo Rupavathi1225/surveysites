@@ -1,12 +1,18 @@
-# TODO List for Offer Features Implementation
+# Implementation Plan
 
-## Completed
-- [x] Analyze codebase and understand requirements
+## Task 1: Add "Offers" Tab (All Offers Section)
+- Create new tab "Offers" that shows ALL offers regardless of status
+- Each offer in this tab should have:
+  - Active/Inactive toggle (switch)
+  - Boost option button
 
-## In Progress
-- [ ] Modify duplicateDetection.ts - require ALL 4 criteria to match (serial number, country, title, description)
-- [ ] Verify bulkImportUtils.ts - ensure image generation and auto-detection works
-- [ ] Verify AdminOffers.tsx - ensure is_public toggle works
+## Task 2: Copy Dropdown Options
+- Update copy dialog dropdown to have: 50, 100, 150, 200 copies
 
-## Pending
-- [ ] Test the implementation
+## Task 3: Export CSV Buttons
+- Add "Export as CSV" button to:
+  - Active Offers tab
+  - Inactive Offers tab
+  - Boosted Offers tab
+  - Duplicates tab
+  - Recycle Bin tab (already has export function)
