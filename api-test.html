@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Endpoint Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-area { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>API Endpoint Tester</h1>
+    
+    <div class="test-area">
+        <h3>Test Your API Endpoint</h3>
+        <label>API Endpoint:</label>
+        <input type="text" id="endpoint" placeholder="https://your-network.com/api/offers" value="https://api.example.com/offers">
+        
+        <label>API Key (optional):</label>
+        <input type="text" id="apiKey" placeholder="Your API key">
+        
+        <button onclick="testEndpoint()">Test API</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <div class="test-area">
+        <h3>Common API Formats:</h3>
+        <ul>
+            <li><strong>HasOffers:</strong> https://NETWORK.hasoffers.com/api/v3/offers.json?api_key=KEY&Method=findAll</li>
+            <li><strong>Custom API:</strong> https://api.your-network.com/offers?api_key=KEY</li>
+            <li><strong>REST API:</strong> https://api.your-network.com/v1/offers (with Authorization header)</li>
+        </ul>
+    </div>
+
+    <script>
+        async function testEndpoint() {
+            const endpoint = document.getElementById('endpoint').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const result = document.getElementById('result');
+            
+            result.innerHTML = 'Testing...';
+            
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (apiKey) {
+                    headers['Authorization'] = `Bearer ${apiKey}`;
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers
+                });
+                
+                const contentType = response.headers.get('content-type');
+                const responseText = await response.text();
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const data = JSON.parse(responseText);
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <h4>✅ Success! API returned JSON</h4>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Content-Type:</strong> ${contentType}</p>
+                        <details>
+                            <summary>View Response Data</summary>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </details>
+                    `;
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = `
+                        <h4>❌ Error: API did not return JSON</h4>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Content-Type:</strong> ${contentType || 'Unknown'}</p>
+                        <details>
+                            <summary>View Response (first 500 chars)</summary>
+                            <pre>${responseText.substring(0, 500)}...</pre>
+                        </details>
+                        <p><strong>Solution:</strong> Check your API endpoint URL and make sure it points to an actual API, not a webpage.</p>
+                    `;
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `
+                    <h4>❌ Network Error</h4>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

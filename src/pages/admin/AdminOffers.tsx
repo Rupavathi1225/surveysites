@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Upload, Loader2, Trash, FileUp, Eye, BarChart3, Download, Zap, Filter } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Loader2, Trash, FileUp, Eye, BarChart3, Download, Zap, Filter, CheckCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -31,16 +31,71 @@ import { checkBatchDuplicates, logDuplicateDetection } from "@/lib/duplicateDete
 import { detectMissingOffers, saveMissingOffersReport, getMissingOffersReports, deleteMissingOffersReport } from "@/lib/missingOffersDetection";
 import { moveMultipleToRecycleBin, getRecycleBinItems, restoreFromRecycleBin, permanentlyDeleteFromRecycleBin, calculateRemainingDays } from "@/lib/recycleBin";
 
-const defaultForm = {
-  offer_id: "", title: "", url: "", payout: 0, currency: "USD", payout_model: "CPA",
-  countries: "", allowed_countries: "", platform: "", device: "", vertical: "",
+interface OfferData {
+  offer_id?: string;
+  title?: string;
+  url?: string;
+  preview_url?: string;
+  tracking_url?: string;
+  payout?: number;
+  currency?: string;
+  payout_model?: string;
+  description?: string;
+  countries?: string;
+  allowed_countries?: string;
+  platform?: string;
+  device?: string;
+  devices?: string;
+  vertical?: string;
+  category?: string;
+  image_url?: string;
+  traffic_sources?: string;
+  expiry_date?: string;
+  percent?: number;
+  approval_status?: string;
+  approved_date?: string;
+  approved_by?: string;
+  rejection_reason?: string;
+  non_access_url?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const defaultForm: OfferData = {
+  offer_id: "", 
+  title: "", 
+  url: "", 
+  preview_url: "", 
+  tracking_url: "", 
+  payout: 0, 
+  currency: "USD", 
+  payout_model: "CPA",
+  description: "",
+  countries: "", 
+  allowed_countries: "", 
+  platform: "", 
+  device: "", 
+  devices: "",
+  vertical: "",
   category: "",
-  preview_url: "", image_url: "", traffic_sources: "", devices: "",
-  expiry_date: "", percent: 0, non_access_url: "", description: "", status: "active"
+  image_url: "", 
+  traffic_sources: "", 
+  expiry_date: "", 
+  percent: 0, 
+  non_access_url: "", 
+  status: "active",
+  approval_status: "pending", 
+  approved_date: null, 
+  approved_by: null, 
+  rejection_reason: "", 
+  created_at: null, 
+  updated_at: null
 };
 
 const AdminOffers = () => {
   const [items, setItems] = useState<any[]>([]);
+  // ... rest of the code remains the same ...
   const [form, setForm] = useState<any>(defaultForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -63,12 +118,45 @@ const AdminOffers = () => {
   const [deviceFilter, setDeviceFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [networkFilter, setNetworkFilter] = useState("all");
+  const [networks, setNetworks] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalOffers, setTotalOffers] = useState(0);
 
   // Boost dialog state
   const [showBoostDialog, setShowBoostDialog] = useState(false);
   const [boostPercent, setBoostPercent] = useState(10);
   const [boostDate, setBoostDate] = useState("");
   const [boosting, setBoosting] = useState(false);
+
+  // Boosted offers state
+  const [boostedOffers, setBoostedOffers] = useState<any[]>([]);
+  const [selectedBoostedOffers, setSelectedBoostedOffers] = useState<Set<string>>(new Set());
+  const [extraBoostDialog, setExtraBoostDialog] = useState(false);
+  const [extraBoostPercent, setExtraBoostPercent] = useState(20);
+  const [extraBoostDate, setExtraBoostDate] = useState("");
+  const [extraBoosting, setExtraBoosting] = useState(false);
+
+  // Fetch networks from database
+  const fetchNetworks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("network_id")
+        .neq("network_id", null)
+        .eq("is_deleted", false);
+      
+      if (error) {
+        console.error("Error fetching networks:", error);
+        return;
+      }
+      
+      const uniqueNetworks = [...new Set(data?.map(o => o.network_id).filter(Boolean))];
+      setNetworks(uniqueNetworks);
+    } catch (error) {
+      console.error("Error fetching networks:", error);
+    }
+  };
 
   // Get unique filter values from offers
   const categories = [...new Set(items.map(o => o.category).filter(Boolean))];
@@ -81,8 +169,158 @@ const AdminOffers = () => {
     if (deviceFilter !== "all" && o.device !== deviceFilter && o.devices !== deviceFilter) return false;
     if (countryFilter !== "all" && o.countries && !o.countries.toLowerCase().includes(countryFilter.toLowerCase())) return false;
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (networkFilter !== "all" && o.network_id !== networkFilter) return false;
     return true;
   });
+
+  // Pagination logic
+  const itemsPerPage = 30;
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Load boosted offers
+  const loadBoostedOffers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("*")
+        .or("percent.gt.0,expiry_date.not.is.null")
+        .eq("is_deleted", false)
+        .order("expiry_date", { ascending: false });
+      
+      if (error) {
+        console.error("Error loading boosted offers:", error);
+        return;
+      }
+      
+      setBoostedOffers(data || []);
+    } catch (error) {
+      console.error("Error loading boosted offers:", error);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    loadRecycleBin();
+    loadMissingOffersReports();
+    loadBoostedOffers();
+  }, []);
+
+  // Handle extra boost for boosted offers
+  const handleExtraBoost = async () => {
+    if (selectedBoostedOffers.size === 0) {
+      toast({ title: "No boosted offers selected", variant: "destructive" });
+      return;
+    }
+    if (!extraBoostDate) {
+      toast({ title: "Please select an expiry date", variant: "destructive" });
+      return;
+    }
+    
+    setExtraBoosting(true);
+    try {
+      let successCount = 0;
+      for (const offerId of selectedBoostedOffers) {
+        const { error } = await supabase
+          .from("offers")
+          .update({ 
+            percent: extraBoostPercent, 
+            expiry_date: extraBoostDate 
+          })
+          .eq("id", offerId);
+        if (!error) successCount++;
+      }
+      toast({ title: `Extra Boost Applied!`, description: `${successCount} offers boosted with ${extraBoostPercent}% extra until ${extraBoostDate}` });
+      setExtraBoostDialog(false);
+      setSelectedBoostedOffers(new Set());
+      loadBoostedOffers();
+    } catch (error) {
+      toast({ title: `Extra boost failed`, description: String(error), variant: "destructive" });
+    } finally {
+      setExtraBoosting(false);
+    }
+  };
+
+  // Pause boosted offers
+  const handlePauseBoostedOffers = async () => {
+    if (selectedBoostedOffers.size === 0) {
+      toast({ title: "No boosted offers selected", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      let successCount = 0;
+      for (const offerId of selectedBoostedOffers) {
+        const { error } = await supabase
+          .from("offers")
+          .update({ 
+            percent: 0, 
+            expiry_date: null 
+          })
+          .eq("id", offerId);
+        if (!error) successCount++;
+      }
+      toast({ 
+        title: "Boost Paused!", 
+        description: `${successCount} offers had their boost removed`
+      });
+      setSelectedBoostedOffers(new Set());
+      loadBoostedOffers();
+    } catch (error) {
+      toast({ 
+        title: "Pause boost failed", 
+        description: String(error), 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Delete boosted offers
+  const handleDeleteBoostedOffers = async () => {
+    if (selectedBoostedOffers.size === 0) {
+      toast({ title: "No boosted offers selected", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      let successCount = 0;
+      for (const offerId of selectedBoostedOffers) {
+        const offer = boostedOffers.find(o => o.id === offerId);
+        if (offer) {
+          await moveToRecycleBin(offerId, offer);
+          successCount++;
+        }
+      }
+      toast({ title: `Deleted!`, description: `Successfully deleted ${successCount} boosted offer${successCount !== 1 ? 's' : ''}` });
+      setSelectedBoostedOffers(new Set());
+      loadBoostedOffers();
+      load();
+      loadRecycleBin();
+    } catch (error) {
+      toast({ title: `Delete failed`, description: String(error), variant: "destructive" });
+    }
+  };
+
+  // Individual action handlers for boosted offers
+  const handleExtraBoostSingle = (offer: any) => {
+    setSelectedBoostedOffers(new Set([offer.id]));
+    setExtraBoostPercent(20);
+    setExtraBoostDate("");
+    setExtraBoostDialog(true);
+  };
+
+  const handlePauseBoostSingle = async (offer: any) => {
+    setSelectedBoostedOffers(new Set([offer.id]));
+    await handlePauseBoostedOffers();
+  };
+
+  const handleDeleteBoostSingle = async (offer: any) => {
+    setSelectedBoostedOffers(new Set([offer.id]));
+    await handleDeleteBoostedOffers();
+  };
 
   // Handle boost offers - apply percentage and expiry date to selected offers
   const handleBoostOffers = async () => {
@@ -340,7 +578,7 @@ const AdminOffers = () => {
     selectedOffers.forEach((id) => { const offer = items.find((o) => o.id === id); if (offer) offerMap.set(id, offer); });
 
     const result = await moveMultipleToRecycleBin(Array.from(selectedOffers), offerMap);
-    toast({ title: "Offers Deleted", description: `Moved to recycle bin: ${result.successful}, Failed: ${result.failed}` });
+    toast({ title: "Offers Deleted", description: `Successfully deleted ${result.successful} offer${result.successful !== 1 ? 's' : ''}` });
     setSelectedOffers(new Set()); load(); loadRecycleBin();
   };
 
@@ -360,7 +598,31 @@ const AdminOffers = () => {
     file.click();
   };
 
-  useEffect(() => { load(); loadRecycleBin(); loadMissingOffersReports(); }, []);
+  useEffect(() => {
+    load();
+    loadRecycleBin();
+    loadMissingOffersReports();
+    loadBoostedOffers();
+    fetchNetworks();
+    
+    // Listen for offers imported event from ApiImport component
+    const handleOffersImported = () => {
+      load(); // Refresh offers when import is complete
+      loadBoostedOffers(); // Also refresh boosted offers
+      fetchNetworks(); // Also refresh networks
+    };
+    
+    window.addEventListener('offers-imported', handleOffersImported);
+    
+    return () => {
+      window.removeEventListener('offers-imported', handleOffersImported);
+    };
+  }, []);
+
+  // Update total offers when items change
+  useEffect(() => {
+    setTotalOffers(items.length);
+  }, [items]);
 
   const openAdd = () => { setForm(defaultForm); setEditing(null); setOpen(true); };
   const openEdit = (item: any) => { setForm({ ...item, expiry_date: item.expiry_date ? new Date(item.expiry_date).toISOString().split("T")[0] : "" }); setEditing(item.id); setOpen(true); };
@@ -395,11 +657,51 @@ const AdminOffers = () => {
     } catch (error) { console.log("Recycle bin not available, doing permanent delete"); await supabase.from("offers").delete().eq("id", id); }
   };
 
+  const approveOffer = async (offer: any) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user?.email || "admin";
+      
+      const { error } = await supabase
+        .from("offers")
+        .update({ 
+          approval_status: "approved",
+          approved_date: new Date().toISOString(),
+          approved_by: currentUser,
+          rejection_reason: ""
+        })
+        .eq("id", offer.id);
+      
+      if (error) {
+        toast({ 
+          title: "Approval Failed", 
+          description: error.message, 
+          variant: "destructive" 
+        });
+      } else {
+        toast({ 
+          title: "Offer Approved!", 
+          description: `${offer.title} has been approved successfully` 
+        });
+        load(); // Refresh offers to show updated status
+      }
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: String(error), 
+        variant: "destructive" 
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="offers" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="offers">Offers</TabsTrigger>
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="active">Active Offers</TabsTrigger>
+          <TabsTrigger value="inactive">Inactive Offers</TabsTrigger>
+          <TabsTrigger value="boosted">Boosted Offers</TabsTrigger>
+          <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
           <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
           <TabsTrigger value="missing">Missing Offers</TabsTrigger>
           <TabsTrigger value="recycle">Recycle Bin</TabsTrigger>
@@ -433,6 +735,10 @@ const AdminOffers = () => {
               <SelectTrigger className="w-[150px]"><SelectValue placeholder="Country" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Countries</SelectItem>{countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
+            <Select value={networkFilter} onValueChange={setNetworkFilter}>
+              <SelectTrigger className="w-[150px]"><SelectValue placeholder="Network" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All Networks</SelectItem>{networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent>
@@ -445,19 +751,21 @@ const AdminOffers = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8"><Checkbox checked={selectedOffers.size === filteredItems.length && filteredItems.length > 0} onCheckedChange={(checked) => { if (checked) setSelectedOffers(new Set(filteredItems.map((o) => o.id))); else setSelectedOffers(new Set()); }} /></TableHead>
-                    <TableHead>Offer ID</TableHead><TableHead>Title</TableHead><TableHead>URL</TableHead><TableHead>Payout</TableHead><TableHead>Currency</TableHead><TableHead>Payout Model</TableHead><TableHead>Countries</TableHead><TableHead>Platform</TableHead><TableHead>Device</TableHead><TableHead>Vertical</TableHead><TableHead>Category</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
+                    <TableHead>Offer ID</TableHead><TableHead>Network ID</TableHead><TableHead>Title</TableHead><TableHead>Preview URL</TableHead><TableHead>Tracking URL</TableHead><TableHead>Payout</TableHead><TableHead>Currency</TableHead><TableHead>Payout Model</TableHead><TableHead>Countries</TableHead><TableHead>Platform</TableHead><TableHead>Device</TableHead><TableHead>Vertical</TableHead><TableHead>Category</TableHead><TableHead>Approved Date</TableHead><TableHead>Approved By</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredItems.length === 0 ? (
-                    <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-8">No offers found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={16} className="text-center text-muted-foreground py-8">No offers found</TableCell></TableRow>
                   ) : (
-                    filteredItems.map((o) => (
+                    paginatedItems.map((o) => (
                       <TableRow key={o.id}>
                         <TableCell><Checkbox checked={selectedOffers.has(o.id)} onCheckedChange={(checked) => { const newSelected = new Set(selectedOffers); if (checked) newSelected.add(o.id); else newSelected.delete(o.id); setSelectedOffers(newSelected); }} /></TableCell>
                         <TableCell className="text-sm font-mono">{o.offer_id || "-"}</TableCell>
+                        <TableCell className="text-sm font-mono">{o.network_id || "-"}</TableCell>
                         <TableCell className="font-medium">{o.title}</TableCell>
-                        <TableCell className="max-w-[150px] truncate text-xs">{o.url || "-"}</TableCell>
+                        <TableCell className="max-w-[150px] truncate text-xs">{o.preview_url || o.url || "-"}</TableCell>
+                        <TableCell className="max-w-[150px] truncate text-xs">{o.tracking_url || "-"}</TableCell>
                         <TableCell>${Number(o.payout || 0).toFixed(2)}</TableCell>
                         <TableCell>{o.currency || "USD"}</TableCell>
                         <TableCell>{o.payout_model || "CPA"}</TableCell>
@@ -466,12 +774,17 @@ const AdminOffers = () => {
                         <TableCell>{o.device || "-"}</TableCell>
                         <TableCell>{o.vertical || "-"}</TableCell>
                         <TableCell>{o.category || "-"}</TableCell>
+                        <TableCell className="text-xs">{o.approved_date ? new Date(o.approved_date).toLocaleDateString() : "-"}</TableCell>
+                        <TableCell className="text-xs">{o.approved_by || "-"}</TableCell>
                         <TableCell><Badge variant={o.status === "active" ? "default" : "secondary"}>{o.status}</Badge></TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Switch checked={o.status === "active"} onCheckedChange={() => toggleStatus(o.id, o.status)} />
                             <Button size="sm" variant="outline" onClick={() => openEdit(o)}><Pencil className="h-3 w-3" /></Button>
                             <Button size="sm" variant="outline" onClick={async () => { await moveToRecycleBin(o.id, o); toast({ title: "Offer moved to recycle bin" }); load(); loadRecycleBin(); }}><Trash2 className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="outline" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => approveOffer(o)} title="Approve">
+                              <CheckCircle className="h-3 w-3" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -481,6 +794,139 @@ const AdminOffers = () => {
               </Table>
             </CardContent>
           </Card>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} offers
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="min-w-[32px]"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="boosted" className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div><h2 className="text-2xl font-bold">Boosted Offers</h2><p className="text-sm text-muted-foreground">Manage offers with boost percentages</p></div>
+              {selectedBoostedOffers.size > 0 && (
+                <div className="flex gap-2">
+                  <Button onClick={() => setExtraBoostDialog(true)} variant="outline" className="bg-green-500 hover:bg-green-600 text-white">
+                    <Zap className="h-4 w-4 mr-2" /> Extra Boost ({selectedBoostedOffers.size})
+                  </Button>
+                  <Button onClick={handlePauseBoostedOffers} variant="outline" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                    <Zap className="h-4 w-4 mr-2" /> Pause ({selectedBoostedOffers.size})
+                  </Button>
+                  <Button onClick={handleDeleteBoostedOffers} variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedBoostedOffers.size})
+                  </Button>
+                </div>
+              )}
+            </div>
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8">
+                        <Checkbox 
+                          checked={selectedBoostedOffers.size === boostedOffers.length && boostedOffers.length > 0} 
+                          onCheckedChange={(checked) => { 
+                            if (checked) setSelectedBoostedOffers(new Set(boostedOffers.map((o) => o.id))); 
+                            else setSelectedBoostedOffers(new Set()); 
+                          }} 
+                        />
+                      </TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Boost %</TableHead>
+                      <TableHead>Expiry Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {boostedOffers.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No boosted offers found</TableCell></TableRow>
+                    ) : (
+                      boostedOffers.map((o) => (
+                        <TableRow key={o.id}>
+                          <TableCell>
+                            <Checkbox 
+                              checked={selectedBoostedOffers.has(o.id)} 
+                              onCheckedChange={(checked) => { 
+                                const newSelected = new Set(selectedBoostedOffers); 
+                                if (checked) newSelected.add(o.id); 
+                                else newSelected.delete(o.id); 
+                                setSelectedBoostedOffers(newSelected); 
+                              }} 
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">{o.title}</TableCell>
+                          <TableCell><Badge variant="secondary">{o.percent || 0}%</Badge></TableCell>
+                          <TableCell>{o.expiry_date || o.boost_expiry_date ? new Date(o.expiry_date || o.boost_expiry_date).toLocaleDateString() : "No expiry"}</TableCell>
+                          <TableCell><Badge variant={o.status === "active" ? "default" : "secondary"}>{o.status}</Badge></TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="sm" variant="outline" onClick={() => openEdit(o)} title="Edit">
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => handleExtraBoostSingle(o)} title="Extra Boost">
+                                <Zap className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="bg-yellow-500 hover:bg-yellow-600 text-white" onClick={() => handlePauseBoostSingle(o)} title="Pause Boost">
+                                <Zap className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleDeleteBoostSingle(o)} title="Delete">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="duplicates" className="space-y-6">
+          <div className="space-y-4">
+            <div><h2 className="text-2xl font-bold">Duplicate Detection</h2><p className="text-sm text-muted-foreground">Find and manage duplicate offers</p></div>
+            <Card><CardContent className="p-6 text-center text-muted-foreground">Duplicate detection feature coming soon</CardContent></Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="bulk" className="space-y-6">
@@ -625,6 +1071,37 @@ const AdminOffers = () => {
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowBoostDialog(false)}>Cancel</Button>
               <Button onClick={handleBoostOffers} disabled={boosting}>{boosting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Boost"}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={extraBoostDialog} onOpenChange={setExtraBoostDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Extra Boost Selected Offers</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Apply extra percentage to {selectedBoostedOffers.size} selected boosted offers until expiry date.</p>
+            <div>
+              <label className="text-sm font-medium">Extra Boost Percentage</label>
+              <Select value={String(extraBoostPercent)} onValueChange={(v) => setExtraBoostPercent(Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10%</SelectItem>
+                  <SelectItem value="15">15%</SelectItem>
+                  <SelectItem value="20">20%</SelectItem>
+                  <SelectItem value="25">25%</SelectItem>
+                  <SelectItem value="30">30%</SelectItem>
+                  <SelectItem value="50">50%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Expiry Date</label>
+              <Input type="date" value={extraBoostDate} onChange={(e) => setExtraBoostDate(e.target.value)} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setExtraBoostDialog(false)}>Cancel</Button>
+              <Button onClick={handleExtraBoost} disabled={extraBoosting}>{extraBoosting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Extra Boost"}</Button>
             </div>
           </div>
         </DialogContent>

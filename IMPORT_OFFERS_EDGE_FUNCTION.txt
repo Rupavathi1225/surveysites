@@ -1,0 +1,169 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { 
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/plain",
+      },
+      status: 200 
+    });
+  }
+
+  try {
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get request body
+    const { provider, network_id, api_endpoint, api_key, action } = await req.json();
+
+    if (!api_endpoint) {
+      return new Response(
+        JSON.stringify({ error: "API Endpoint is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Get API key from request body or database config
+    let apiKey = api_key || null;
+    let config = null;
+    
+    if (!apiKey && provider) {
+      const { data: configData } = await supabase
+        .from("api_import_configs")
+        .select("*")
+        .eq("provider_name", provider)
+        .eq("is_active", true)
+        .single();
+
+      if (configData) {
+        config = configData;
+        const apiKeyName = config.api_key_secret_name;
+        if (apiKeyName) {
+          apiKey = Deno.env.get(apiKeyName);
+        }
+      }
+    }
+
+    // Test action - works without API key
+    if (action === "test") {
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+        
+        const testResponse = await fetch(api_endpoint, { method: "GET", headers });
+        
+        if (testResponse.status >= 200 && testResponse.status < 300) {
+          return new Response(
+            JSON.stringify({ success: true, message: `Connection successful! Status: ${testResponse.status}` }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } else if (testResponse.status === 401 || testResponse.status === 403) {
+          return new Response(
+            JSON.stringify({ success: true, message: `Endpoint reachable (status ${testResponse.status}), but auth may be needed` }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        } else {
+          return new Response(
+            JSON.stringify({ success: false, error: `Status: ${testResponse.status}` }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+          );
+        }
+      } catch (testError) {
+        return new Response(
+          JSON.stringify({ success: false, error: `Connection failed: ${testError.message}` }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+    }
+
+    // Preview and Import need API key
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "API key is required for preview/import" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Fetch offers based on provider type
+    let offers = [];
+    const providerType = provider || config?.network_type || "Custom";
+
+    try {
+      const response = await fetch(api_endpoint, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      });
+      
+      const data = await response.json();
+      const offersArray = data.offers || data.data || data.results || data.items || [];
+      
+      if (Array.isArray(offersArray)) {
+        offers = offersArray.map((offer, i) => ({
+          offer_id: offer.offer_id?.toString() || offer.id?.toString() || `off-${i}`,
+          title: offer.name || offer.title || "Untitled",
+          description: offer.description || "",
+          payout: parseFloat(offer.payout || offer.reward || 0),
+          currency: offer.currency || "USD",
+          url: offer.redirect_url || offer.url || offer.link || "",
+          image_url: offer.image_url || offer.image || "",
+          status: offer.status === "active" ? "active" : "inactive",
+          countries: offer.countries?.join(", ") || offer.geo || "",
+        }));
+      }
+    } catch (e) {
+      console.error("Fetch error:", e);
+    }
+
+    // Return preview
+    if (action === "preview") {
+      return new Response(
+        JSON.stringify({ success: true, count: offers.length, offers: offers.slice(0, 50) }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Import offers
+    let imported = 0, skipped = 0;
+    for (const offer of offers) {
+      try {
+        const { data: existing } = await supabase
+          .from("offers")
+          .select("id")
+          .eq("offer_id", offer.offer_id)
+          .eq("provider", providerType)
+          .single();
+
+        if (existing) {
+          await supabase.from("offers").update({ ...offer, updated_at: new Date().toISOString() }).eq("id", existing.id);
+          skipped++;
+        } else {
+          await supabase.from("offers").insert({ ...offer, provider: providerType, source: "api" });
+          imported++;
+        }
+      } catch (e) { skipped++; }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, imported, skipped, total: offers.length }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+});

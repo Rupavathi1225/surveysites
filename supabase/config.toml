@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.handle-click]
 verify_jwt = false
+
+[functions.import-offers]
+verify_jwt = false

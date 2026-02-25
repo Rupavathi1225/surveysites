@@ -478,13 +478,19 @@ export type Database = {
           countries: string | null
           created_at: string | null
           currency: string | null
+          deleted_at: string | null
           description: string | null
           device: string | null
           devices: string | null
           expiry_date: string | null
           id: string
+          import_batch_id: string | null
           image_url: string | null
+          is_deleted: boolean | null
+          is_public: boolean | null
+          network_id: string | null
           non_access_url: string | null
+          tracking_url: string | null
           offer_id: string | null
           payout: number | null
           payout_model: string | null
@@ -505,12 +511,17 @@ export type Database = {
           countries?: string | null
           created_at?: string | null
           currency?: string | null
+          deleted_at?: string | null
           description?: string | null
           device?: string | null
           devices?: string | null
           expiry_date?: string | null
           id?: string
           image_url?: string | null
+          import_batch_id?: string | null
+          is_deleted?: boolean | null
+          is_public?: boolean | null
+          network_id?: string | null
           non_access_url?: string | null
           offer_id?: string | null
           payout?: number | null
@@ -532,14 +543,19 @@ export type Database = {
           countries?: string | null
           created_at?: string | null
           currency?: string | null
+          deleted_at?: string | null
           description?: string | null
           device?: string | null
           devices?: string | null
           expiry_date?: string | null
           id?: string
           image_url?: string | null
+          is_deleted?: boolean | null
+          is_public?: boolean | null
+          network_id?: string | null
           non_access_url?: string | null
           offer_id?: string | null
+          tracking_url?: string | null
           payout?: number | null
           payout_model?: string | null
           percent?: number | null
@@ -556,12 +572,63 @@ export type Database = {
         }
         Relationships: []
       }
+      recycle_bin: {
+        Row: {
+          id: string
+          offer_id: string
+          offer_data: Json
+          deleted_by: string | null
+          deleted_at: string | null
+          expires_at: string | null
+          restored_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          offer_id: string
+          offer_data: Json
+          deleted_by?: string | null
+          deleted_at?: string | null
+          expires_at?: string | null
+          restored_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          offer_id?: string
+          offer_data?: Json
+          deleted_by?: string | null
+          deleted_at?: string | null
+          expires_at?: string | null
+          restored_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recycle_bin_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recycle_bin_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       api_import_configs: {
         Row: {
           id: string
           provider_name: string
           api_endpoint: string
           api_key_secret_name: string
+          network_type: string | null
+          network_id: string | null
+          api_key: string | null
           is_active: boolean
           created_at: string | null
           updated_at: string | null
@@ -570,7 +637,10 @@ export type Database = {
           id?: string
           provider_name: string
           api_endpoint: string
-          api_key_secret_name: string
+          api_key_secret_name?: string
+          network_type?: string | null
+          network_id?: string | null
+          api_key?: string | null
           is_active?: boolean
           created_at?: string | null
           updated_at?: string | null
@@ -580,6 +650,9 @@ export type Database = {
           provider_name?: string
           api_endpoint?: string
           api_key_secret_name?: string
+          network_type?: string | null
+          network_id?: string | null
+          api_key?: string | null
           is_active?: boolean
           created_at?: string | null
           updated_at?: string | null

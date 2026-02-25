@@ -21,12 +21,6 @@ ALTER TABLE public.api_import_configs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Admin manages api_import_configs" ON public.api_import_configs 
   FOR ALL USING (is_admin_or_subadmin()) WITH CHECK (is_admin_or_subadmin());
 
--- Insert default configurations for common providers
-INSERT INTO public.api_import_configs (provider_name, api_endpoint, api_key_secret_name, is_active) VALUES
-  ('CPX Research', 'https://network.cpx-research.com/api/v1/offers', 'CPX_API_KEY', true),
-  ('BitLabs', 'https://api.bitlabs.ai/v1/offers', 'BITLABS_API_KEY', true)
-ON CONFLICT (provider_name) DO NOTHING;
-
 -- Update trigger
 CREATE TRIGGER update_api_import_configs_updated_at 
   BEFORE UPDATE ON public.api_import_configs 

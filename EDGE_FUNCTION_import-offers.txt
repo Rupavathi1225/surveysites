@@ -1,0 +1,345 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get request body
+    const { provider, network_id, api_endpoint, api_key, action } = await req.json();
+
+    if (!api_endpoint) {
+      return new Response(
+        JSON.stringify({ error: "API Endpoint is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Get API key from request body
+    let apiKey = api_key || null;
+    let config = null;
+    
+    if (!apiKey && provider) {
+      // Try to find config in database
+      const { data: configData } = await supabase
+        .from("api_import_configs")
+        .select("*")
+        .eq("provider_name", provider)
+        .eq("is_active", true)
+        .single();
+
+      if (configData) {
+        config = configData;
+        const apiKeyName = config.api_key_secret_name;
+        if (apiKeyName) {
+          apiKey = Deno.env.get(apiKeyName);
+        }
+      }
+    }
+
+    // Test action
+    if (action === "test") {
+      if (!apiKey) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "API Key is required for testing connection" 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+      
+      try {
+        const testResponse = await fetch(api_endpoint, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Connection successful! Status: ${testResponse.status}`,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (testError) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Connection failed` 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
+    }
+
+    // Preview and Import actions require API key
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: "API key is required." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Fetch offers
+    let offers = [];
+    const providerType = provider || config?.network_type || "Custom";
+
+    if (providerType === "CPX" || providerType === "CPX Research") {
+      offers = await fetchCPXOffers(api_endpoint, apiKey);
+    } else if (providerType === "BitLabs") {
+      offers = await fetchBitLabsOffers(api_endpoint, apiKey);
+    } else if (providerType === "HasOffers" || providerType === "Tune") {
+      offers = await fetchHasOffersOffers(api_endpoint, apiKey);
+    } else {
+      offers = await fetchGenericOffers(api_endpoint, apiKey);
+    }
+
+    // Preview
+    if (action === "preview") {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          count: offers.length,
+          offers: offers.slice(0, 50)
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Import
+    const importedOffers = await importOffers(supabase, offers, providerType);
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        imported: importedOffers.imported,
+        skipped: importedOffers.skipped,
+        total: offers.length
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+    );
+  }
+});
+
+// Fetch functions
+async function fetchCPXOffers(apiEndpoint, apiKey) {
+  try {
+    const response = await fetch(apiEndpoint, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+    if (data.offers && Array.isArray(data.offers)) {
+      return data.offers.map((offer) => ({
+        offer_id: offer.offer_id?.toString() || offer.id?.toString(),
+        title: offer.name || offer.title,
+        description: offer.description || "",
+        payout: parseFloat(offer.reward || offer.payout || 0),
+        currency: offer.currency || "USD",
+        url: offer.redirect_url || offer.url || offer.link,
+        image_url: offer.image_url || offer.image || offer.thumbnail,
+        provider: "CPX Research",
+        source: "api",
+        status: offer.status === "active" ? "active" : "inactive",
+        countries: offer.countries?.join(", ") || offer.geo || "",
+        platform: offer.platform || "",
+        device: offer.device || "",
+        vertical: offer.category || offer.vertical || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching CPX offers:", error);
+    return [];
+  }
+}
+
+async function fetchBitLabsOffers(apiEndpoint, apiKey) {
+  try {
+    const response = await fetch(apiEndpoint, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+    if (data.data && Array.isArray(data.data)) {
+      return data.data.map((offer) => ({
+        offer_id: offer.external_offer_id?.toString() || offer.id?.toString(),
+        title: offer.name || offer.title,
+        description: offer.description || "",
+        payout: parseFloat(offer.reward || offer.payout || 0),
+        currency: offer.currency || "USD",
+        url: offer.redirect_url || offer.url || offer.link,
+        image_url: offer.image_url || offer.image || offer.thumbnail,
+        provider: "BitLabs",
+        source: "api",
+        status: offer.status === "active" ? "active" : "inactive",
+        countries: offer.countries?.join(", ") || offer.geo || "",
+        platform: offer.platform || "",
+        device: offer.device || "",
+        vertical: offer.category || offer.vertical || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching BitLabs offers:", error);
+    return [];
+  }
+}
+
+async function fetchHasOffersOffers(apiEndpoint, apiKey) {
+  try {
+    const response = await fetch(apiEndpoint, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+    if (data.response && data.response.offers) {
+      return data.response.offers.map((offer) => ({
+        offer_id: offer.offer_id?.toString() || offer.id?.toString(),
+        title: offer.name || offer.title,
+        description: offer.description || "",
+        payout: parseFloat(offer.payout || 0),
+        currency: offer.currency || "USD",
+        url: offer.redirect_url || offer.url || "",
+        image_url: offer.thumbnail || "",
+        provider: "HasOffers",
+        source: "api",
+        status: offer.status === "active" ? "active" : "inactive",
+        countries: offer.geo || "",
+        platform: "",
+        device: "",
+        vertical: "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching HasOffers offers:", error);
+    return [];
+  }
+}
+
+async function fetchGenericOffers(apiEndpoint, apiKey) {
+  try {
+    const response = await fetch(apiEndpoint, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await response.json();
+    const offersArray = data.offers || data.data || data.results || data.items || [];
+    if (Array.isArray(offersArray)) {
+      return offersArray.map((offer, index) => ({
+        offer_id: offer.offer_id?.toString() || offer.id?.toString() || `offer-${index}`,
+        title: offer.name || offer.title || "Untitled Offer",
+        description: offer.description || "",
+        payout: parseFloat(offer.payout || offer.reward || offer.amount || 0),
+        currency: offer.currency || "USD",
+        url: offer.redirect_url || offer.url || offer.link || "",
+        image_url: offer.image_url || offer.image || "",
+        provider: "Custom",
+        source: "api",
+        status: offer.status === "active" ? "active" : "inactive",
+        countries: offer.countries?.join(", ") || offer.geo || "",
+        platform: offer.platform || "",
+        device: offer.device || "",
+        vertical: offer.category || offer.vertical || "",
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching offers:", error);
+    return [];
+  }
+}
+
+async function importOffers(supabase, offers, provider) {
+  let imported = 0;
+  let skipped = 0;
+
+  for (const offer of offers) {
+    try {
+      const { data: existing } = await supabase
+        .from("offers")
+        .select("id")
+        .eq("offer_id", offer.offer_id)
+        .eq("provider", provider)
+        .single();
+
+      if (existing) {
+        await supabase
+          .from("offers")
+          .update({
+            title: offer.title,
+            description: offer.description,
+            payout: offer.payout,
+            currency: offer.currency,
+            url: offer.url,
+            image_url: offer.image_url,
+            status: offer.status,
+            countries: offer.countries,
+            platform: offer.platform,
+            device: offer.device,
+            vertical: offer.vertical,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
+        skipped++;
+      } else {
+        await supabase.from("offers").insert({
+          offer_id: offer.offer_id,
+          title: offer.title,
+          description: offer.description,
+          payout: offer.payout,
+          currency: offer.currency,
+          url: offer.url,
+          image_url: offer.image_url,
+          provider: provider,
+          source: "api",
+          status: offer.status || "active",
+          countries: offer.countries,
+          platform: offer.platform,
+          device: offer.device,
+          vertical: offer.vertical,
+        });
+        imported++;
+      }
+    } catch (error) {
+      console.error(`Error importing offer ${offer.offer_id}:`, error);
+      skipped++;
+    }
+  }
+
+  return { imported, skipped };
+}

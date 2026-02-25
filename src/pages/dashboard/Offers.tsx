@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, Search, Globe, Filter, Zap, Clock } from "lucide-react";
+import { ExternalLink, Search, Globe, Filter, Zap, Clock, Network } from "lucide-react";
 
 const Offers = () => {
   const { profile } = useAuth();
@@ -17,6 +17,7 @@ const Offers = () => {
   const [platformFilter, setPlatformFilter] = useState("all");
   const [deviceFilter, setDeviceFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [networkFilter, setNetworkFilter] = useState("all");
   const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -35,7 +36,7 @@ const Offers = () => {
           .from("offers")
           .select("*")
           .eq("is_deleted", false)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false }) as any;
         
         console.log("Offers response:", data?.length, "error:", error);
         
@@ -156,6 +157,7 @@ const Offers = () => {
     if (platformFilter !== "all" && o.platform && !o.platform.toLowerCase().includes(platformFilter.toLowerCase())) return false;
     if (deviceFilter !== "all" && o.device && !o.device.toLowerCase().includes(deviceFilter.toLowerCase())) return false;
     if (categoryFilter !== "all" && o.category && !o.category.toLowerCase().includes(categoryFilter.toLowerCase())) return false;
+    if (networkFilter !== "all" && o.network_id !== networkFilter) return false;
     return true;
   });
 
@@ -167,6 +169,7 @@ const Offers = () => {
   const platforms = [...new Set(offers.map(o => o.platform).filter(Boolean))];
   const devices = [...new Set(offers.map(o => o.device).filter(Boolean))];
   const categories = [...new Set(offers.map(o => o.category).filter(Boolean))];
+  const networks = [...new Set(offers.map(o => o.network_id).filter(Boolean))];
 
   const calculateBoostedPayout = (offer: any): number => {
     if (!offer.percent || offer.percent === 0) return Number(offer.payout) || 0;
@@ -177,7 +180,14 @@ const Offers = () => {
     <div className="space-y-4">
       <div>
         <h1 className="text-lg font-bold">Offers</h1>
-        <p className="text-xs text-muted-foreground">Complete offers to earn rewards</p>
+        <p className="text-xs text-muted-foreground">
+          Complete offers to earn rewards
+          {networkFilter !== "all" && (
+            <span className="ml-2 text-blue-600">
+              (Filtered by network: <strong>{networkFilter}</strong>)
+            </span>
+          )}
+        </p>
       </div>
 
       {/* Compact filters */}
@@ -215,6 +225,23 @@ const Offers = () => {
               {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={networkFilter} onValueChange={setNetworkFilter}>
+            <SelectTrigger className="w-36 h-7 text-xs"><Network className="h-3 w-3 mr-1" /><SelectValue placeholder="All Networks">{networkFilter !== "all" ? networkFilter : "All Networks"}</SelectValue></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Networks</SelectItem>
+              {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {networkFilter !== "all" && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-7 text-xs"
+              onClick={() => setNetworkFilter("all")}
+            >
+              Clear
+            </Button>
+          )}
         </CardContent>
       </Card>
 
@@ -260,6 +287,19 @@ const Offers = () => {
                           <Globe className="h-2.5 w-2.5 shrink-0" /> {o.countries}
                         </p>
                       )}
+                      {o.network_id && (
+                        <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
+                          <Network className="h-2.5 w-2.5 shrink-0" />
+                          <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="h-auto p-0 text-[9px] hover:bg-blue-50 hover:text-blue-600"
+                            onClick={() => setNetworkFilter(o.network_id)}
+                          >
+                            {o.network_id}
+                          </Button>
+                        </p>
+                      )}
                       {timeLeft[o.id] > 0 && (
                         <div className="mt-1 text-[10px] text-red-600 font-medium flex items-center gap-1">
                           <Clock className="h-2.5 w-2.5" />
@@ -302,6 +342,19 @@ const Offers = () => {
                   {o.countries && (
                     <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
                       <Globe className="h-2.5 w-2.5 shrink-0" /> {o.countries}
+                    </p>
+                  )}
+                  {o.network_id && (
+                    <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
+                      <Network className="h-2.5 w-2.5 shrink-0" />
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        className="h-auto p-0 text-[9px] hover:bg-blue-50 hover:text-blue-600"
+                        onClick={() => setNetworkFilter(o.network_id)}
+                      >
+                        {o.network_id}
+                      </Button>
                     </p>
                   )}
                   {o.url && (

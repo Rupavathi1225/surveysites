@@ -258,6 +258,74 @@ export function detectCategory(offerName: string, description: string | undefine
 }
 
 /**
+ * Auto-detect countries from offer name and description
+ */
+export function detectCountries(offerName: string, description: string | undefined): string {
+  const name = (offerName || "").toLowerCase();
+  const desc = (description || "").toLowerCase();
+  const fullText = `${name} ${desc}`;
+
+  // Country detection patterns
+  const countryPatterns: { [key: string]: RegExp[] } = {
+    "US": [/\busa?\b/, /\bunited states?\b/, /\bamerica\b/],
+    "UK": [/\buk\b/, /\bunited kingdom?\b/, /\bbritain\b/],
+    "CA": [/\bca\b/, /\bcanada\b/],
+    "AU": [/\bau\b/, /\baustralia\b/],
+    "DE": [/\bde\b/, /\bgermany\b/],
+    "FR": [/\bfr\b/, /\bfrance\b/],
+    "IT": [/\bit\b/, /\bitaly\b/],
+    "ES": [/\bes\b/, /\bspain\b/],
+    "IN": [/\bin\b/, /\bindia\b/],
+    "JP": [/\bjp\b/, /\bjapan\b/],
+    "BR": [/\bbr\b/, /\bbrazil\b/],
+    "MX": [/\bmx\b/, /\bmexico\b/],
+    "CN": [/\bcn\b/, /\bchina\b/],
+    "RU": [/\bru\b/, /\brussia\b/],
+    "NL": [/\bnl\b/, /\bnetherlands\b/],
+    "SE": [/\bse\b/, /\bsweden\b/],
+    "NO": [/\bno\b/, /\bnorway\b/],
+    "DK": [/\bdk\b/, /\bdenmark\b/],
+    "FI": [/\bfi\b/, /\bfinland\b/],
+    "PL": [/\bpl\b/, /\bpoland\b/],
+    "GR": [/\bgr\b/, /\bgreece\b/],
+    "PT": [/\bpt\b/, /\bportugal\b/],
+    "CH": [/\bch\b/, /\bswitzerland\b/],
+    "AT": [/\bat\b/, /\baustria\b/],
+    "BE": [/\bbe\b/, /\bbelgium\b/],
+    "IE": [/\bie\b/, /\bireland\b/],
+    "NZ": [/\bnz\b/, /\bnew zealand\b/],
+    "ZA": [/\bza\b/, /\bsouth africa\b/],
+    "SG": [/\bsg\b/, /\bsingapore\b/],
+    "MY": [/\bmy\b/, /\bmalaysia\b/],
+    "TH": [/\bth\b/, /\bthailand\b/],
+    "PH": [/\bph\b/, /\bphilippines\b/],
+    "ID": [/\bid\b/, /\bindonesia\b/],
+    "VN": [/\bvn\b/, /\bvietnam\b/],
+    "KR": [/\bkr\b/, /\bkorea\b/],
+    "HK": [/\bhk\b/, /\bhong kong\b/],
+    "TW": [/\btw\b/, /\btaiwan\b/],
+  };
+
+  const detectedCountries: string[] = [];
+
+  for (const [countryCode, patterns] of Object.entries(countryPatterns)) {
+    for (const pattern of patterns) {
+      if (pattern.test(fullText)) {
+        detectedCountries.push(countryCode);
+        break; // Only add each country once
+      }
+    }
+  }
+
+  // If no countries detected, default to US
+  if (detectedCountries.length === 0) {
+    return "US";
+  }
+
+  return detectedCountries.join(", ");
+}
+
+/**
  * Auto-fill missing offer data based on existing data
  * Now includes auto-detection of device and platform from name/description
  */
@@ -266,32 +334,49 @@ export function autoFillOfferData(offer: any): any {
   const detectedDevice = !offer.device && !offer.devices ? detectDevice(offer.title, offer.description) : "";
   const detectedPlatform = !offer.platform ? detectPlatform(offer.title, offer.description) : "";
   
+  // Auto-generate countries if missing
+  let countries = offer.countries || offer.country || "";
+  if (!countries) {
+    countries = detectCountries(offer.title, offer.description);
+  }
+  
+  // Auto-detect vertical and category
+  const vertical = offer.vertical || detectVertical(offer.title, offer.description);
+  const category = offer.category || detectCategory(offer.title, offer.description);
+  
   return {
     // Required fields
     title: offer.title || "",
     url: offer.url || "",
+    preview_url: offer.preview_url || "",
+    tracking_url: offer.tracking_url || "",
     payout: offer.payout ? Number(offer.payout) : 0,
     currency: offer.currency || "USD",
     
     // Optional fields with defaults and auto-detection
     offer_id: offer.offer_id || "",
-    description: offer.description || "",
-    countries: offer.countries || offer.country || "",
-    allowed_countries: offer.allowed_countries || "",
+    description: offer.description || `Auto-generated description for ${offer.title || "offer"}`,
+    countries: countries,
+    allowed_countries: countries,
     platform: offer.platform || detectedPlatform,
     device: offer.device || detectedDevice,
     devices: offer.devices || offer.device || detectedDevice,
-    preview_url: offer.preview_url || "",
     image_url: offer.image_url || "",
     traffic_sources: offer.traffic_sources || generateTrafficSource(offer.platform, offer.title, offer.description),
-    vertical: offer.vertical || detectVertical(offer.title, offer.description),
-    category: offer.category || detectCategory(offer.title, offer.description),
+    vertical: vertical,
+    category: category,
     payout_model: offer.payout_model || "CPA",
     percent: offer.percent ? Number(offer.percent) : 0,
     expiry_date: offer.expiry_date || offer.expiry || null,
     non_access_url: offer.non_access_url || "",
     status: offer.status || "active",
     is_public: offer.is_public === "false" || offer.is_public === "0" || offer.is_public === false ? false : true,
+    
+    // Approval fields
+    approval_status: offer.approval_status || "pending",
+    approved_date: offer.approved_date || null,
+    approved_by: offer.approved_by || null,
+    rejection_reason: offer.rejection_reason || "",
   };
 }
 

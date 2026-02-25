@@ -113,9 +113,8 @@ const App = () => (
           <Route path="/admin/change-password" element={<AdminPage><ChangePassword /></AdminPage>} />
           <Route path="/admin/update-profile" element={<AdminPage><AdminUpdateProfile /></AdminPage>} />
           <Route path="/admin/settings" element={<AdminPage><WebsiteSettings /></AdminPage>} />
-<Route path="/admin/offers" element={<AdminPage><AdminOffers /></AdminPage>} />
-          <Route path="/admin/api-import" element={<ApiImport />} />
-          <Route path="/admin/user-generation" element={<UserGeneration />} />
+          <Route path="/admin/offers" element={<AdminPage><AdminOffers /></AdminPage>} />
+          <Route path="/admin/api-import" element={<AdminPage><ApiImport /></AdminPage>} />
           <Route path="/admin/chats" element={<AdminPage><AdminChats /></AdminPage>} />
           <Route path="/admin/click-tracking" element={<AdminPage><AdminClickTracking /></AdminPage>} />
           <Route path="/admin/downward-partners" element={<AdminPage><DownwardPartners /></AdminPage>} />

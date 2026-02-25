@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-area { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; margin: 5px; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; white-space: pre-wrap; font-family: monospace; max-height: 400px; overflow-y: auto; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>Simple API Test - Step by Step</h1>
+    
+    <div class="test-area">
+        <h3>Step 1: Enter Your API Details</h3>
+        <label>Full API URL (including https://):</label>
+        <input type="text" id="fullUrl" placeholder="https://api.yourprovider.com/offers?token=your-key" value="">
+        
+        <label>API Key/Token (if separate):</label>
+        <input type="text" id="apiKey" placeholder="Your API key or token">
+        
+        <button onclick="step1_testBasic()">Step 1: Test Basic URL</button>
+        <button onclick="step2_testWithKey()">Step 2: Test with API Key</button>
+        <button onclick="step3_testPost()">Step 3: Test POST Method</button>
+        <button onclick="step4_testVariations()">Step 4: Test Variations</button>
+        
+        <div id="result" class="result">Click buttons above to test your API step by step...</div>
+    </div>
+
+    <script>
+        const resultDiv = document.getElementById('result');
+        const fullUrlInput = document.getElementById('fullUrl');
+        const apiKeyInput = document.getElementById('apiKey');
+        
+        function log(message) {
+            resultDiv.textContent += message + '\n';
+            resultDiv.scrollTop = resultDiv.scrollHeight;
+        }
+        
+        function clear() {
+            resultDiv.textContent = '';
+        }
+        
+        async function step1_testBasic() {
+            clear();
+            log('=== STEP 1: Testing Basic URL ===');
+            const url = fullUrlInput.value;
+            
+            if (!url || !url.startsWith('http')) {
+                log('❌ ERROR: Please enter a full URL starting with http:// or https://');
+                return;
+            }
+            
+            log(`🔍 Testing: ${url}`);
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                log(`📊 Status: ${response.status} ${response.statusText}`);
+                log(`📋 Content-Type: ${response.headers.get('content-type')}`);
+                
+                const text = await response.text();
+                log(`📄 Response length: ${text.length} characters`);
+                log(`📝 First 200 chars: ${text.substring(0, 200)}`);
+                
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    log('✅ SUCCESS: Got JSON response!');
+                    try {
+                        const json = JSON.parse(text);
+                        log(`📦 JSON parsed successfully. Keys: ${Object.keys(json).join(', ')}`);
+                        if (Array.isArray(json)) {
+                            log(`📋 Array with ${json.length} items`);
+                        } else if (json.offers || json.data || json.results) {
+                            const offers = json.offers || json.data || json.results;
+                            log(`📋 Found ${offers.length} offers in "${Object.keys(json).find(k => json[k] === offers)}" field`);
+                        }
+                    } catch (e) {
+                        log('❌ JSON parsing failed: ' + e.message);
+                    }
+                } else {
+                    log('❌ NOT JSON: Response is HTML or other format');
+                }
+                
+            } catch (error) {
+                log(`❌ NETWORK ERROR: ${error.message}`);
+            }
+        }
+        
+        async function step2_testWithKey() {
+            clear();
+            log('=== STEP 2: Testing with API Key ===');
+            const url = fullUrlInput.value;
+            const apiKey = apiKeyInput.value;
+            
+            if (!apiKey) {
+                log('❌ Please enter an API key first');
+                return;
+            }
+            
+            // Test different header formats
+            const headerTests = [
+                { name: 'Bearer Token', headers: { 'Authorization': `Bearer ${apiKey}` } },
+                { name: 'X-API-Key', headers: { 'X-API-Key': apiKey } },
+                { name: 'API-Key', headers: { 'API-Key': apiKey } },
+                { name: 'apikey', headers: { 'apikey': apiKey } },
+                { name: 'X-Auth-Token', headers: { 'X-Auth-Token': apiKey } },
+            ];
+            
+            for (const test of headerTests) {
+                log(`🔍 Testing ${test.name}:`);
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: { ...test.headers, 'Accept': 'application/json' }
+                    });
+                    
+                    const contentType = response.headers.get('content-type');
+                    log(`  Status: ${response.status}, Content-Type: ${contentType}`);
+                    
+                    if (contentType?.includes('application/json')) {
+                        log(`  ✅ SUCCESS with ${test.name}!`);
+                        const json = await response.json();
+                        log(`  📦 JSON keys: ${Object.keys(json).join(', ')}`);
+                        return;
+                    } else {
+                        log(`  ❌ Not JSON`);
+                    }
+                } catch (error) {
+                    log(`  ❌ Error: ${error.message}`);
+                }
+            }
+        }
+        
+        async function step3_testPost() {
+            clear();
+            log('=== STEP 3: Testing POST Method ===');
+            const url = fullUrlInput.value;
+            const apiKey = apiKeyInput.value;
+            
+            const postTests = [
+                { name: 'POST with api_key in body', body: { api_key: apiKey } },
+                { name: 'POST with token in body', body: { token: apiKey } },
+                { name: 'POST empty', body: {} },
+            ];
+            
+            for (const test of postTests) {
+                log(`🔍 Testing ${test.name}:`);
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify(test.body)
+                    });
+                    
+                    const contentType = response.headers.get('content-type');
+                    log(`  Status: ${response.status}, Content-Type: ${contentType}`);
+                    
+                    if (contentType?.includes('application/json')) {
+                        log(`  ✅ SUCCESS with ${test.name}!`);
+                        const json = await response.json();
+                        log(`  📦 JSON keys: ${Object.keys(json).join(', ')}`);
+                        return;
+                    } else {
+                        log(`  ❌ Not JSON`);
+                    }
+                } catch (error) {
+                    log(`  ❌ Error: ${error.message}`);
+                }
+            }
+        }
+        
+        async function step4_testVariations() {
+            clear();
+            log('=== STEP 4: Testing URL Variations ===');
+            const baseUrl = fullUrlInput.value;
+            const apiKey = apiKeyInput.value;
+            
+            const variations = [
+                `${baseUrl}?api_key=${apiKey}`,
+                `${baseUrl}?token=${apiKey}`,
+                `${baseUrl}?auth_token=${apiKey}`,
+                `${baseUrl.replace(/\/$/, '')}/api/offers`,
+                `${baseUrl.replace(/\/$/, '')}/v1/offers`,
+                `${baseUrl.replace(/\/$/, '')}/offers.json`,
+            ];
+            
+            for (const variation of variations) {
+                log(`🔍 Testing: ${variation}`);
+                try {
+                    const response = await fetch(variation, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    
+                    const contentType = response.headers.get('content-type');
+                    log(`  Status: ${response.status}, Content-Type: ${contentType}`);
+                    
+                    if (contentType?.includes('application/json')) {
+                        log(`  ✅ SUCCESS with this variation!`);
+                        const json = await response.json();
+                        log(`  📦 JSON keys: ${Object.keys(json).join(', ')}`);
+                        return;
+                    } else {
+                        log(`  ❌ Not JSON`);
+                    }
+                } catch (error) {
+                    log(`  ❌ Error: ${error.message}`);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
