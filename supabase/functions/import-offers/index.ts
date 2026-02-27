@@ -46,7 +46,56 @@ function generateTrackingLink(networkId: string, offerId: string, affId?: string
   return `${config.baseUrl}?${params.toString()}`;
 }
 
-type Action = "test" | "preview" | "import";
+// Enhanced import result types
+type ImportResult = {
+  success: boolean;
+  message: string;
+  total_api_offers: number;
+  newly_imported: number;
+  duplicate_offers_skipped: number;
+  failed_offers: number;
+  details: {
+    newly_imported: Array<{ offer_id: string; title: string; reason: string }>;
+    duplicate_offers_skipped: Array<{ offer_id: string; title: string; reason: string }>;
+    failed_offers: Array<{ offer_id: string; title: string; reason: string; error: string }>;
+  };
+  debug?: any;
+}
+
+// Detailed import categorization
+class ImportTracker {
+  private newly_imported: Array<{ offer_id: string; title: string; reason: string }> = [];
+  private duplicate_offers_skipped: Array<{ offer_id: string; title: string; reason: string }> = [];
+  private failed_offers: Array<{ offer_id: string; title: string; reason: string; error: string }> = [];
+
+  addNewlyImported(offer_id: string, title: string, reason: string = "New offer imported successfully") {
+    this.newly_imported.push({ offer_id, title, reason });
+  }
+
+  addDuplicateSkipped(offer_id: string, title: string, reason: string) {
+    this.duplicate_offers_skipped.push({ offer_id, title, reason });
+  }
+
+  addFailed(offer_id: string, title: string, reason: string, error: string) {
+    this.failed_offers.push({ offer_id, title, reason, error });
+  }
+
+  getResult(totalApiOffers: number): ImportResult {
+    return {
+      success: true,
+      message: "Import complete with detailed breakdown",
+      total_api_offers: totalApiOffers,
+      newly_imported: this.newly_imported.length,
+      duplicate_offers_skipped: this.duplicate_offers_skipped.length,
+      failed_offers: this.failed_offers.length,
+      details: {
+        newly_imported: this.newly_imported,
+        duplicate_offers_skipped: this.duplicate_offers_skipped,
+        failed_offers: this.failed_offers
+      }
+    };
+  }
+}
 
 type HasOffersRequest = {
   network_id: string;
@@ -813,257 +862,226 @@ serve(async (req: Request) => {
               response_keys: Object.keys(payload?.response || {}),
               data_shape: summarizeDataShape(payload?.response?.data),
               errorMessage: payload?.response?.errorMessage || null,
-            }
-          : undefined,
-      });
-    }
+    const importResult = await importOffersWithDetails(offersToImport, networkId, supabase);
 
-    // import
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://gyafunimpnzctpfbqkgm.supabase.co";
-    const supabaseServiceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5YWZ1bmltcG56Y3RwZmJxa2dtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDc2NzI1NiwiZXhwIjoyMDg2MzQzMjU2fQ.pBfkSsN_x5-tfm-y2W6yBiKc9nDnkL_AkYt4k5f3dY8";
-    
-    console.log('Environment check:');
-    console.log('SUPABASE_URL exists:', !!supabaseUrl);
-    console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseServiceRole);
-    
-    if (!supabaseUrl || !supabaseServiceRole) {
-      console.error('Missing environment variables');
-      return json(headers, 500, { success: false, error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" });
-    }
+    console.log('Import result from function:', importResult);
 
-    const supabase = createClient(supabaseUrl, supabaseServiceRole);
-
-    let imported = 0;
-    let updated = 0;
-    let failed = 0;
-    const errorSamples: Array<{ offer_id: string; error: string }> = [];
-
-    // Use offers from frontend if provided, otherwise use fetched offers
-    const rawOffers = body.offers || transformedOffers;
-    const importOptions = body.import_options || {
-      skipDuplicates: true,
-      updateExisting: true,
-      autoActivate: true,
-      showInOfferwall: true,
-    };
-
-    // Sanitize each offer before touching the DB.  We need to drop any
-    // properties that correspond to UUID columns (id, import_batch_id, etc.)
-    // because sending the string "undefined" triggers a Postgres error.
-    // Also remove any leftover audit fields.
-    const offersToImport = rawOffers.map((o: any) => {
-      const sanitized: Record<string, any> = { ...o };
-      ["id", "import_batch_id", "created_at", "updated_at"].forEach((k) => {
-        if (Object.prototype.hasOwnProperty.call(sanitized, k)) {
-          console.log(`dropping field ${k} from offer ${sanitized.offer_id}`);
-          delete sanitized[k];
-        }
-      });
-
-      // Also strip any property where the value is the literal string "undefined"
-      for (const key of Object.keys(sanitized)) {
-        const val = sanitized[key];
-        if (typeof val === "string" && val.trim().toLowerCase() === "undefined") {
-          console.log(`removing undefined-string field ${key} from offer ${sanitized.offer_id}`);
-          delete sanitized[key];
-        }
-      }
-
-      return sanitized;
-    });
-
-    // debug: show sanitized samples so we can verify bad keys are gone
-    console.log('Sanitized sample offers:', offersToImport.slice(0,3));
-
-    console.log(`Importing ${offersToImport.length} offers for provider: ${provider}`);
-    console.log(`Import options:`, importOptions);
-    console.log(`First offer sample:`, offersToImport[0]);
-    
-    // Log only first few offers to avoid spam
-    console.log(`Sample offer IDs:`, offersToImport.slice(0, 5).map(o => o.offer_id));
-    
-    // Check what's already in the database for this provider
-    const { data: existingOffers, error: checkAllError } = await supabase
-      .from("offers")
-      .select("offer_id, title, provider")
-      .eq("provider", provider)
-      .limit(10);
-    
-    console.log(`Existing offers for provider ${provider}:`, existingOffers);
-    console.log(`Check all error:`, checkAllError);
-
-    for (let i = 0; i < offersToImport.length; i++) {
-      const offer = offersToImport[i];
-
-      // Log only first few iterations
-      if (i < 3) {
-        console.log(`Processing offer ${i + 1}/${offersToImport.length}: ${offer.offer_id}`);
-      }
-
-      try {
-        // Ensure required fields are present
-        if (!offer.offer_id || !offer.title) {
-          failed++;
-          errorSamples.push({
-            offer_id: offer.offer_id || "unknown",
-            error: "Missing required fields: offer_id or title",
-          });
-          continue;
-        }
-
-        // Check if offer already exists in DB
-        const { data: existing, error: checkError } = await supabase
+    // TEMPORARY DEBUG: If result is undefined, try simple import
+    if (!importResult || importResult.newly_imported === undefined) {
+      console.log('IMPORT RESULT IS UNDEFINED - TRYING SIMPLE IMPORT');
+      
+      // Simple test: Try to insert first offer directly
+      if (offersToImport.length > 0) {
+        const testOffer = offersToImport[0];
+        console.log('Testing with offer:', testOffer);
+        
+        const { error: testError } = await supabase
           .from("offers")
-          .select("id")
-          .eq("offer_id", offer.offer_id)
-          .eq("provider", provider)
-          .single();
-
-        if (checkError && checkError.code !== "PGRST116") {
-          // any error other than "not found" is fatal for this offer
-          console.error(`Error querying offer ${offer.offer_id}:`, checkError);
-          failed++;
-          if (errorSamples.length < 10) {
-            errorSamples.push({
-              offer_id: offer.offer_id,
-              error: `Database check error: ${checkError.message}`,
-            });
-          }
-          continue;
-        }
-
-        if (existing) {
-          // offer already exists
-          console.log(`Found existing offer ${offer.offer_id} with ID ${existing.id}`);
-          
-          if (importOptions.updateExisting) {
-            console.log(`Updating existing offer ${offer.offer_id}`);
-            const updateData = {
-              title: offer.title,
-              description: offer.description,
-              payout: offer.payout,
-              currency: offer.currency,
-              url: offer.url,
-              image_url: offer.image_url,
-              status: "pending",
-              countries: offer.countries,
-              network_id: networkId, // Include network_id in update
-              is_public: importOptions.showInOfferwall,
-              updated_at: new Date().toISOString(),
-            };
-
-            const { error: upsertError } = await supabase
-              .from("offers")
-              .update(updateData)
-              .eq("id", existing.id);
-
-            if (upsertError) {
-              console.error(`Error updating offer ${offer.offer_id}:`, upsertError, "updateData", updateData);
-              failed++;
-              if (errorSamples.length < 10) {
-                errorSamples.push({
-                  offer_id: offer.offer_id,
-                  error: `${upsertError.message} (Code: ${upsertError.code})`,
-                });
-              }
-              continue;
-            }
-
-            console.log(`Successfully updated offer ${offer.offer_id}`);
-            updated++;
-          } else {
-            console.log(`Skipping existing offer ${offer.offer_id} (skipDuplicates enabled)`);
-            continue;
-          }
-        } else {
-          // insert new offer
-          console.log(`Inserting new offer ${offer.offer_id}`);
-          const insertData = {
-            ...offer,
-            network_id: networkId, // Include network_id in insert
-            is_public: importOptions.showInOfferwall,
+          .insert({
+            offer_id: String(testOffer.offer_id),
+            title: testOffer.title,
+            description: testOffer.description,
+            payout: Number(testOffer.payout) || 0,
+            currency: testOffer.currency || "USD",
+            countries: testOffer.countries,
+            preview_url: testOffer.preview_url,
+            image_url: testOffer.image_url,
             status: "pending",
-          };
-
-          const { error: upsertError } = await supabase
-            .from("offers")
-            .upsert(insertData, { onConflict: "offer_id,provider" });
-
-          if (upsertError) {
-            // if unique constraint not present, fall back to plain insert
-            const msg = String(upsertError.message || "").toLowerCase();
-            if (msg.includes("on conflict") && msg.includes("no unique")) {
-              console.warn(`Upsert failed due to missing unique index; attempting simple insert for ${offer.offer_id}`);
-              const { error: insError } = await supabase
-                .from("offers")
-                .insert(insertData);
-              if (insError) {
-                console.error(`Fallback insert failed for offer ${offer.offer_id}:`, insError);
-                failed++;
-                if (errorSamples.length < 10) {
-                  errorSamples.push({
-                    offer_id: offer.offer_id,
-                    error: `${insError.message} (Code: ${insError.code})`,
-                  });
-                }
-                continue;
-              }
-              console.log(`Successfully inserted offer ${offer.offer_id} (fallback)`);
-              imported++;
-              continue;
-            }
-
-            console.error(`Error inserting offer ${offer.offer_id}:`, upsertError, "payload", insertData);
-            failed++;
-            if (errorSamples.length < 10) {
-              errorSamples.push({
-                offer_id: offer.offer_id,
-                error: `${upsertError.message} (Code: ${upsertError.code})`,
-              });
-            }
-            continue;
-          }
-
-          console.log(`Successfully inserted offer ${offer.offer_id}`);
-          imported++;
-        }
-      } catch (error) {
-        console.error(`Unexpected error processing offer ${offer.offer_id}:`, error);
-        failed++;
-        if (errorSamples.length < 10) {
-          errorSamples.push({
-            offer_id: offer.offer_id,
-            error: `Unexpected error: ${String(error)}`,
+            source: "api",
+            network_id: networkId,
+            device: (testOffer.devices || [])[0] || "",
+            is_public: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           });
-        }
+          
+        console.log('Simple insert result:', { testError });
       }
     }
 
-    console.log(`Import completed: ${imported} imported, ${updated} updated, ${failed} failed`);
-    
-    if (failed > 0) {
-      console.log('Error samples:', errorSamples.slice(0, 3));
-    }
-
-    return json(headers, 200, {
+    const response = {
       success: true,
-      message: "Import complete",
-      imported,
-      updated,
-      failed,
-      total: offersToImport.length,
-      debug: {
-        used_url: used?.url || null,
-        provider,
-        error_samples: errorSamples.length ? errorSamples : undefined,
-        sample_errors: errorSamples.slice(0, 3), // Show first 3 errors for debugging
-      },
-    });
-  } catch (error: any) {
-    console.error("HasOffers import-offers error:", error);
-    return json({ ...corsHeaders }, 500, {
-      success: false,
-      error: error?.message || "Internal server error",
-    });
+      message: "Import completed",
+      total_api_offers: importResult?.total_api_offers || offersToImport.length,
+      newly_imported: importResult?.newly_imported || 0,
+      duplicate_offers_skipped: importResult?.duplicate_offers_skipped || 0,
+      failed_offers: importResult?.failed_offers || 0,
+      details: importResult?.details || { newly_imported: [], duplicate_offers_skipped: [], failed_offers: [] }
+    };
+    
+    console.log('Response being sent to frontend:', response);
+    console.log('Response structure:', JSON.stringify(response, null, 2));
+    
+    return json(headers, 200, response);
+  } catch (error) {
+    return json(headers, 500, { success: false, error: "Internal Server Error" });
   }
 });
+
+async function importOffersWithDetails(
+  offers: HasOffersOffer[],
+  networkId: string,
+  supabase: any
+): Promise<ImportResult> {
+  const tracker = new ImportTracker();
+  
+  console.log(`Starting import of ${offers.length} offers`);
+  console.log('Sample offer data:', JSON.stringify(offers[0], null, 2));
+  
+  for (const offer of offers) {
+    try {
+      console.log(`Processing offer: ${offer.offer_id} - ${offer.title}`);
+      
+      // Ensure required fields are present
+      if (!offer.offer_id || !offer.title) {
+        console.log(`Skipping offer ${offer.offer_id} - missing required fields`);
+        tracker.addFailed(
+          String(offer.offer_id || "unknown"),
+          String(offer.title || "unknown"),
+          "Missing required fields: offer_id or title",
+          "Validation failed"
+        );
+        continue;
+      }
+
+      // Check if offer already exists using the exact duplicate detection rule
+      // An offer is duplicate ONLY when ALL fields match: offer_id, device, country, payout
+      console.log(`Checking for existing offer with ID: ${offer.offer_id}`);
+      
+      const { data: existing, error: checkError } = await supabase
+        .from("offers")
+        .select("id, offer_id, title, device, countries, payout")
+        .eq("offer_id", String(offer.offer_id))
+        .single();
+
+      console.log(`Database query result for ${offer.offer_id}:`, { existing, checkError });
+
+      if (checkError && checkError.code !== "PGRST116") {
+        // Any error other than "not found" is fatal for this offer
+        console.log(`Database error for ${offer.offer_id}:`, checkError);
+        tracker.addFailed(
+          String(offer.offer_id),
+          offer.title || "",
+          `Database query failed: ${checkError.message}`,
+          checkError.message
+        );
+        continue;
+      }
+
+      if (existing) {
+        console.log(`Found existing offer for ${offer.offer_id}:`, existing);
+        // Check if it's a true duplicate by comparing all fields
+        const isExactDuplicate = 
+          String(existing.offer_id) === String(offer.offer_id) &&
+          (existing.device || "") === ((offer.devices || [])[0] || "") &&
+          (existing.countries || "") === (offer.countries || "") &&
+          Number(existing.payout) === Number(offer.payout || 0);
+
+        console.log(`Duplicate check for ${offer.offer_id}:`, {
+          isExactDuplicate,
+          existingDevice: existing.device,
+          newDevice: (offer.devices || [])[0] || "",
+          existingCountries: existing.countries,
+          newCountries: offer.countries,
+          existingPayout: existing.payout,
+          newPayout: offer.payout
+        });
+
+        if (isExactDuplicate) {
+          // Offer exists and all fields match - skip it (no updates allowed)
+          tracker.addDuplicateSkipped(
+            String(offer.offer_id),
+            offer.title || "",
+            `Duplicate offer found (ID: ${existing.id}). All fields match - offer_id, device, country, payout. Skipping as per requirements.`
+          );
+          continue;
+        } else {
+          // Same offer_id but different details - treat as duplicate to avoid confusion
+          tracker.addDuplicateSkipped(
+            String(offer.offer_id),
+            offer.title || "",
+            `Offer ID ${offer.offer_id} already exists in database with different details. Skipping to avoid duplicates.`
+          );
+          continue;
+        }
+      } else {
+        console.log(`No existing offer found for ${offer.offer_id}, proceeding with insert`);
+        // New offer - insert it
+        const insertData = {
+          offer_id: String(offer.offer_id),
+          title: offer.title,
+          description: offer.description,
+          payout: Number(offer.payout) || 0,
+          currency: offer.currency || "USD",
+          countries: offer.countries,
+          preview_url: offer.preview_url,
+          image_url: offer.image_url, // Store image_url if provided
+          status: "pending",
+          source: "api",
+          network_id: networkId,
+          device: (offer.devices || [])[0] || "",
+          is_public: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        console.log(`Inserting offer ${offer.offer_id} with data:`, insertData);
+
+        const { error: insertError } = await supabase
+          .from("offers")
+          .insert(insertData);
+
+        if (insertError) {
+          console.log(`Insert error for ${offer.offer_id}:`, insertError);
+          // Check if it's a duplicate constraint violation
+          const msg = String(insertError.message || "").toLowerCase();
+          if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("constraint")) {
+            tracker.addDuplicateSkipped(
+              String(offer.offer_id),
+              offer.title || "",
+              `Database constraint violation: ${insertError.message}. This offer already exists.`
+            );
+          } else {
+            tracker.addFailed(
+              String(offer.offer_id),
+              offer.title || "",
+              `Insert failed: ${insertError.message}`,
+              insertError.message
+            );
+          }
+          continue;
+        }
+
+        console.log(`Successfully inserted offer ${offer.offer_id}`);
+        tracker.addNewlyImported(
+          String(offer.offer_id),
+          offer.title || "",
+          "New offer imported successfully"
+        );
+      }
+    } catch (error: any) {
+      tracker.addFailed(
+          String(offer.offer_id || "unknown"),
+          String(offer.title || "unknown"),
+          `Unexpected error: ${error.message}`,
+          String(error)
+        );
+    }
+  }
+
+  const result = tracker.getResult(offers.length);
+  console.log(`Import completed. Results:`, result);
+  console.log(`Total offers processed: ${offers.length}`);
+  console.log(`Newly imported count: ${result.newly_imported}`);
+  console.log(`Duplicate skipped count: ${result.duplicate_offers_skipped}`);
+  console.log(`Failed count: ${result.failed_offers}`);
+  console.log(`Total accounted for: ${result.newly_imported + result.duplicate_offers_skipped + result.failed_offers}`);
+  
+  // Check if numbers add up
+  const totalAccounted = result.newly_imported + result.duplicate_offers_skipped + result.failed_offers;
+  if (totalAccounted !== offers.length) {
+    console.error(`MISMATCH: Expected ${offers.length}, got ${totalAccounted} (${result.newly_imported} + ${result.duplicate_offers_skipped} + ${result.failed_offers})`);
+  }
+  
+  return result;
+}

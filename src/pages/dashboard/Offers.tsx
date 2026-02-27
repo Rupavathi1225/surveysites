@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ExternalLink, Search, Globe, Filter, Zap, Clock, Network } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ExternalLink, Search, Globe, Filter, Zap, Clock, Network, X } from "lucide-react";
 
 const Offers = () => {
   const { profile } = useAuth();
@@ -19,6 +20,8 @@ const Offers = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [networkFilter, setNetworkFilter] = useState("all");
   const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     console.log("Offers page loading...");
@@ -152,6 +155,12 @@ const Offers = () => {
     }
   };
 
+  const openOfferModal = async (offer: any) => {
+    setSelectedOffer(offer);
+    setIsModalOpen(true);
+    await trackClick(offer);
+  };
+
   const filtered = offers.filter(o => {
     if (search && !o.title.toLowerCase().includes(search.toLowerCase())) return false;
     if (countryFilter !== "all" && o.countries && !o.countries.toLowerCase().includes(countryFilter.toLowerCase())) return false;
@@ -258,70 +267,85 @@ const Offers = () => {
         </CardContent>
       </Card>
 
-      {/* Boosted Offers Section */}
+      {/* Boosted Offers Section - BadBoysAI Style */}
       {filteredBoostedOffers.length > 0 && (
-        <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="h-4 w-4 text-yellow-600" />
-              <h2 className="text-sm font-bold text-yellow-800 dark:text-yellow-200">Limited Time Offers!</h2>
-              <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-700 text-xs">
+        <Card className="border-purple-500/30 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-purple-900/20 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <Zap className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Limited Time Offers!</h2>
+                <p className="text-xs text-gray-400">Exclusive boosted rewards</p>
+              </div>
+              <Badge className="ml-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs border-0">
                 <Clock className="h-3 w-3 mr-1" />
                 {filteredBoostedOffers.length} Active
               </Badge>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {filteredBoostedOffers.map((o) => (
-                <Card key={o.id} className="overflow-hidden hover:border-yellow-500/50 transition-colors border-yellow-500 border-2">
+                <Card key={o.id} className="overflow-hidden bg-white/5 border border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 group relative backdrop-blur-sm rounded-xl">
                   <CardContent className="p-0">
                     {o.image_url && (
-                      <div className="h-24 bg-accent overflow-hidden relative">
-                        <img src={o.image_url} alt={o.title} className="w-full h-full object-cover" />
-                        <div className="absolute top-1 right-1 bg-yellow-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <Zap className="h-2.5 w-2.5" /> +{o.percent}%
+                      <div className="h-32 bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden relative">
+                        <img src={o.image_url} alt={o.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
+                        <div className="absolute top-3 right-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold shadow-lg">
+                          <Zap className="h-3 w-3" /> +{o.percent}%
                         </div>
                       </div>
                     )}
-                    <div className="p-2">
-                      <h3 className="font-semibold text-xs truncate">{o.title}</h3>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <Badge variant="secondary" className="text-[8px] px-1 py-0">{o.payout_model || "CPA"}</Badge>
-                        <Badge className="bg-yellow-500 text-white text-[8px] px-1 py-0">
+                    <div className="p-4 bg-gradient-to-b from-gray-800/95 to-gray-900/95 backdrop-blur-sm">
+                      <h3 className="font-semibold text-sm text-white truncate mb-3 leading-tight">{o.title}</h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-3 py-1 rounded-md">
+                          {o.payout_model || "CPA"}
+                        </Badge>
+                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 rounded-md font-bold shadow-md">
                           ${calculateBoostedPayout(o).toFixed(2)}
                         </Badge>
-                        {o.percent > 0 && (
-                          <Badge variant="outline" className="text-[8px] px-1 py-0 border-yellow-500 text-yellow-700">
-                            +{o.percent}%
+                      </div>
+                      {o.percent > 0 && (
+                        <div className="mb-3">
+                          <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-3 py-1 rounded-md font-semibold">
+                            +{o.percent}% Bonus
                           </Badge>
+                        </div>
+                      )}
+                      <div className="space-y-2 mb-4">
+                        {o.countries && (
+                          <p className="text-xs text-gray-400 flex items-center gap-2">
+                            <Globe className="h-3 w-3 text-purple-400" /> {o.countries}
+                          </p>
+                        )}
+                        {o.network_id && (
+                          <p className="text-xs text-gray-400 flex items-center gap-2">
+                            <Network className="h-3 w-3 text-purple-400" />
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              className="h-auto p-0 text-xs hover:text-purple-400 text-purple-300 font-medium"
+                              onClick={() => setNetworkFilter(o.network_id)}
+                            >
+                              {o.network_id}
+                            </Button>
+                          </p>
                         )}
                       </div>
-                      {o.countries && (
-                        <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
-                          <Globe className="h-2.5 w-2.5 shrink-0" /> {o.countries}
-                        </p>
-                      )}
-                      {o.network_id && (
-                        <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
-                          <Network className="h-2.5 w-2.5 shrink-0" />
-                          <Button 
-                            variant="link" 
-                            size="sm" 
-                            className="h-auto p-0 text-[9px] hover:bg-blue-50 hover:text-blue-600"
-                            onClick={() => setNetworkFilter(o.network_id)}
-                          >
-                            {o.network_id}
-                          </Button>
-                        </p>
-                      )}
                       {timeLeft[o.id] > 0 && (
-                        <div className="mt-1 text-[10px] text-red-600 font-medium flex items-center gap-1">
-                          <Clock className="h-2.5 w-2.5" />
+                        <div className="mb-3 text-xs text-red-400 font-medium flex items-center gap-2">
+                          <Clock className="h-3 w-3" />
                           {formatTimeLeft(timeLeft[o.id])}
                         </div>
                       )}
                       {o.url && (
-                        <Button className="mt-1.5 w-full h-6 text-[10px] bg-yellow-500 hover:bg-yellow-600" onClick={async () => { await trackClick(o); window.open(o.url, "_blank"); }}>
-                          <ExternalLink className="h-2.5 w-2.5 mr-1" /> Start
+                        <Button 
+                          className="w-full h-9 text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
+                          onClick={() => openOfferModal(o)}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" /> Start Earning
                         </Button>
                       )}
                     </div>
@@ -333,79 +357,269 @@ const Offers = () => {
         </Card>
       )}
 
-      {/* Compact offer cards */}
+      {/* Regular Offers Section - BadBoysAI Style */}
       {regularOffers.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-          {regularOffers.map((o) => (
-            <Card key={o.id} className="overflow-hidden hover:border-primary/50 transition-colors border-0">
-              <CardContent className="p-0">
-                {o.image_url && (
-                  <div className="h-24 bg-accent overflow-hidden">
-                    <img src={o.image_url} alt={o.title} className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="p-2">
-                  <h3 className="font-semibold text-xs truncate">{o.title}</h3>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Badge variant="secondary" className="text-[8px] px-1 py-0">{o.payout_model || "CPA"}</Badge>
-                    <Badge className="bg-primary text-primary-foreground text-[8px] px-1 py-0">
-                      ${Number(o.payout).toFixed(2)}
-                    </Badge>
-                  </div>
-                  {o.countries && (
-                    <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
-                      <Globe className="h-2.5 w-2.5 shrink-0" /> {o.countries}
-                    </p>
-                  )}
-                  {o.network_id && (
-                    <p className="text-[9px] text-muted-foreground mt-1 flex items-center gap-0.5 truncate">
-                      <Network className="h-2.5 w-2.5 shrink-0" />
-                      <Button 
-                        variant="link" 
-                        size="sm" 
-                        className="h-auto p-0 text-[9px] hover:bg-blue-50 hover:text-blue-600"
-                        onClick={() => setNetworkFilter(o.network_id)}
-                      >
-                        {o.network_id}
-                      </Button>
-                    </p>
-                  )}
-                  {o.url && (
-                    <Button className="mt-1.5 w-full h-6 text-[10px]" onClick={async () => { await trackClick(o); window.open(o.url, "_blank"); }}>
-                      <ExternalLink className="h-2.5 w-2.5 mr-1" /> Start
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card className="border-purple-500/30 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-purple-900/20 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <ExternalLink className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Available Offers</h2>
+                <p className="text-xs text-gray-400">Complete tasks to earn rewards</p>
+              </div>
+              <Badge className="ml-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs border-0">
+                {regularOffers.length} Available
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {regularOffers.map((o) => (
+                <Card key={o.id} className="overflow-hidden bg-white/5 border border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 group relative backdrop-blur-sm rounded-xl">
+                  <CardContent className="p-0">
+                    {o.image_url && (
+                      <div className="h-32 bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden relative">
+                        <img src={o.image_url} alt={o.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
+                      </div>
+                    )}
+                    <div className="p-4 bg-gradient-to-b from-gray-800/95 to-gray-900/95 backdrop-blur-sm">
+                      <h3 className="font-semibold text-sm text-white truncate mb-3 leading-tight">{o.title}</h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-3 py-1 rounded-md">
+                          {o.payout_model || "CPA"}
+                        </Badge>
+                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 rounded-md font-bold shadow-md">
+                          ${Number(o.payout).toFixed(2)}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 mb-4">
+                        {o.countries && (
+                          <p className="text-xs text-gray-400 flex items-center gap-2">
+                            <Globe className="h-3 w-3 text-purple-400" /> {o.countries}
+                          </p>
+                        )}
+                        {o.network_id && (
+                          <p className="text-xs text-gray-400 flex items-center gap-2">
+                            <Network className="h-3 w-3 text-purple-400" />
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              className="h-auto p-0 text-xs hover:text-purple-400 text-purple-300 font-medium"
+                              onClick={() => setNetworkFilter(o.network_id)}
+                            >
+                              {o.network_id}
+                            </Button>
+                          </p>
+                        )}
+                      </div>
+                      {o.url && (
+                        <Button 
+                          className="w-full h-9 text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
+                          onClick={() => openOfferModal(o)}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" /> Start Earning
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Compact Offer Walls */}
+      {/* Offer Walls Section - BadBoysAI Style */}
       {providers.length > 0 && (
-        <>
-          <h2 className="text-sm font-semibold mt-4">Offer Walls</h2>
-          <p className="text-[10px] text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {providers.map((p) => (
-              <Card key={p.id} className="hover:border-primary/50 transition-colors border-0">
-                <CardContent className="p-2.5 text-center">
-                  {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-10 object-contain mb-1" />}
-                  <h3 className="font-semibold text-[10px] truncate">{p.name}</h3>
-                  {p.point_percentage > 100 && (
-                    <Badge className="bg-primary/20 text-primary text-[8px] px-1 py-0 mt-0.5">+{p.point_percentage - 100}%</Badge>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </>
+        <Card className="border-purple-500/30 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-purple-900/20 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <Network className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Offer Walls</h2>
+                <p className="text-xs text-gray-400">Premium offer networks with hundreds of tasks</p>
+              </div>
+              <Badge className="ml-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs border-0">
+                {providers.length} Networks
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+              {providers.map((p) => (
+                <Card key={p.id} className="bg-white/5 border border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 group relative backdrop-blur-sm rounded-xl">
+                  <CardContent className="p-4 text-center">
+                    {p.image_url && (
+                      <div className="relative mb-3">
+                        <img src={p.image_url} alt={p.name} className="w-full h-16 object-contain transition-transform duration-300 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none rounded" />
+                      </div>
+                    )}
+                    <h3 className="font-semibold text-sm text-white truncate mb-3 leading-tight">{p.name}</h3>
+                    {p.point_percentage > 100 && (
+                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 rounded-md font-semibold shadow-md">
+                        +{p.point_percentage - 100}% Bonus
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {filtered.length === 0 && providers.length === 0 && (
-        <Card><CardContent className="p-6 text-center text-muted-foreground text-xs">No offers available. Check back later!</CardContent></Card>
+        <Card className="border-purple-500/30 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-purple-900/20 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ExternalLink className="h-8 w-8 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">No Offers Available</h3>
+            <p className="text-sm text-gray-400">Check back later for new earning opportunities!</p>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Offer Modal - BadBoysAI Style */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border border-purple-500/30">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <ExternalLink className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl font-bold text-white">
+                    {selectedOffer?.title}
+                  </DialogTitle>
+                  <p className="text-sm text-gray-400">Complete this offer to earn rewards</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                onClick={() => setIsModalOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          
+          {selectedOffer && (
+            <div className="space-y-6">
+              {/* Offer Header */}
+              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg border border-purple-500/20">
+                {selectedOffer.image_url && (
+                  <img 
+                    src={selectedOffer.image_url} 
+                    alt={selectedOffer.title}
+                    className="w-24 h-24 object-contain rounded-lg border border-purple-500/30 bg-gray-800/50"
+                  />
+                )}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-sm px-3 py-1">
+                      {selectedOffer.payout_model || "CPA"}
+                    </Badge>
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm px-3 py-1 font-bold">
+                      ${calculateBoostedPayout(selectedOffer).toFixed(2)}
+                    </Badge>
+                    {selectedOffer.percent > 0 && (
+                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-sm px-3 py-1 font-semibold">
+                        +{selectedOffer.percent}% Bonus
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="space-y-2 text-sm text-gray-300">
+                    {selectedOffer.countries && (
+                      <p className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-purple-400" />
+                        <span className="text-white">{selectedOffer.countries}</span>
+                      </p>
+                    )}
+                    {selectedOffer.platform && (
+                      <p className="flex items-center gap-2">
+                        <Filter className="h-4 w-4 text-purple-400" />
+                        <span className="text-white">Platform: {selectedOffer.platform}</span>
+                      </p>
+                    )}
+                    {selectedOffer.device && (
+                      <p className="flex items-center gap-2">
+                        <Filter className="h-4 w-4 text-purple-400" />
+                        <span className="text-white">Device: {selectedOffer.device}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedOffer.description && (
+                <div className="p-4 bg-gray-800/50 rounded-lg border border-purple-500/20">
+                  <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-purple-400" />
+                    Description
+                  </h3>
+                  <p className="text-sm text-gray-300 whitespace-pre-wrap">
+                    {selectedOffer.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Button */}
+              <div className="flex justify-center">
+                <Button 
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-10 py-4 text-lg font-bold transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30 border-0"
+                  onClick={() => {
+                    window.open(selectedOffer.url, "_blank");
+                    setIsModalOpen(false);
+                  }}
+                >
+                  <ExternalLink className="h-5 w-5 mr-2" />
+                  Start Earning Now
+                </Button>
+              </div>
+
+              {/* Additional Info */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-purple-500/20">
+                <div>
+                  <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-purple-400" />
+                    Offer Details
+                  </h4>
+                  <div className="space-y-2 text-sm text-gray-300">
+                    <p><span className="text-gray-500">Offer ID:</span> <span className="text-white">{selectedOffer.offer_id || "-"}</span></p>
+                    <p><span className="text-gray-500">Network:</span> <span className="text-white">{selectedOffer.network_id || "-"}</span></p>
+                    <p><span className="text-gray-500">Category:</span> <span className="text-white">{selectedOffer.category || "-"}</span></p>
+                    <p><span className="text-gray-500">Vertical:</span> <span className="text-white">{selectedOffer.vertical || "-"}</span></p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-purple-400" />
+                    Timing & Status
+                  </h4>
+                  <div className="space-y-2 text-sm text-gray-300">
+                    {timeLeft[selectedOffer.id] > 0 && (
+                      <p className="flex items-center gap-2 text-red-400">
+                        <Clock className="h-4 w-4" />
+                        <span>Expires in: {formatTimeLeft(timeLeft[selectedOffer.id])}</span>
+                      </p>
+                    )}
+                    <p><span className="text-gray-500">Created:</span> <span className="text-white">{selectedOffer.created_at ? new Date(selectedOffer.created_at).toLocaleDateString() : "-"}</span></p>
+                    <p><span className="text-gray-500">Status:</span> <span className="text-green-400 font-medium">Active</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   Wifi,
   CheckCircle,
   XCircle,
+  RefreshCw,
   AlertTriangle
 } from "lucide-react";
 import { autoFillOfferData } from "@/lib/bulkImportUtils";
@@ -30,6 +31,7 @@ interface ApiConfig {
   network_id: string;
   api_endpoint: string;
   is_active: boolean;
+  created_at: string;
 }
 
 interface OfferPreview {
@@ -38,8 +40,17 @@ interface OfferPreview {
   description: string;
   payout: number;
   currency: string;
-  countries: string;
+  url: string;
+  image_url?: string;
   status: string;
+  countries?: string;
+}
+
+interface ImportOptions {
+  skipDuplicates: boolean;
+  updateExisting: boolean;
+  autoActivate: boolean;
+  showInOfferwall: boolean;
 }
 
 const ApiImport = () => {
@@ -74,11 +85,10 @@ const ApiImport = () => {
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
-          console.error("Error fetching configs:", error);
-          toast({ title: "Error fetching configurations", variant: "destructive" });
-        } else {
-          setConfigs(data || []);
+          toast({ title: "Error fetching configs", description: error.message, variant: "destructive" });
+          return;
         }
+        setConfigs(data || []);
       });
   };
 
@@ -86,18 +96,30 @@ const ApiImport = () => {
     fetchConfigs();
   }, []);
 
-  // Test API connection
+  // Test API Connection - calls edge function
   const testConnection = async () => {
-    if (!configForm.network_type || !configForm.network_id || !configForm.api_key) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
+    if (!configForm.network_type || !configForm.network_id) {
+      toast({ title: "Please fill Network Type and Network ID", variant: "destructive" });
+      return;
+    }
+
+    const isHasOffers = configForm.network_type.toLowerCase().includes("has");
+    if (isHasOffers && !configForm.api_key) {
+      toast({ title: "Please enter API Key", variant: "destructive" });
+      return;
+    }
+
+    if (!isHasOffers && !configForm.api_endpoint) {
+      toast({ title: "Please fill API Endpoint", variant: "destructive" });
       return;
     }
 
     setTestingConnection(true);
     setConnectionStatus(null);
-
+    
     try {
       const provider = configForm.provider_name || configForm.network_type;
+      const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-offers`,
@@ -105,7 +127,8 @@ const ApiImport = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data?.session?.access_token}`,
+            "Authorization": `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             provider,
@@ -118,23 +141,23 @@ const ApiImport = () => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Connection test failed");
+      if (response.ok) {
+        setConnectionStatus("success");
+        toast({
+          title: "Connection successful!",
+          description: data.message || "API connection is working",
+        });
+        return;
       }
 
-      toast({ 
-        title: "Connection successful", 
-        description: `Successfully connected to ${provider} API` 
-      });
-      setConnectionStatus("success");
+      throw new Error(data.error || "Connection test failed");
     } catch (error: any) {
-      console.error("Connection test failed:", error);
+      setConnectionStatus("error");
       toast({ 
-        title: "Connection failed", 
-        description: error.message || "Failed to connect to API",
+        title: "Connection error", 
+        description: error.message,
         variant: "destructive" 
       });
-      setConnectionStatus("error");
     } finally {
       setTestingConnection(false);
     }
@@ -147,19 +170,33 @@ const ApiImport = () => {
       return;
     }
 
+    const isHasOffers = configForm.network_type.toLowerCase().includes("has");
+    if (isHasOffers && !configForm.api_key) {
+      toast({ title: "Please enter API Key", variant: "destructive" });
+      return;
+    }
+
+    if (!isHasOffers && !configForm.api_endpoint) {
+      toast({ title: "Please fill API Endpoint", variant: "destructive" });
+      return;
+    }
+
     setPreviewing(true);
     setPreviewOffers([]);
     
     try {
       const provider = configForm.provider_name || configForm.network_type;
       
+      const { data: { session } } = await supabase.auth.getSession();
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-offers`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data?.session?.access_token}`,
+            "Authorization": `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             provider,
@@ -189,7 +226,7 @@ const ApiImport = () => {
       console.error("Error fetching offers:", error);
       toast({ 
         title: "Error fetching offers", 
-        description: error.message || "Failed to fetch offers from API",
+        description: error.message,
         variant: "destructive" 
       });
     } finally {
@@ -221,8 +258,12 @@ const ApiImport = () => {
           });
           return filledOffer;
         } catch (error) {
-          console.error('Error auto-filling offer:', error);
-          return offer; // Return original offer if auto-fill fails
+          console.error('Error auto-filling offer data:', error, 'Offer:', offer);
+          // Return original offer if auto-fill fails
+          return {
+            ...offer,
+            provider: provider // Ensure provider is set
+          };
         }
       });
       
@@ -247,7 +288,8 @@ const ApiImport = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
+            "Authorization": `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify(requestBody),
         }
@@ -255,25 +297,12 @@ const ApiImport = () => {
 
       const data = await response.json();
 
-      console.log('Raw response from backend:', JSON.stringify(data, null, 2));
-      console.log('Response type:', typeof data);
-      console.log('Response keys:', Object.keys(data));
+      console.log('Import response:', data);
+      console.log('Response status:', response.status);
       
-      console.log('Full backend response:', data);
-      console.log('Newly imported count:', data.imported);  // FIXED: Use 'imported' instead of 'newly_imported'
-      console.log('Newly imported details length:', data.details?.newly_imported?.length);
-      console.log('Duplicate skipped count:', data.duplicate_offers_skipped);
-      console.log('Duplicate skipped details length:', data.details?.duplicate_offers_skipped?.length);
-      console.log('Failed count:', data.failed_offers);
-      console.log('Failed details length:', data.details?.failed_offers?.length);
-      console.log('Total API offers:', data.total);
-      
-      // Check if numbers add up
-      const totalAccounted = (data.imported || 0) + (data.duplicate_offers_skipped || 0) + (data.failed_offers || 0);
-      console.log(`Total accounted for: ${totalAccounted} (should be ${data.total})`);
-      
-      if (totalAccounted !== data.total) {
-        console.error(`MISMATCH: Expected ${data.total}, got ${totalAccounted}`);
+      // Debug tracking URLs in imported offers
+      if (data.debug?.sample_offers) {
+        console.log('Sample imported offers with tracking URLs:', data.debug.sample_offers.slice(0, 3));
       }
 
       if (!response.ok) {
@@ -283,17 +312,14 @@ const ApiImport = () => {
       }
 
       // summary toast with detailed breakdown
-      const actualImportedCount = data.imported || 0;  // FIXED: Use 'imported' instead of 'newly_imported'
-      console.log('Using imported count:', actualImportedCount);
-      
       toast({
         title: "Import finished",
-        description: `Total API Offers: ${data.total || 0} | New Offers Imported: ${actualImportedCount} | Duplicate Offers Skipped: ${data.duplicate_offers_skipped || 0} | Failed Offers: ${data.failed_offers || 0}`,
+        description: `Total API Offers: ${data.total_api_offers || 0} | New Offers Imported: ${data.newly_imported || 0} | Duplicate Offers Skipped: ${data.duplicate_offers_skipped || 0} | Failed Offers: ${data.failed_offers || 0}`,
         variant: data.failed_offers > 0 ? "destructive" : undefined,
       });
 
       // Show detailed breakdown dialog
-      if (data.details && (actualImportedCount > 0 || data.duplicate_offers_skipped > 0 || data.failed_offers > 0)) {
+      if (data.details && (data.newly_imported > 0 || data.duplicate_offers_skipped > 0 || data.failed_offers > 0)) {
         setImportDetails(data.details);
         setImportDetailsDialogOpen(true);
       }
@@ -306,19 +332,11 @@ const ApiImport = () => {
       setConfigForm({ provider_name: "", network_type: "", network_id: "", api_endpoint: "", api_key: "", is_active: true });
       
       // Trigger a global refresh event to notify other components
-      console.log('🔥 IMPORT DEBUG - About to dispatch offers-imported event with count:', actualImportedCount);
-      window.dispatchEvent(new CustomEvent('offers-imported', { detail: { count: actualImportedCount } }));
-      console.log('🔥 IMPORT DEBUG - offers-imported event dispatched successfully');
-      
-      toast({ 
-        title: "Import completed successfully", 
-        description: `Imported ${actualImportedCount} new offers` 
-      });
+      window.dispatchEvent(new CustomEvent('offers-imported', { detail: { count: data.imported || 0 } }));
     } catch (error: any) {
-      console.error("Import error:", error);
       toast({ 
-        title: "Import failed", 
-        description: error.message || "Failed to import offers",
+        title: "Error importing offers", 
+        description: error.message, 
         variant: "destructive" 
       });
     } finally {
@@ -326,69 +344,67 @@ const ApiImport = () => {
     }
   };
 
-  // Toggle config active status
-  const toggleConfig = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from("api_import_configs")
-      .update({ is_active: !currentStatus })
-      .eq("id", id);
-
-    if (error) {
-      toast({ title: "Error updating config", variant: "destructive" });
+  // Save API configuration
+  const saveConfig = async () => {
+    if (!configForm.provider_name || !configForm.network_type || !configForm.network_id || !configForm.api_endpoint) {
+      toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
 
+    const payload = {
+      provider_name: configForm.provider_name,
+      network_type: configForm.network_type,
+      network_id: configForm.network_id,
+      api_endpoint: configForm.api_endpoint,
+      is_active: configForm.is_active,
+    };
+
+    let error;
+    if (editingConfig) {
+      ({ error } = await supabase
+        .from("api_import_configs")
+        .update(payload)
+        .eq("id", editingConfig.id));
+    } else {
+      ({ error } = await supabase
+        .from("api_import_configs")
+        .insert(payload));
+    }
+
+    if (error) {
+      toast({ title: "Error saving config", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: editingConfig ? "Config updated!" : "Config created!" });
+    setConfigDialogOpen(false);
+    setEditingConfig(null);
+    setConfigForm({ provider_name: "", network_type: "", network_id: "", api_endpoint: "", api_key: "", is_active: true });
     fetchConfigs();
   };
 
-  // Delete config
+  // Delete configuration
   const deleteConfig = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this API configuration?")) {
-      return;
-    }
-
     const { error } = await supabase
       .from("api_import_configs")
       .delete()
       .eq("id", id);
 
     if (error) {
-      toast({ title: "Error deleting config", variant: "destructive" });
+      toast({ title: "Error deleting config", description: error.message, variant: "destructive" });
       return;
     }
 
+    toast({ title: "Config deleted" });
     fetchConfigs();
-    toast({ title: "Configuration deleted" });
   };
 
-  // Save config (create or update)
-  const saveConfig = async () => {
-    if (!configForm.provider_name || !configForm.network_type || !configForm.network_id) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
-      return;
-    }
-
-    const { error } = editingConfig
-      ? await supabase
-          .from("api_import_configs")
-          .update({
-            provider_name: configForm.provider_name,
-            network_type: configForm.network_type,
-            network_id: configForm.network_id,
-            api_endpoint: configForm.api_endpoint,
-            is_active: configForm.is_active,
-          })
-          .eq("id", editingConfig.id)
-      : await supabase
-          .from("api_import_configs")
-          .insert({
-            provider_name: configForm.provider_name,
-            network_type: configForm.network_type,
-            network_id: configForm.network_id,
-            api_endpoint: configForm.api_endpoint,
-            api_key: configForm.api_key,
-            is_active: configForm.is_active,
-          });
+  // Toggle config active status
+  const toggleConfig = async (id: string, current: boolean) => {
+    const { error } = await supabase
+      .from("api_import_configs")
+      .update({ is_active: !current })
+      .eq("id", id);
 
     if (error) {
       toast({ title: "Error updating config", variant: "destructive" });
@@ -396,9 +412,6 @@ const ApiImport = () => {
     }
 
     fetchConfigs();
-    setConfigDialogOpen(false);
-    setEditingConfig(null);
-    setConfigForm({ provider_name: "", network_type: "", network_id: "", api_endpoint: "", api_key: "", is_active: true });
   };
 
   const openAddConfig = () => {
@@ -448,7 +461,7 @@ const ApiImport = () => {
                 <li>2. Enter your Network ID</li>
                 <li>3. Enter your API Key</li>
                 <li>3. Click "Test Connection" to verify your API credentials</li>
-                <li>4. Click "Preview" to fetch actual offers from API</li>
+                <li>4. Click "Preview" to fetch actual offers from the API</li>
                 <li>5. Click "Import All" to import offers into your database</li>
                 <li>ℹ️ Supports: HasOffers, Tune, CPX, BitLabs, or custom networks</li>
               </ul>
@@ -598,18 +611,6 @@ const ApiImport = () => {
           </div>
 
           {/* Preview Table - Shows ALL offers from API */}
-          {previewOffers.length > 0 && (
-            <div className="mt-4">
-              <h3 className="font-medium mb-2">
-                Preview ({previewOffers.length} offers from API)
-              </h3>
-              
-              <div className="border rounded-lg overflow-hidden max-h-96 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted sticky top-0">
-                    <tr>
-                      <th className="text-left p-3 font-medium">Offer ID</th>
-                      <th className="text-left p-3 font-medium">Title</th>
                       <th className="text-left p-3 font-medium">Payout</th>
                       <th className="text-left p-3 font-medium">Countries</th>
                       <th className="text-left p-3 font-medium">Status</th>
@@ -751,17 +752,6 @@ const ApiImport = () => {
                 placeholder="https://api.provider.com/v1/offers"
               />
               <p className="text-xs text-muted-foreground mt-1">The API URL endpoint for fetching offers</p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">API Key *</label>
-              <Input 
-                value={configForm.api_key}
-                onChange={(e) => setConfigForm({ ...configForm, api_key: e.target.value })}
-                placeholder="Enter API Key"
-                type="password"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Your API key for authentication</p>
             </div>
 
             <div className="flex items-center gap-2">

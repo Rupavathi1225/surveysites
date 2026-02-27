@@ -34,7 +34,7 @@ import {
 } from "@/lib/bulkImportUtils";
 import { checkBatchDuplicates, logDuplicateDetection, findDuplicateOffers } from "@/lib/duplicateDetection";
 import { detectMissingOffers, saveMissingOffersReport, getMissingOffersReports, deleteMissingOffersReport } from "@/lib/missingOffersDetection";
-import { moveMultipleToRecycleBin, getRecycleBinItems, restoreFromRecycleBin, permanentlyDeleteFromRecycleBin, permanentlyDeleteMultipleFromRecycleBin, restoreMultipleFromRecycleBin, calculateRemainingDays } from "@/lib/recycleBin";
+import { moveToRecycleBin, restoreFromRecycleBin, permanentlyDeleteFromRecycleBin, getRecycleBinItems, getRecycleBinCount, moveMultipleToRecycleBin, restoreMultipleFromRecycleBin, permanentlyDeleteMultipleFromRecycleBin } from '../../lib/recycleBin';
 
 interface OfferData {
   id?: string;
@@ -106,6 +106,7 @@ const defaultForm: OfferData = {
 const AdminOffers = () => {
   const [items, setItems] = useState<any[]>([]);
   const [allOffersData, setAllOffersData] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0); // CRITICAL FIX: Force re-render key
   const [form, setForm] = useState<any>(defaultForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -190,6 +191,10 @@ const AdminOffers = () => {
   const [deletingCount, setDeletingCount] = useState(0);
   const [deletingTotal, setDeletingTotal] = useState(0);
   const [restoringRecycleBin, setRestoringRecycleBin] = useState(false);
+
+  // Individual delete progress state
+  const [deletingOffer, setDeletingOffer] = useState<string | null>(null);
+  const [deleteProgress, setDeleteProgress] = useState(0);
 
   // Handle multiple permanent delete from recycle bin with progress
   const handleMultiplePermanentDelete = async () => {
@@ -449,14 +454,15 @@ const idsToRestore = Array.from(selectedRecycleBin);
     }
   };
 
-  // Get unique filter values from offers
-  const categories = [...new Set(items.map(o => o.category).filter(Boolean))];
-  const devices = [...new Set(items.map(o => o.device || o.devices).filter(Boolean))];
-  const countries = [...new Set(items.flatMap(o => (o.countries || "").split(",").map((c: string) => c.trim())).filter(Boolean))];
+  // Get unique filter values from offers (use allOffersData as master source)
+  const categories = [...new Set(allOffersData.map(o => o.category).filter(Boolean))];
+  const devices = [...new Set(allOffersData.map(o => o.device || o.devices).filter(Boolean))];
+  const countries = [...new Set(allOffersData.flatMap(o => (o.countries || "").split(",").map((c: string) => c.trim())).filter(Boolean))];
 
-  // Separate active, inactive, and boosted offers
-  const activeOffers = items.filter(o => o.status === "active");
-  const inactiveOffers = items.filter(o => o.status === "inactive");
+  // CRITICAL FIX: Filter Active/Inactive/Boosted from allOffersData (master source)
+  const activeOffers = allOffersData.filter(o => o.status === "active");
+  const inactiveOffers = allOffersData.filter(o => o.status === "inactive");
+  const boostedOffersList = allOffersData.filter(o => o.status === "boosted");
 
   // Filter offers based on selected filters
   const filterOffers = (offers: any[]) => {
@@ -475,7 +481,7 @@ const filteredActiveOffers = filterOffers(activeOffers);
   const filteredInactiveOffers = filterOffers(inactiveOffers);
   
   // Filter boosted offers based on selected filters
-  const filteredBoostedOffers = filterOffers(boostedOffers);
+  const filteredBoostedOffersList = filterOffers(boostedOffersList);
 
   // Pagination logic
   const itemsPerPage = 30;
@@ -487,10 +493,13 @@ const filteredActiveOffers = filterOffers(activeOffers);
 
   const paginatedActiveOffers = getPaginatedOffers(filteredActiveOffers);
   const paginatedInactiveOffers = getPaginatedOffers(filteredInactiveOffers);
+  const paginatedBoostedOffers = getPaginatedOffers(filteredBoostedOffersList);
 
   const totalPages = activeTab === "active" 
     ? Math.ceil(filteredActiveOffers.length / itemsPerPage)
-    : Math.ceil(filteredInactiveOffers.length / itemsPerPage);
+    : activeTab === "inactive" 
+    ? Math.ceil(filteredInactiveOffers.length / itemsPerPage)
+    : Math.ceil(filteredBoostedOffersList.length / itemsPerPage);
 
 // Load boosted offers - show all boosted offers including soft-deleted ones
   const loadBoostedOffers = async () => {
@@ -520,18 +529,55 @@ const filteredActiveOffers = filterOffers(activeOffers);
     loadMissingOffersReports();
     loadBoostedOffers();
     fetchNetworks();
-    
-    // Listen for offers imported event from ApiImport component
-    const handleOffersImported = () => {
-      load();
+
+    // Listen for recycle bin update events
+    const handleRecycleBinUpdate = (event: any) => {
+      console.log('🔄 Recycle bin update event received:', event.detail);
       loadAllOffers();
-      loadBoostedOffers();
+      loadRecycleBin();
       fetchNetworks();
     };
-    
+
+    // Listen for offers imported events
+    const handleOffersImported = (event: any) => {
+      console.log('🔄 Offers imported event received:', event.detail);
+      console.log('🔄 EVENT DEBUG - Event type:', event.type);
+      console.log('🔄 EVENT DEBUG - Event detail:', event.detail);
+      console.log('🔄 EVENT DEBUG - About to call loadAllOffers()');
+      
+      // CRITICAL FIX: Call loadAllOffers() to update All Offers tab
+      loadAllOffers();
+      
+      // CRITICAL FIX: Also call load() to keep items synchronized
+      load(); // This will update both items and allOffersData
+      
+      // CRITICAL FIX: Add delay to ensure database consistency
+      setTimeout(() => {
+        console.log('🔄 DELAYED REFRESH - Now calling other functions after delay');
+        loadBoostedOffers(); // For Boosted tab
+        fetchNetworks();
+        console.log('🔄 EVENT DEBUG - All load functions called with delay');
+        
+        // ULTIMATE FIX: Force page reload if count doesn't update after 2 seconds
+        setTimeout(() => {
+          console.log('🔥 ULTIMATE FIX - Checking if count updated...');
+          console.log('🔥 ULTIMATE FIX - Current count:', allOffersData.length);
+          console.log('🔥 ULTIMATE FIX - Expected count should be higher');
+          
+          // If count is still not updating, force page reload
+          if (allOffersData.length < (event.detail.count || 0)) {
+            console.log('🔥 ULTIMATE FIX - Forcing page reload to update counts');
+            window.location.reload();
+          }
+        }, 2000);
+      }, 500); // 500ms delay to ensure database consistency
+    };
+
+    window.addEventListener('recycleBinUpdated', handleRecycleBinUpdate);
     window.addEventListener('offers-imported', handleOffersImported);
     
     return () => {
+      window.removeEventListener('recycleBinUpdated', handleRecycleBinUpdate);
       window.removeEventListener('offers-imported', handleOffersImported);
     };
   }, []);
@@ -710,12 +756,21 @@ Expiry Date: ${o.expiry_date || "-"}`;
   };
 
   const exportBoostedOffers = () => {
-    exportToCsv(filteredBoostedOffers, `boosted_offers_${new Date().toISOString().split('T')[0]}.csv`);
+    exportToCsv(filteredBoostedOffersList, `boosted_offers_${new Date().toISOString().split('T')[0]}.csv`);
   };
 
   const exportDuplicateGroups = () => {
     const allDuplicates = duplicateGroups.flatMap(group => group.offers);
     exportToCsv(allDuplicates, `duplicate_offers_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  // Helper function to calculate remaining days in recycle bin
+  const calculateRemainingDays = (deletedAt: string) => {
+    const deletedDate = new Date(deletedAt);
+    const now = new Date();
+    const diffTime = now.getTime() - deletedDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, 30 - diffDays); // Show 0-30 days remaining
   };
 
   const exportRecycleBin = () => {
@@ -847,7 +902,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
     const count = parseInt(boostedBulkSelect);
     if (!count) return;
     
-    const offersToSelect = filteredBoostedOffers.slice(0, count);
+    const offersToSelect = filteredBoostedOffersList.slice(0, count);
     const newSelected = new Set(selectedBoostedOffers);
     offersToSelect.forEach(offer => newSelected.add(offer.id));
     setSelectedBoostedOffers(newSelected);
@@ -1183,23 +1238,42 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
   const moveToRecycleBin = async (id: string, offerData: any) => {
     try {
+      setDeletingOffer(id);
+      setDeleteProgress(0);
+      
+      // Simulate progress steps
+      setDeleteProgress(25);
       await supabase.from("recycle_bin").insert({ 
         offer_id: id, 
         offer_data: offerData, 
         deleted_at: new Date().toISOString() 
       });
+      
+      setDeleteProgress(50);
       await supabase.from("offers").update({ 
         is_deleted: true, 
         deleted_at: new Date().toISOString() 
       }).eq("id", id);
+      
+      setDeleteProgress(75);
       toast({ title: "Offer moved to recycle bin" });
-      load();
-      loadRecycleBin();
+      
+      setDeleteProgress(100);
+      await Promise.all([
+        load(),
+        loadRecycleBin()
+      ]);
     } catch (error) { 
       console.log("Recycle bin not available, doing permanent delete"); 
+      setDeleteProgress(50);
       await supabase.from("offers").delete().eq("id", id); 
+      setDeleteProgress(75);
       toast({ title: "Offer permanently deleted" });
-      load();
+      setDeleteProgress(100);
+      await load();
+    } finally {
+      setDeletingOffer(null);
+      setDeleteProgress(0);
     }
   };
 
@@ -1248,22 +1322,95 @@ Expiry Date: ${o.expiry_date || "-"}`;
           console.error("Error loading offers:", error);
           toast({ title: "Error loading offers", variant: "destructive" });
         } else {
-          setItems(data || []);
+          console.log('🔍 LOAD DEBUG - Updating both items and allOffersData');
+          setItems(data || []); // For Active/Inactive/Boosted filtering
+          setAllOffersData(data || []); // CRITICAL FIX: Keep All Offers synchronized
         }
       });
   };
 
   // Load pending offers for All Offers section (offers not yet assigned to Active/Inactive/Boosted)
   const loadAllOffers = () => {
-    supabase.from("offers").select("*").eq("is_deleted", false).eq("status", "pending").order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error loading all offers:", error);
-        } else {
-          // Store pending offers separately for All Offers section
-          setAllOffersData(data || []);
-        }
-      });
+    console.log('🔄 Loading all offers for All Offers tab...');
+    console.log('🔍 LOAD DEBUG - Function called successfully');
+    
+    // Add aggressive cache busting with random parameter
+    const cacheBuster = Math.random().toString(36).substring(2, 15);
+    const timestamp = Date.now();
+    console.log('🔍 Cache buster:', cacheBuster);
+    console.log('🔍 Timestamp:', timestamp);
+    
+    // Force a fresh connection by adding a small delay
+    setTimeout(() => {
+      console.log('🔍 LOAD DEBUG - About to make Supabase query');
+      // CRITICAL FIX: Get ALL offers first, then filter manually in frontend
+      // Add timestamp to force cache invalidation
+      supabase.from("offers").select("*").order("created_at", { ascending: false })
+        // IMPORTANT: Set high limit to get ALL records (default is 1000)
+        .limit(10000) // Get up to 10,000 records to ensure we get everything
+        // Add cache busting by using RPC call with timestamp
+        .then(({ data, error }) => {
+          console.log('🔍 LOAD DEBUG - Supabase query completed');
+          console.log('🔍 LOAD DEBUG - Error:', error);
+          console.log('🔍 LOAD DEBUG - Data length:', data?.length || 0);
+          
+          if (error) {
+            console.error("Error loading all offers:", error);
+          } else {
+            // Store ALL non-deleted offers for All Offers section
+            console.log('🔍 Loading all offers - found (RAW):', data?.length || 0);
+            console.log('🔍 All offers data sample:', data?.slice(0, 3));
+            
+            // CRITICAL DEBUG: Check is_deleted values in detail
+            if (data && data.length > 0) {
+              console.log('🔍 FIRST OFFER DETAILS:', {
+                id: data[0].id,
+                title: data[0].title,
+                is_deleted: data[0].is_deleted,
+                is_deleted_type: typeof data[0].is_deleted
+              });
+              
+              // Check all is_deleted values
+              const deletedCount = data.filter(o => o.is_deleted === true).length;
+              const notDeletedCount = data.filter(o => o.is_deleted === false).length;
+              const nullCount = data.filter(o => o.is_deleted === null).length;
+              const undefinedCount = data.filter(o => o.is_deleted === undefined).length;
+              
+              console.log('🔍 IS_DELETED BREAKDOWN:', {
+                total: data.length,
+                deleted: deletedCount,
+                notDeleted: notDeletedCount,
+                null: nullCount,
+                undefined: undefinedCount
+              });
+            }
+            
+            // CRITICAL FIX: Manually filter out deleted offers in frontend
+            const nonDeletedOffers = data?.filter(offer => {
+              // Filter out offers where is_deleted is true
+              return offer.is_deleted !== true;
+            }) || [];
+            
+            console.log('🔍 MANUALLY FILTERED - Non-deleted offers:', nonDeletedOffers.length);
+            console.log('🔍 MANUALLY FILTERED - Deleted offers removed:', (data?.length || 0) - nonDeletedOffers.length);
+            
+            // CRITICAL: Force state update with manually filtered data
+            console.log('🔄 BEFORE setAllOffersData - current allOffersData.length:', allOffersData.length);
+            console.log('🔄 ABOUT TO UPDATE STATE - New count will be:', nonDeletedOffers.length);
+            
+            // CRITICAL FIX: Force re-render by using refresh key
+            setAllOffersData(nonDeletedOffers);
+            setRefreshKey(prev => prev + 1); // Force component re-render
+            
+            // Force a re-render by checking state after update
+            setTimeout(() => {
+              console.log('🔄 AFTER setAllOffersData - new allOffersData.length:', allOffersData.length);
+              console.log('🔄 STATE UPDATE CHECK - Did count change?', allOffersData.length !== nonDeletedOffers.length ? 'NO - State not updated!' : 'YES - State updated!');
+              console.log('🔄 REFRESH KEY - New refresh key:', refreshKey + 1);
+            }, 50);
+          }
+        });
+    }, 100); // 100ms delay to ensure database consistency
   };
 
   const loadRecycleBin = async () => {
@@ -1436,12 +1583,38 @@ Expiry Date: ${o.expiry_date || "-"}`;
     let successCount = 0, failCount = 0, skippedCount = 0;
     const totalItems = bulkImportPreview.length;
 
+    // CRITICAL DEBUG: Check if preview data exists
+    console.log('🔍 IMPORT DEBUG - bulkImportPreview.length:', bulkImportPreview.length);
+    console.log('🔍 IMPORT DEBUG - bulkImportPreview data:', bulkImportPreview.slice(0, 3));
+    console.log('🔍 IMPORT DEBUG - totalItems:', totalItems);
+
+    if (totalItems === 0) {
+      console.error('❌ IMPORT ERROR: No items to import - bulkImportPreview is empty');
+      toast({ title: "Import Error", description: "No offers to import - preview is empty", variant: "destructive" });
+      setBulkUploading(false);
+      return;
+    }
+
+    // CRITICAL DEBUG: Check current allOffersData state before import
+    console.log('🔍 IMPORT DEBUG - Before import allOffersData.length:', allOffersData.length);
+    
+    // CRITICAL DEBUG: Check if we can see the offers that will be imported
+    console.log('🔍 IMPORT DEBUG - Sample offers to be imported:', bulkImportPreview.slice(0, 2));
+
     try {
       for (let i = 0; i < bulkImportPreview.length; i++) {
         const offer = bulkImportPreview[i];
 
+        console.log(`🔍 PROCESSING OFFER ${i + 1}/${totalItems}:`, {
+          title: offer.title,
+          offer_id: offer.offer_id,
+          isDuplicate: offer.isDuplicate,
+          hasRequiredFields: !!(offer.offer_id && offer.title)
+        });
+
         // Skip duplicates unless forceUploadAll is true
         if (!forceUploadAll && skipDuplicates && offer.isDuplicate) {
+          console.log(`⏭️ SKIPPING DUPLICATE: ${offer.title}`);
           skippedCount++;
           await logDuplicateDetection(batchId, offer.title, offer.duplicateMatch?.existingOfferId || null, offer.duplicateMatch?.matchingFields || [], "skipped");
           // Update progress
@@ -1451,13 +1624,16 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
         // Skip if no offer_id
         if (!offer.offer_id) {
+          console.log(`❌ SKIPPING - NO OFFER_ID: ${offer.title}`);
           failCount++;
           setUploadProgress(Math.round(((i + 1) / totalItems) * 100));
           continue;
         }
 
         const validation = validateOfferData(offer);
+        console.log(`🔍 VALIDATION RESULT for ${offer.title}:`, validation);
         if (!validation.valid) { 
+          console.log(`❌ SKIPPING - VALIDATION FAILED: ${offer.title}`, validation.errors);
           failCount++; 
           setUploadProgress(Math.round(((i + 1) / totalItems) * 100));
           continue; 
@@ -1488,12 +1664,30 @@ Expiry Date: ${o.expiry_date || "-"}`;
           updated_at: new Date().toISOString()
         };
 
+        console.log(`🔍 INSERTING OFFER: ${offer.title}`, offerData);
+
         const { error } = await supabase.from("offers").insert(offerData);
         if (error) { 
+          console.error(`❌ DATABASE ERROR for ${offer.title}:`, error);
           failCount++; 
-          console.error("Import error:", error);
         } else { 
+          console.log(`✅ SUCCESSFULLY INSERTED: ${offer.title}`);
+          console.log(`🔍 INSERTED OFFER DATA:`, offerData);
           successCount++; 
+          
+          // CRITICAL DEBUG: Check if this offer appears in database immediately
+          setTimeout(async () => {
+            const { data: checkData } = await supabase.from("offers").select("*").eq("offer_id", offer.offer_id).single();
+            console.log(`🔍 DATABASE CHECK - Is ${offer.title} in database?`, checkData ? 'YES' : 'NO');
+            if (checkData) {
+              console.log(`🔍 DATABASE CHECK - Offer details:`, {
+                id: checkData.id,
+                title: checkData.title,
+                is_deleted: checkData.is_deleted,
+                created_at: checkData.created_at
+              });
+            }
+          }, 100);
         }
 
         // Update progress
@@ -1507,6 +1701,19 @@ Expiry Date: ${o.expiry_date || "-"}`;
         duplicates: skippedCount,
         invalid: failCount
       });
+
+      // CRITICAL DEBUG: Final import summary
+      console.log('🎉 IMPORT SUMMARY:', {
+        total: totalItems,
+        successCount,
+        failCount,
+        skippedCount,
+        finalCounts: { successCount, failCount, skippedCount }
+      });
+      
+      // CRITICAL DEBUG: Check allOffersData immediately after import
+      console.log('🔍 POST-IMPORT DEBUG - allOffersData.length after import:', allOffersData.length);
+      console.log('🔍 POST-IMPORT DEBUG - Expected count should be:', (allOffersData.length || 0) + successCount);
 
       toast({ title: "Bulk Import Complete", description: `Successfully imported: ${successCount}, Failed: ${failCount}, Skipped: ${skippedCount}` });
       setBulkImportPreview([]); 
@@ -1848,6 +2055,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
               <TableHead>Device</TableHead>
               <TableHead>Vertical</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Traffic Sources</TableHead>
               <TableHead>Tracking URL</TableHead>
               <TableHead>Timeline</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -1856,7 +2064,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
           <TableBody>
             {allOffersData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={14} className="text-center text-muted-foreground py-8">
                   No offers found
                 </TableCell>
               </TableRow>
@@ -1887,6 +2095,20 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   <TableCell>{o.device || "-"}</TableCell>
                   <TableCell>{o.vertical || "-"}</TableCell>
                   <TableCell>{o.category || "-"}</TableCell>
+                  <TableCell className="max-w-[200px] truncate" title={
+                    o.traffic_sources ? 
+                    (Array.isArray(o.traffic_sources) ? 
+                      o.traffic_sources.join(", ") : 
+                      o.traffic_sources
+                    ) : "-"
+                  }>
+                    {o.traffic_sources ? 
+                      (Array.isArray(o.traffic_sources) ? 
+                        o.traffic_sources.join(", ") : 
+                        o.traffic_sources
+                      ) : "-"
+                    }
+                  </TableCell>
                   <TableCell>
                     {o.tracking_url ? (
                       <div className="flex items-center gap-1">
@@ -1955,6 +2177,14 @@ Expiry Date: ${o.expiry_date || "-"}`;
                       <Button 
                         size="sm" 
                         variant="outline" 
+                        onClick={() => viewOfferDetails(o)}
+                        title="View Details"
+                      >
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
                         className="bg-green-500 hover:bg-green-600 text-white" 
                         onClick={() => {
                           setSelectedOffers(new Set([o.id]));
@@ -2001,9 +2231,14 @@ Expiry Date: ${o.expiry_date || "-"}`;
                             loadRecycleBin()
                           ]);
                         }}
+                        disabled={deletingOffer === o.id}
                         title="Delete"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        {deletingOffer === o.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
                       </Button>
                     </div>
                   </TableCell>
@@ -2088,6 +2323,20 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   <TableCell>{o.device || "-"}</TableCell>
                   <TableCell>{o.vertical || "-"}</TableCell>
                   <TableCell>{o.category || "-"}</TableCell>
+                  <TableCell className="max-w-[200px] truncate" title={
+                    o.traffic_sources ? 
+                    (Array.isArray(o.traffic_sources) ? 
+                      o.traffic_sources.join(", ") : 
+                      o.traffic_sources
+                    ) : "-"
+                  }>
+                    {o.traffic_sources ? 
+                      (Array.isArray(o.traffic_sources) ? 
+                        o.traffic_sources.join(", ") : 
+                        o.traffic_sources
+                      ) : "-"
+                    }
+                  </TableCell>
                   <TableCell>
                     {o.tracking_url ? (
                       <div className="flex items-center gap-1">
@@ -2218,9 +2467,14 @@ Expiry Date: ${o.expiry_date || "-"}`;
                             loadRecycleBin()
                           ]);
                         }}
+                        disabled={deletingOffer === o.id}
                         title="Delete"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        {deletingOffer === o.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
                       </Button>
                     </div>
                   </TableCell>
@@ -2236,7 +2490,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" key={`offers-tab-${refreshKey}`}>
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="offers">All Offers ({allOffersData.length})</TabsTrigger>
           <TabsTrigger value="active">Active ({activeOffers.length})</TabsTrigger>
@@ -2266,6 +2520,15 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 variant="outline"
               >
                 <Download className="h-4 w-4 mr-2" /> Export CSV
+              </Button>
+              <Button 
+                onClick={() => {
+                  console.log(' Manual refresh triggered for All Offers');
+                  loadAllOffers();
+                }}
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh All Offers
               </Button>
               {selectedOffers.size > 0 && (
                 <>
@@ -2817,76 +3080,55 @@ Expiry Date: ${o.expiry_date || "-"}`;
                     >
                       <Pause className="h-4 w-4 mr-2" /> Make Active ({selectedBoostedOffers.size})
                     </Button>
-                    <Button 
-                      onClick={handleBulkMakeInactive} 
-                      variant="outline"
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
-                    >
-                      <Pause className="h-4 w-4 mr-2" /> Make Inactive ({selectedBoostedOffers.size})
-                    </Button>
-                  </>
+                  </>  
                 )}
                 
-                {selectedBoostedOffers.size > 0 && (
-                  <>
-                    <Button onClick={() => setExtraBoostDialog(true)} variant="outline" className="bg-green-500 hover:bg-green-600 text-white">
-                      <Zap className="h-4 w-4 mr-2" /> Extra Boost ({selectedBoostedOffers.size})
+                {/* Filters for Boosted Offers */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={deviceFilter} onValueChange={setDeviceFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Device" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Devices</SelectItem>
+                      {devices.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={countryFilter} onValueChange={setCountryFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Countries</SelectItem>
+                      {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={networkFilter} onValueChange={setNetworkFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Network" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Networks</SelectItem>
+                      {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="h-3 w-3 mr-1" /> Clear Filters
                     </Button>
-                    <Button onClick={handlePauseBoostedOffers} variant="outline" className="bg-yellow-500 hover:bg-yellow-600 text-white">
-                      <Zap className="h-4 w-4 mr-2" /> Pause ({selectedBoostedOffers.size})
-                    </Button>
-                    <Button onClick={handleDeleteBoostedOffers} variant="destructive">
-                      <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedBoostedOffers.size})
-                    </Button>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-
-            {/* Filters for Boosted Offers */}
-            <div className="flex flex-wrap gap-2 items-center">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={deviceFilter} onValueChange={setDeviceFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Device" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Devices</SelectItem>
-                  {devices.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={countryFilter} onValueChange={setCountryFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Country" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={networkFilter} onValueChange={setNetworkFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Network" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Networks</SelectItem>
-                  {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  <X className="h-3 w-3 mr-1" /> Clear Filters
-                </Button>
-              )}
             </div>
 
             <Card>
@@ -2896,9 +3138,9 @@ Expiry Date: ${o.expiry_date || "-"}`;
                     <TableRow>
                       <TableHead className="w-8">
                         <Checkbox 
-                          checked={selectedBoostedOffers.size === filteredBoostedOffers.length && filteredBoostedOffers.length > 0} 
+                          checked={selectedBoostedOffers.size === filteredBoostedOffersList.length && filteredBoostedOffersList.length > 0} 
                           onCheckedChange={(checked) => { 
-                            if (checked) setSelectedBoostedOffers(new Set(filteredBoostedOffers.map((o) => o.id))); 
+                            if (checked) setSelectedBoostedOffers(new Set(filteredBoostedOffersList.map((o) => o.id))); 
                             else setSelectedBoostedOffers(new Set()); 
                           }} 
                         />
@@ -2921,14 +3163,14 @@ Expiry Date: ${o.expiry_date || "-"}`;
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredBoostedOffers.length === 0 ? (
+                    {filteredBoostedOffersList.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={16} className="text-center text-muted-foreground py-8">
                           No boosted offers found
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredBoostedOffers.map((o) => (
+                      filteredBoostedOffersList.map((o) => (
                         <TableRow key={o.id}>
                           <TableCell>
                             <Checkbox 
@@ -3142,8 +3384,12 @@ Expiry Date: ${o.expiry_date || "-"}`;
                                   <Button size="sm" variant="outline" onClick={() => openEdit(offer)}>
                                     <Pencil className="h-3 w-3" />
                                   </Button>
-                                  <Button size="sm" variant="destructive" onClick={() => moveToRecycleBin(offer.id, offer)}>
-                                    <Trash2 className="h-3 w-3" />
+                                  <Button size="sm" variant="destructive" onClick={() => moveToRecycleBin(offer.id, offer)} disabled={deletingOffer === offer.id}>
+                                    {deletingOffer === offer.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-3 w-3" />
+                                    )}
                                   </Button>
                                 </div>
                               </div>
@@ -3278,8 +3524,17 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <h2 className="text-2xl font-bold">Recycle Bin</h2>
                 <p className="text-sm text-muted-foreground">Deleted offers kept for 30 days</p>
               </div>
-              {selectedRecycleBin.size > 0 && (
-                <div className="flex gap-2">
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => {
+                    console.log('🔄 Manual refresh triggered for Recycle Bin');
+                    loadRecycleBin();
+                  }}
+                  variant="outline"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" /> Refresh Recycle Bin
+                </Button>
+                {selectedRecycleBin.size > 0 && (
                   <Button
                     onClick={handleMultipleRestore}
                     variant="outline"
@@ -3292,6 +3547,8 @@ Expiry Date: ${o.expiry_date || "-"}`;
                     )}
                     Restore ({selectedRecycleBin.size})
                   </Button>
+                )}
+                {selectedRecycleBin.size > 0 && (
                   <Button
                     onClick={handleMultiplePermanentDelete}
                     variant="destructive"
@@ -3307,8 +3564,8 @@ Expiry Date: ${o.expiry_date || "-"}`;
                       : `Delete (${selectedRecycleBin.size})`
                     }
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
             {recycleBinItems.length === 0 ? (
               <Card>
@@ -3493,6 +3750,17 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Vertical</h3>
                   <p className="text-lg">{viewingOffer.vertical || "-"}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Traffic Sources</h3>
+                  <p className="text-lg">
+                    {viewingOffer.traffic_sources ? 
+                      (Array.isArray(viewingOffer.traffic_sources) ? 
+                        viewingOffer.traffic_sources.join(", ") : 
+                        viewingOffer.traffic_sources
+                      ) : "-"
+                    }
+                  </p>
                 </div>
               </div>
 
@@ -4011,6 +4279,17 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   <span>{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+
+            {/* Delete Progress Bar */}
+            {deletingOffer && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Deleting offer...</span>
+                  <span>{deleteProgress}%</span>
+                </div>
+                <Progress value={deleteProgress} className="h-2" />
               </div>
             )}
 

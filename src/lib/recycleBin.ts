@@ -54,6 +54,16 @@ export async function moveToRecycleBin(offerId: string, offerData: any): Promise
     console.log("✅ Updated offers table");
     
     console.log("✅ Successfully moved to recycle bin:", offerId);
+    
+    // Trigger refresh of recycle bin data
+    console.log('🔄 Triggering recycle bin refresh after move');
+    // Dispatch custom event to notify frontend
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recycleBinUpdated', { 
+        detail: { action: 'item_moved', offerId } 
+      }));
+    }
+    
   } catch (error) {
     console.error("❌ Error moving to recycle bin:", error);
     throw error;
@@ -72,6 +82,8 @@ export async function moveMultipleToRecycleBin(
   let failed = 0;
 
   try {
+    if (onProgress) onProgress(0, offerIds.length);
+
     for (let i = 0; i < offerIds.length; i++) {
       const id = offerIds[i];
       try {
@@ -104,17 +116,51 @@ export async function moveMultipleToRecycleBin(
  */
 export async function getRecycleBinItems(): Promise<any[]> {
   try {
+    console.log('🔍 Fetching recycle bin items with cache busting...');
+    
+    // Add cache busting with current timestamp
+    const cacheBuster = Date.now();
+    
     const { data, error } = await supabase
       .from("recycle_bin")
       .select("*")
       .is("restored_at", null)
-      .order("deleted_at", { ascending: false });
+      .order("deleted_at", { ascending: false })
+      .limit(10000); // Ensure we get all items
+
+    console.log('📊 Recycle bin query result:', { 
+      itemCount: data?.length || 0, 
+      error: error?.message,
+      cacheBuster 
+    });
 
     if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error fetching recycle bin:", error);
     return [];
+  }
+}
+
+/**
+ * Get direct count of recycle bin items (for verification)
+ */
+export async function getRecycleBinCount(): Promise<number> {
+  try {
+    console.log('🔢 Getting direct recycle bin count...');
+    
+    const { count, error } = await supabase
+      .from("recycle_bin")
+      .select("*", { count: "exact", head: true })
+      .is("restored_at", null);
+
+    console.log('📊 Direct count result:', { count, error: error?.message });
+
+    if (error) throw error;
+    return count || 0;
+  } catch (error) {
+    console.error("Error getting recycle bin count:", error);
+    return 0;
   }
 }
 
@@ -131,10 +177,14 @@ export async function restoreFromRecycleBin(recycleId: string, offerId: string):
 
     if (recycleUpdateError) throw recycleUpdateError;
 
-    // Restore in offers table
+    // Restore in offers table - set to "pending" status for All Offers section
     const { error: offerUpdateError } = await supabase
       .from("offers")
-      .update({ is_deleted: false, deleted_at: null })
+      .update({ 
+        is_deleted: false, 
+        deleted_at: null,
+        status: "pending"  // Set to pending so it appears in All Offers section
+      })
       .eq("id", offerId);
 
     if (offerUpdateError) throw offerUpdateError;
@@ -183,7 +233,8 @@ export async function restoreMultipleFromRecycleBin(
         .from('offers')
         .update({ 
           is_deleted: false, 
-          deleted_at: null 
+          deleted_at: null,
+          status: "pending"  // Set to pending so it appears in All Offers section
         })
         .in('id', offerIdsToRestore);
 
@@ -273,7 +324,16 @@ export async function permanentlyDeleteFromRecycleBin(recycleId: string): Promis
 
     console.log(`✅ Successfully deleted recycle item ${recycleId} from recycle_bin table`);
     console.log(`🎉 Permanent deletion complete for ${recycleId}`);
-
+    
+    // Trigger refresh of All Offers data
+    console.log('🔄 Triggering All Offers refresh after permanent deletion');
+    // Dispatch custom event to notify frontend
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recycleBinUpdated', { 
+        detail: { action: 'permanent_delete', offerId: recycleId } 
+      }));
+    }
+    
   } catch (error) {
     console.error("❌ Error permanently deleting from recycle bin:", error);
     throw error;
@@ -288,6 +348,8 @@ export async function permanentlyDeleteMultipleFromRecycleBin(
   onProgress?: (current: number, total: number) => void
 ): Promise<{ successful: number; failed: number }> {
   console.log(`🗑️ Starting FAST BULK deletion of ${recycleIds.length} items`);
+  console.log('🔍 BACKEND DEBUG - Input recycleIds:', recycleIds);
+  console.log('🔍 BACKEND DEBUG - Input recycleIds types:', recycleIds.map(id => typeof id));
 
   if (recycleIds.length === 0) {
     return { successful: 0, failed: 0 };
@@ -299,33 +361,122 @@ export async function permanentlyDeleteMultipleFromRecycleBin(
   try {
     if (onProgress) onProgress(0, recycleIds.length);
 
-    // Get all recycle items in ONE query
-    const { data: recycleItems, error: fetchError } = await supabase
-      .from('recycle_bin')
-      .select('id, offer_id')
-      .in('id', recycleIds);
+    // Get all recycle items - BATCHED APPROACH to avoid 400 errors
+    const batchSize = 100; // Process in smaller batches
+    let allRecycleItems: any[] = [];
+    let fetchError: any = null;
 
-    if (fetchError) throw new Error(`Failed to fetch recycle items: ${fetchError.message}`);
-    if (!recycleItems || recycleItems.length === 0) return { successful: 0, failed: recycleIds.length };
+    console.log('🔍 BACKEND DEBUG - Processing in batches of', batchSize);
+
+    for (let i = 0; i < recycleIds.length; i += batchSize) {
+      const batch = recycleIds.slice(i, i + batchSize);
+      console.log(`🔍 BACKEND DEBUG - Processing batch ${Math.floor(i/batchSize) + 1}, IDs:`, batch);
+      
+      const { data: batchItems, error: batchError } = await supabase
+        .from('recycle_bin')
+        .select('id, offer_id')
+        .in('id', batch);
+
+      if (batchError) {
+        console.error(`🔍 BACKEND DEBUG - Batch ${Math.floor(i/batchSize) + 1} error:`, batchError);
+        fetchError = batchError;
+      } else if (batchItems) {
+        allRecycleItems.push(...batchItems);
+        console.log(`🔍 BACKEND DEBUG - Batch ${Math.floor(i/batchSize) + 1} found:`, batchItems.length, 'items');
+      }
+    }
+
+    console.log('🔍 BACKEND DEBUG - Total recycle items found:', allRecycleItems.length);
+    
+    if (fetchError && allRecycleItems.length === 0) {
+      throw new Error(`Failed to fetch recycle items: ${fetchError.message}`);
+    }
+    if (allRecycleItems.length === 0) {
+      console.log('❌ No recycle items found with the provided IDs');
+      return { successful: 0, failed: recycleIds.length };
+    }
 
     // Extract all offer_ids
-    const offerIdsToDelete = recycleItems
+    const offerIdsToDelete = allRecycleItems
       .filter(item => item.offer_id)
       .map(item => item.offer_id);
 
-    // Bulk delete all offers at once
+    console.log('🔍 BACKEND DEBUG - Offer IDs to delete:', offerIdsToDelete);
+    console.log('🔍 BACKEND DEBUG - Offer IDs types:', offerIdsToDelete.map(id => typeof id));
+
+    // Bulk delete all offers at once - BATCHED
     if (offerIdsToDelete.length > 0) {
-      await supabase.from('offers').delete().in('id', offerIdsToDelete);
+      console.log('🔍 BACKEND DEBUG - Deleting offers from offers table...');
+      
+      // Delete offers in batches too
+      const offerBatchSize = 100;
+      let totalOfferDeletes = 0;
+      let offerDeleteErrors = 0;
+      
+      for (let i = 0; i < offerIdsToDelete.length; i += offerBatchSize) {
+        const offerBatch = offerIdsToDelete.slice(i, i + offerBatchSize);
+        console.log(`🔍 BACKEND DEBUG - Deleting offer batch ${Math.floor(i/offerBatchSize) + 1}, count: ${offerBatch.length}`);
+        
+        const { error: offerDeleteError, count: offerDeleteCount } = await supabase
+          .from('offers')
+          .delete()
+          .in('id', offerBatch);
+          
+        if (offerDeleteError) {
+          console.error(`❌ Offer batch ${Math.floor(i/offerBatchSize) + 1} delete error:`, offerDeleteError);
+          offerDeleteErrors++;
+        } else {
+          console.log(`✅ Offer batch ${Math.floor(i/offerBatchSize) + 1} deleted:`, offerDeleteCount);
+          totalOfferDeletes += offerDeleteCount || 0;
+        }
+      }
+      
+      console.log(`🔍 BACKEND DEBUG - Offer delete summary: ${totalOfferDeletes} successful, ${offerDeleteErrors} failed`);
+    } else {
+      console.log('🔍 BACKEND DEBUG - No offer IDs to delete from offers table');
     }
 
-    // Bulk delete all recycle bin items at once
-    await supabase.from('recycle_bin').delete().in('id', recycleIds);
+    // Bulk delete all recycle bin items at once - BATCHED
+    console.log('🔍 BACKEND DEBUG - Deleting items from recycle_bin table...');
+    
+    let totalRecycleDeletes = 0;
+    let recycleDeleteErrors = 0;
+    
+    for (let i = 0; i < recycleIds.length; i += batchSize) {
+      const recycleBatch = recycleIds.slice(i, i + batchSize);
+      console.log(`🔍 BACKEND DEBUG - Deleting recycle batch ${Math.floor(i/batchSize) + 1}, count: ${recycleBatch.length}`);
+      
+      const { error: recycleDeleteError, count: recycleDeleteCount } = await supabase
+        .from('recycle_bin')
+        .delete()
+        .in('id', recycleBatch);
+        
+      if (recycleDeleteError) {
+        console.error(`❌ Recycle batch ${Math.floor(i/batchSize) + 1} delete error:`, recycleDeleteError);
+        recycleDeleteErrors++;
+      } else {
+        console.log(`✅ Recycle batch ${Math.floor(i/batchSize) + 1} deleted:`, recycleDeleteCount);
+        totalRecycleDeletes += recycleDeleteCount || 0;
+      }
+    }
+    
+    console.log(`🔍 BACKEND DEBUG - Recycle delete summary: ${totalRecycleDeletes} successful, ${recycleDeleteErrors} failed`);
 
-    successful = recycleItems.length;
-    failed = recycleIds.length - recycleItems.length;
-
+    // Update success/failure counts based on actual deletions
+    successful = totalRecycleDeletes;
+    failed = recycleIds.length - totalRecycleDeletes;
+    
+    console.log('🔍 BACKEND DEBUG - Final result:', { successful, failed, totalRecycleDeletes, recycleDeleteErrors });
+    console.log('🔄 Triggering recycle bin refresh after bulk move');
+    // Dispatch custom event to notify frontend
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recycleBinUpdated', { 
+        detail: { action: 'bulk_moved', count: successful } 
+      }));
+    }
+    
     if (onProgress) onProgress(recycleIds.length, recycleIds.length);
-
+    
   } catch (error) {
     console.error("Error in bulk deletion:", error);
     failed = recycleIds.length;
@@ -381,6 +532,9 @@ export async function cleanupExpiredRecycleBinItems(): Promise<number> {
     console.error("Error cleaning up recycle bin:", error);
     return 0;
   }
+  
+  // Trigger refresh of All Offers data after cleanup
+  console.log('🔄 Triggering All Offers refresh after cleanup');
 }
 
 /**

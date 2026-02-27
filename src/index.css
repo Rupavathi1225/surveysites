@@ -1,98 +1,252 @@
 @tailwind base;
+
 @tailwind components;
+
 @tailwind utilities;
 
+
+
 @layer base {
+
   :root {
-    --background: 270 50% 6%;
-    --foreground: 270 10% 92%;
 
-    --card: 270 40% 10%;
-    --card-foreground: 270 10% 92%;
+    /* New Professional Color Scheme */
 
-    --popover: 270 40% 12%;
-    --popover-foreground: 270 10% 92%;
+    --background: 215 28% 17%;
 
-    --primary: 25 95% 55%;
+    --foreground: 0 0% 100%;
+
+
+
+    --card: 215 28% 21%;
+
+    --card-foreground: 0 0% 100%;
+
+
+
+    --popover: 215 28% 21%;
+
+    --popover-foreground: 0 0% 100%;
+
+
+
+    --primary: 262 83% 58%;
+
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 30% 16%;
-    --secondary-foreground: 270 10% 85%;
 
-    --muted: 270 25% 14%;
-    --muted-foreground: 270 10% 55%;
 
-    --accent: 270 35% 18%;
-    --accent-foreground: 270 10% 90%;
+    --secondary: 217 71% 53%;
+
+    --secondary-foreground: 0 0% 100%;
+
+
+
+    --muted: 215 20% 65%;
+
+    --muted-foreground: 217 10% 75%;
+
+
+
+    --accent: 215 28% 25%;
+
+    --accent-foreground: 0 0% 100%;
+
+
 
     --destructive: 0 72% 51%;
+
     --destructive-foreground: 0 0% 100%;
 
-    --border: 270 20% 18%;
-    --input: 270 20% 15%;
-    --ring: 25 95% 55%;
+
+
+    --border: 215 28% 25%;
+
+    --input: 215 28% 25%;
+
+    --ring: 262 83% 58%;
+
+
 
     --radius: 0.75rem;
 
-    --sidebar-background: 270 45% 8%;
-    --sidebar-foreground: 270 10% 85%;
-    --sidebar-primary: 25 95% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 270 35% 14%;
-    --sidebar-accent-foreground: 270 10% 90%;
-    --sidebar-border: 270 20% 15%;
-    --sidebar-ring: 25 95% 55%;
 
-    --success: 142 71% 45%;
+
+    --sidebar-background: 215 28% 17%;
+
+    --sidebar-foreground: 0 0% 100%;
+
+    --sidebar-primary: 262 83% 58%;
+
+    --sidebar-primary-foreground: 0 0% 100%;
+
+    --sidebar-accent: 215 28% 25%;
+
+    --sidebar-accent-foreground: 0 0% 100%;
+
+    --sidebar-border: 215 28% 25%;
+
+    --sidebar-ring: 262 83% 58%;
+
+
+
+    --success: 160 84% 39%;
+
     --success-foreground: 0 0% 100%;
+
     --warning: 38 92% 50%;
+
     --warning-foreground: 0 0% 100%;
+
     --info: 217 91% 60%;
+
     --info-foreground: 0 0% 100%;
+
   }
+
 }
+
+
 
 @layer base {
+
   * {
+
     @apply border-border;
+
   }
+
+
 
   body {
+
     @apply bg-background text-foreground;
+
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
   }
+
 }
+
+
 
 @layer utilities {
+
   .glass-card {
+
     @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-xl;
+
   }
+
   .stat-card {
+
     @apply glass-card p-4 flex items-center gap-3;
+
   }
+
   .nav-link-active {
+
     @apply bg-primary text-primary-foreground rounded-lg;
+
   }
+
   .nav-link-hover {
+
     @apply hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors;
+
   }
+
   .admin-tab-active {
+
     @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium;
+
   }
+
   .admin-tab {
+
     @apply text-muted-foreground hover:text-foreground px-4 py-2 text-sm font-medium rounded-lg hover:bg-accent transition-colors;
+
   }
+
+  
+
+  /* New Premium Card Styles */
+
+  .premium-card {
+
+    @apply bg-gradient-to-br from-card to-accent/50 backdrop-blur-lg border border-primary/20 rounded-2xl shadow-xl hover:shadow-2xl hover:border-primary/40 transition-all duration-300 hover:scale-[1.02];
+
+  }
+
+  .premium-card-small {
+
+    @apply bg-gradient-to-br from-card to-accent/30 backdrop-blur-md border border-primary/15 rounded-xl shadow-lg hover:shadow-xl hover:border-primary/30 transition-all duration-300 hover:scale-[1.02];
+
+  }
+
+  .gradient-primary {
+
+    @apply bg-gradient-to-r from-primary to-secondary;
+
+  }
+
+  .gradient-primary-subtle {
+
+    @apply bg-gradient-to-r from-primary/20 to-secondary/20;
+
+  }
+
+  .text-gradient {
+
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+
+  }
+
 }
+
+
 
 @keyframes scroll-left {
+
   0% { transform: translateX(0); }
+
   100% { transform: translateX(-50%); }
+
 }
+
+
+
+@keyframes scroll-left-slow {
+
+  0% { transform: translateX(0); }
+
+  100% { transform: translateX(-33.33%); }
+
+}
+
+
 
 .animate-scroll {
+
   animation: scroll-left 60s linear infinite;
+
 }
 
-.animate-scroll:hover {
-  animation-play-state: paused;
+
+
+.animate-scroll-slow {
+
+  animation: scroll-left-slow 40s linear infinite;
+
 }
+
+
+
+.animate-scroll:hover,
+
+.animate-scroll-slow:hover {
+
+  animation-play-state: paused;
+
+}
+
