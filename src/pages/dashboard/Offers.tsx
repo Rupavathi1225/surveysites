@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ExternalLink, Search, Globe, Filter, Zap, Clock, Network, X } from "lucide-react";
+import { ExternalLink, Search, Globe, Filter, Zap, Clock, Network, X, Star, Monitor, Smartphone, Tablet, ChevronRight } from "lucide-react";
 
 const Offers = () => {
   const { profile } = useAuth();
@@ -22,6 +22,9 @@ const Offers = () => {
   const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showAllBoostedOffers, setShowAllBoostedOffers] = useState(false);
+  const [showAllRegularOffers, setShowAllRegularOffers] = useState(false);
+  const [showAllOfferWalls, setShowAllOfferWalls] = useState(false);
 
   useEffect(() => {
     console.log("Offers page loading...");
@@ -101,6 +104,15 @@ const Offers = () => {
     } catch {
       return { ip: null, country: null, proxy: false };
     }
+  };
+
+  // API image integration function
+  const getImageUrl = (title: string, existingUrl?: string) => {
+    if (existingUrl && existingUrl.startsWith('http')) {
+      return existingUrl;
+    }
+    // Use a placeholder API for better image quality
+    return `https://picsum.photos/seed/${encodeURIComponent(title)}/200/150.jpg`;
   };
 
   const trackClick = async (offer: any) => {
@@ -284,75 +296,363 @@ const Offers = () => {
                 {filteredBoostedOffers.length} Active
               </Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {filteredBoostedOffers.map((o) => (
-                <Card key={o.id} className="overflow-hidden bg-white/5 border border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 group relative backdrop-blur-sm rounded-xl">
-                  <CardContent className="p-0">
-                    {o.image_url && (
-                      <div className="h-32 bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden relative">
-                        <img src={o.image_url} alt={o.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
-                        <div className="absolute top-3 right-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold shadow-lg">
-                          <Zap className="h-3 w-3" /> +{o.percent}%
+            {/* CoinLooty Style Cards */}
+            {!showAllBoostedOffers && filteredBoostedOffers.length > 10 ? (
+              <div className="flex gap-1 overflow-hidden items-start">
+                {filteredBoostedOffers.slice(0, 10).map((o, index) => {
+                  // Define different gradient colors for each card
+                  const gradients = [
+                    'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                    'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                    'from-green-600/30 via-green-800/20 to-green-900/30',
+                    'from-red-600/30 via-red-800/20 to-red-900/30',
+                    'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                    'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                    'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                    'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                    'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                    'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                  ];
+
+                  const borderColors = [
+                    'border-purple-400/80',
+                    'border-blue-400/80',
+                    'border-green-400/80',
+                    'border-red-400/80',
+                    'border-yellow-400/80',
+                    'border-pink-400/80',
+                    'border-indigo-400/80',
+                    'border-teal-400/80',
+                    'border-orange-400/80',
+                    'border-cyan-400/80',
+                  ];
+
+                  const shadowColors = [
+                    'hover:shadow-purple-500/40',
+                    'hover:shadow-blue-500/40',
+                    'hover:shadow-green-500/40',
+                    'hover:shadow-red-500/40',
+                    'hover:shadow-yellow-500/40',
+                    'hover:shadow-pink-500/40',
+                    'hover:shadow-indigo-500/40',
+                    'hover:shadow-teal-500/40',
+                    'hover:shadow-orange-500/40',
+                    'hover:shadow-cyan-500/40',
+                  ];
+
+                  const currentGradient = gradients[index % gradients.length];
+                  const currentBorder = borderColors[index % borderColors.length];
+                  const currentShadow = shadowColors[index % shadowColors.length];
+
+                  // Platform icon mapping
+                  const getPlatformIcon = (platform?: string) => {
+                    switch (platform?.toLowerCase()) {
+                      case 'desktop':
+                      case 'pc':
+                        return Monitor;
+                      case 'mobile':
+                      case 'android':
+                      case 'ios':
+                        return Smartphone;
+                      case 'tablet':
+                      case 'ipad':
+                        return Tablet;
+                      default:
+                        return Monitor;
+                    }
+                  };
+
+                  const PlatformIcon = getPlatformIcon(o.platform);
+
+                  return (
+                    <Card key={o.id} className={`w-40 h-56 bg-gradient-to-br ${currentGradient} border-4 ${currentBorder} rounded-2xl cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-2xl ${currentShadow} backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40 flex-shrink-0`}
+                      onClick={() => openOfferModal(o)}>
+
+                      {/* Gradient Overlay with transparency */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 pointer-events-none"></div>
+                      
+                      {/* Inner shadow for thickness effect */}
+                      <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/30 pointer-events-none"></div>
+
+                      {/* Boost Badge */}
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg flex items-center gap-1">
+                        <Zap className="h-3 w-3" /> +{o.percent}%
+                      </div>
+
+                      <CardContent className="p-3 h-full flex flex-col text-center relative z-10">
+
+                        {/* Offer Image */}
+                        <div className="relative mb-3">
+                          {o.image_url ? (
+                            <div className="w-full h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+                              <img 
+                                src={getImageUrl(o.title, o.image_url)} 
+                                alt={o.title} 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://picsum.photos/seed/offer/160/80.jpg`;
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-full h-20 rounded-xl bg-gradient-to-br ${currentGradient.replace('/30', '/60')} flex items-center justify-center`}>
+                              <span className="text-2xl font-bold text-white">{o.title?.[0] || 'O'}</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
-                    <div className="p-4 bg-gradient-to-b from-gray-800/95 to-gray-900/95 backdrop-blur-sm">
-                      <h3 className="font-semibold text-sm text-white truncate mb-3 leading-tight">{o.title}</h3>
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-3 py-1 rounded-md">
-                          {o.payout_model || "CPA"}
-                        </Badge>
-                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 rounded-md font-bold shadow-md">
-                          ${calculateBoostedPayout(o).toFixed(2)}
-                        </Badge>
-                      </div>
-                      {o.percent > 0 && (
-                        <div className="mb-3">
-                          <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-3 py-1 rounded-md font-semibold">
-                            +{o.percent}% Bonus
+
+                        {/* Offer Title */}
+                        <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 leading-tight">{o.title}</h3>
+
+                        {/* Subtitle */}
+                        <p className="text-xs text-gray-300 mb-2 line-clamp-1">{o.description || 'Complete this boosted offer to earn extra rewards'}</p>
+
+                        {/* Payout */}
+                        <div className="mb-2">
+                          <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm px-3 py-1 rounded-full font-bold shadow-lg border-0">
+                            ${calculateBoostedPayout(o).toFixed(2)}
                           </Badge>
                         </div>
-                      )}
-                      <div className="space-y-2 mb-4">
-                        {o.countries && (
-                          <p className="text-xs text-gray-400 flex items-center gap-2">
-                            <Globe className="h-3 w-3 text-purple-400" /> {o.countries}
-                          </p>
-                        )}
-                        {o.network_id && (
-                          <p className="text-xs text-gray-400 flex items-center gap-2">
-                            <Network className="h-3 w-3 text-purple-400" />
-                            <Button 
-                              variant="link" 
-                              size="sm" 
-                              className="h-auto p-0 text-xs hover:text-purple-400 text-purple-300 font-medium"
-                              onClick={() => setNetworkFilter(o.network_id)}
-                            >
-                              {o.network_id}
-                            </Button>
-                          </p>
-                        )}
-                      </div>
-                      {timeLeft[o.id] > 0 && (
-                        <div className="mb-3 text-xs text-red-400 font-medium flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          {formatTimeLeft(timeLeft[o.id])}
+
+                        {/* Platform Icons */}
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <div className={`flex items-center gap-1 text-xs ${currentBorder.replace('border-', 'text-').replace('/80', '/60')}`}>
+                            <PlatformIcon className="h-3 w-3" />
+                            <span>{o.platform || 'Desktop'}</span>
+                          </div>
+                          {o.device && (
+                            <div className={`flex items-center gap-1 text-xs ${currentBorder.replace('border-', 'text-').replace('/80', '/60')}`}>
+                              <Monitor className="h-3 w-3" />
+                              <span>{o.device}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {o.url && (
-                        <Button 
-                          className="w-full h-9 text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
-                          onClick={() => openOfferModal(o)}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" /> Start Earning
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+
+                        {/* Countries */}
+                        {o.countries && (
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-400 mb-2">
+                            <Globe className="h-3 w-3" />
+                            <span>{o.countries.split(',')[0]}</span>
+                          </div>
+                        )}
+
+                        {/* Time Left */}
+                        {timeLeft[o.id] > 0 && (
+                          <div className="flex items-center justify-center gap-1 text-xs text-red-400 mb-2">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatTimeLeft(timeLeft[o.id])}</span>
+                          </div>
+                        )}
+
+                        {/* Start Button */}
+                        <div className="mt-auto">
+                          <Button 
+                            className="w-full h-8 text-xs bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOfferModal(o);
+                            }}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" /> Start
+                          </Button>
+                        </div>
+
+                      </CardContent>
+
+                    </Card>
+                  );
+                })}
+                
+                {/* Show More Button */}
+                <Button 
+                  onClick={() => setShowAllBoostedOffers(true)}
+                  className="w-40 h-56 bg-gradient-to-br from-gray-700/30 to-gray-800/30 border-4 border-gray-600/80 rounded-2xl hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-gray-500/40 backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40 flex flex-col items-center justify-center gap-3 flex-shrink-0"
+                >
+                  <ChevronRight className="h-8 w-8 text-gray-300" />
+                  <span className="text-white font-bold">Show All</span>
+                  <span className="text-gray-300 text-sm">+{filteredBoostedOffers.length - 10} more</span>
+                </Button>
+              </div>
+            ) : (
+              /* Grid View for All Boosted Offers */
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5 items-start">
+                {filteredBoostedOffers.map((o, index) => {
+                  // Define different gradient colors for each card
+                  const gradients = [
+                    'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                    'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                    'from-green-600/30 via-green-800/20 to-green-900/30',
+                    'from-red-600/30 via-red-800/20 to-red-900/30',
+                    'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                    'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                    'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                    'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                    'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                    'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                  ];
+
+                  const borderColors = [
+                    'border-purple-400/80',
+                    'border-blue-400/80',
+                    'border-green-400/80',
+                    'border-red-400/80',
+                    'border-yellow-400/80',
+                    'border-pink-400/80',
+                    'border-indigo-400/80',
+                    'border-teal-400/80',
+                    'border-orange-400/80',
+                    'border-cyan-400/80',
+                  ];
+
+                  const shadowColors = [
+                    'hover:shadow-purple-500/40',
+                    'hover:shadow-blue-500/40',
+                    'hover:shadow-green-500/40',
+                    'hover:shadow-red-500/40',
+                    'hover:shadow-yellow-500/40',
+                    'hover:shadow-pink-500/40',
+                    'hover:shadow-indigo-500/40',
+                    'hover:shadow-teal-500/40',
+                    'hover:shadow-orange-500/40',
+                    'hover:shadow-cyan-500/40',
+                  ];
+
+                  const currentGradient = gradients[index % gradients.length];
+                  const currentBorder = borderColors[index % borderColors.length];
+                  const currentShadow = shadowColors[index % shadowColors.length];
+
+                  // Platform icon mapping
+                  const getPlatformIcon = (platform?: string) => {
+                    switch (platform?.toLowerCase()) {
+                      case 'desktop':
+                      case 'pc':
+                        return Monitor;
+                      case 'mobile':
+                      case 'android':
+                      case 'ios':
+                        return Smartphone;
+                      case 'tablet':
+                      case 'ipad':
+                        return Tablet;
+                      default:
+                        return Monitor;
+                    }
+                  };
+
+                  const PlatformIcon = getPlatformIcon(o.platform);
+
+                  return (
+                    <Card key={o.id} className={`w-40 h-56 bg-gradient-to-br ${currentGradient} border-4 ${currentBorder} rounded-2xl cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-2xl ${currentShadow} backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40`}
+                      onClick={() => openOfferModal(o)}>
+
+                      {/* Gradient Overlay with transparency */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 pointer-events-none"></div>
+                      
+                      {/* Inner shadow for thickness effect */}
+                      <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/30 pointer-events-none"></div>
+
+                      {/* Boost Badge */}
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg flex items-center gap-1">
+                        <Zap className="h-3 w-3" /> +{o.percent}%
+                      </div>
+
+                      <CardContent className="p-3 h-full flex flex-col text-center relative z-10">
+
+                        {/* Offer Image */}
+                        <div className="relative mb-3">
+                          {o.image_url ? (
+                            <div className="w-full h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+                              <img 
+                                src={getImageUrl(o.title, o.image_url)} 
+                                alt={o.title} 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://picsum.photos/seed/offer/160/80.jpg`;
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-full h-20 rounded-xl bg-gradient-to-br ${currentGradient.replace('/30', '/60')} flex items-center justify-center`}>
+                              <span className="text-2xl font-bold text-white">{o.title?.[0] || 'O'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Offer Title */}
+                        <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 leading-tight">{o.title}</h3>
+
+                        {/* Subtitle */}
+                        <p className="text-xs text-gray-300 mb-2 line-clamp-1">{o.description || 'Complete this boosted offer to earn extra rewards'}</p>
+
+                        {/* Payout */}
+                        <div className="mb-2">
+                          <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm px-3 py-1 rounded-full font-bold shadow-lg border-0">
+                            ${calculateBoostedPayout(o).toFixed(2)}
+                          </Badge>
+                        </div>
+
+                        {/* Platform Icons */}
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <div className={`flex items-center gap-1 text-xs ${currentBorder.replace('border-', 'text-').replace('/80', '/60')}`}>
+                            <PlatformIcon className="h-3 w-3" />
+                            <span>{o.platform || 'Desktop'}</span>
+                          </div>
+                          {o.device && (
+                            <div className={`flex items-center gap-1 text-xs ${currentBorder.replace('border-', 'text-').replace('/80', '/60')}`}>
+                              <Monitor className="h-3 w-3" />
+                              <span>{o.device}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Countries */}
+                        {o.countries && (
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-400 mb-2">
+                            <Globe className="h-3 w-3" />
+                            <span>{o.countries.split(',')[0]}</span>
+                          </div>
+                        )}
+
+                        {/* Time Left */}
+                        {timeLeft[o.id] > 0 && (
+                          <div className="flex items-center justify-center gap-1 text-xs text-red-400 mb-2">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatTimeLeft(timeLeft[o.id])}</span>
+                          </div>
+                        )}
+
+                        {/* Start Button */}
+                        <div className="mt-auto">
+                          <Button 
+                            className="w-full h-8 text-xs bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOfferModal(o);
+                            }}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" /> Start
+                          </Button>
+                        </div>
+
+                      </CardContent>
+
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Show Less Button */}
+            {showAllBoostedOffers && (
+              <div className="mt-4 text-center">
+                <Button 
+                  onClick={() => setShowAllBoostedOffers(false)}
+                  className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-2 rounded-lg"
+                >
+                  Show Less
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -373,101 +673,657 @@ const Offers = () => {
                 {regularOffers.length} Available
               </Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {regularOffers.map((o) => (
-                <Card key={o.id} className="overflow-hidden bg-white/5 border border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 group relative backdrop-blur-sm rounded-xl">
-                  <CardContent className="p-0">
-                    {o.image_url && (
-                      <div className="h-32 bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden relative">
-                        <img src={o.image_url} alt={o.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
-                      </div>
-                    )}
-                    <div className="p-4 bg-gradient-to-b from-gray-800/95 to-gray-900/95 backdrop-blur-sm">
-                      <h3 className="font-semibold text-sm text-white truncate mb-3 leading-tight">{o.title}</h3>
-                      <div className="flex items-center justify-between mb-3">
-                        <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-3 py-1 rounded-md">
-                          {o.payout_model || "CPA"}
-                        </Badge>
-                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 rounded-md font-bold shadow-md">
-                          ${Number(o.payout).toFixed(2)}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2 mb-4">
-                        {o.countries && (
-                          <p className="text-xs text-gray-400 flex items-center gap-2">
-                            <Globe className="h-3 w-3 text-purple-400" /> {o.countries}
-                          </p>
-                        )}
-                        {o.network_id && (
-                          <p className="text-xs text-gray-400 flex items-center gap-2">
-                            <Network className="h-3 w-3 text-purple-400" />
-                            <Button 
-                              variant="link" 
-                              size="sm" 
-                              className="h-auto p-0 text-xs hover:text-purple-400 text-purple-300 font-medium"
-                              onClick={() => setNetworkFilter(o.network_id)}
-                            >
-                              {o.network_id}
-                            </Button>
-                          </p>
-                        )}
-                      </div>
-                      {o.url && (
-                        <Button 
-                          className="w-full h-9 text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
-                          onClick={() => openOfferModal(o)}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" /> Start Earning
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
+            {/* CoinLooty Style Cards */}
+                        {!showAllRegularOffers && regularOffers.length > 0 ? (
+              <div className="flex gap-1 overflow-hidden items-start">
+                {regularOffers.slice(0, 10).map((o, index) => {
+                  // Define different gradient colors for each card
+                  const gradients = [
+                    'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                    'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                    'from-green-600/30 via-green-800/20 to-green-900/30',
+                    'from-red-600/30 via-red-800/20 to-red-900/30',
+                    'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                    'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                    'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                    'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                    'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                    'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                  ];
+
+                  const borderColors = [
+                    'border-purple-400/80',
+                    'border-blue-400/80',
+                    'border-green-400/80',
+                    'border-red-400/80',
+                    'border-yellow-400/80',
+                    'border-pink-400/80',
+                    'border-indigo-400/80',
+                    'border-teal-400/80',
+                    'border-orange-400/80',
+                    'border-cyan-400/80',
+                  ];
+
+                  const shadowColors = [
+                    'hover:shadow-purple-500/40',
+                    'hover:shadow-blue-500/40',
+                    'hover:shadow-green-500/40',
+                    'hover:shadow-red-500/40',
+                    'hover:shadow-yellow-500/40',
+                    'hover:shadow-pink-500/40',
+                    'hover:shadow-indigo-500/40',
+                    'hover:shadow-teal-500/40',
+                    'hover:shadow-orange-500/40',
+                    'hover:shadow-cyan-500/40',
+                  ];
+
+                  const currentGradient = gradients[index % gradients.length];
+                  const currentBorder = borderColors[index % borderColors.length];
+                  const currentShadow = shadowColors[index % shadowColors.length];
+
+                  // Platform icon mapping
+                  const getPlatformIcon = (platform?: string) => {
+                    switch (platform?.toLowerCase()) {
+                      case 'desktop':
+                      case 'pc':
+                        return Monitor;
+                      case 'mobile':
+                      case 'android':
+                      case 'ios':
+                        return Smartphone;
+                      case 'tablet':
+                      case 'ipad':
+                        return Tablet;
+                      default:
+                        return Monitor;
+                    }
+                  };
+
+                  const PlatformIcon = getPlatformIcon(o.platform);
+
+                  return (
+                    <Card key={o.id} className={`w-40 h-56 bg-gradient-to-br ${currentGradient} border-4 ${currentBorder} rounded-2xl cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-2xl ${currentShadow} backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40 flex-shrink-0`}
+                      onClick={() => openOfferModal(o)}>
+
+                      {/* Gradient Overlay with transparency */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 pointer-events-none"></div>
+                      
+                      {/* Inner shadow for thickness effect */}
+                      <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/30 pointer-events-none"></div>
+
+                      <CardContent className="p-3 h-full flex flex-col text-center relative z-10">
+
+                        {/* Offer Image */}
+                        <div className="relative mb-3">
+                          {o.image_url ? (
+                            <div className="w-full h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+                              <img 
+                                src={getImageUrl(o.title, o.image_url)} 
+                                alt={o.title} 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://picsum.photos/seed/offer/160/80.jpg`;
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-full h-20 rounded-xl bg-gradient-to-br ${currentGradient.replace('/30', '/60')} flex items-center justify-center`}>
+                              <span className="text-2xl font-bold text-white">{o.title?.[0] || 'O'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Offer Title */}
+                        <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 leading-tight">{o.title}</h3>
+
+                        {/* Subtitle */}
+                        <p className="text-xs text-gray-300 mb-2 line-clamp-1">{o.description || 'Complete this offer to earn rewards'}</p>
+
+                        {/* Payout */}
+                        <div className="mb-2">
+                          <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm px-3 py-1 rounded-full font-bold shadow-lg border-0">
+                            ${Number(o.payout).toFixed(2)}
+                          </Badge>
+                        </div>
+
+                        {/* Start Button */}
+                        <div className="mt-auto">
+                          <Button 
+                            className="w-full h-8 text-xs bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOfferModal(o);
+                            }}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" /> Start
+                          </Button>
+                        </div>
+
+                      </CardContent>
+
+                    </Card>
+                  );
+                })}
+                {/* Show More Button */}
+                <Button 
+                  onClick={() => setShowAllRegularOffers(true)}
+                  className="w-40 h-56 bg-gradient-to-br from-gray-700/30 to-gray-800/30 border-4 border-gray-600/80 rounded-2xl hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-gray-500/40 backdrop-blur-sm relative overflow-hidden opacity-100 shadow-2xl shadow-black/40 flex flex-col items-center justify-center gap-3 flex-shrink-0 z-50"
+                >
+                  <ChevronRight className="h-8 w-8 text-gray-300" />
+                  <span className="text-white font-bold">Show All</span>
+                  <span className="text-gray-300 text-sm">+{regularOffers.length - 10} more</span>
+                </Button>
+              </div>
+            ) : (
+              /* Grid View for All Regular Offers */
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5 items-start">
+                {regularOffers.map((o, index) => {
+                  // Define different gradient colors for each card
+                  const gradients = [
+                    'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                    'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                    'from-green-600/30 via-green-800/20 to-green-900/30',
+                    'from-red-600/30 via-red-800/20 to-red-900/30',
+                    'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                    'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                    'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                    'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                    'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                    'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                  ];
+
+                  const borderColors = [
+                    'border-purple-400/80',
+                    'border-blue-400/80',
+                    'border-green-400/80',
+                    'border-red-400/80',
+                    'border-yellow-400/80',
+                    'border-pink-400/80',
+                    'border-indigo-400/80',
+                    'border-teal-400/80',
+                    'border-orange-400/80',
+                    'border-cyan-400/80',
+                  ];
+
+                  const shadowColors = [
+                    'hover:shadow-purple-500/40',
+                    'hover:shadow-blue-500/40',
+                    'hover:shadow-green-500/40',
+                    'hover:shadow-red-500/40',
+                    'hover:shadow-yellow-500/40',
+                    'hover:shadow-pink-500/40',
+                    'hover:shadow-indigo-500/40',
+                    'hover:shadow-teal-500/40',
+                    'hover:shadow-orange-500/40',
+                    'hover:shadow-cyan-500/40',
+                  ];
+
+                  const currentGradient = gradients[index % gradients.length];
+                  const currentBorder = borderColors[index % borderColors.length];
+                  const currentShadow = shadowColors[index % shadowColors.length];
+
+                  // Platform icon mapping
+                  const getPlatformIcon = (platform?: string) => {
+                    switch (platform?.toLowerCase()) {
+                      case 'desktop':
+                      case 'pc':
+                        return Monitor;
+                      case 'mobile':
+                      case 'android':
+                      case 'ios':
+                        return Smartphone;
+                      case 'tablet':
+                      case 'ipad':
+                        return Tablet;
+                      default:
+                        return Monitor;
+                    }
+                  };
+
+                  const PlatformIcon = getPlatformIcon(o.platform);
+
+                  return (
+                    <Card key={o.id} className={`w-40 h-56 bg-gradient-to-br ${currentGradient} border-4 ${currentBorder} rounded-2xl cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-2xl ${currentShadow} backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40`}
+                      onClick={() => openOfferModal(o)}>
+
+                      {/* Gradient Overlay with transparency */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 pointer-events-none"></div>
+                      
+                      {/* Inner shadow for thickness effect */}
+                      <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/30 pointer-events-none"></div>
+
+                      <CardContent className="p-3 h-full flex flex-col text-center relative z-10">
+
+                        {/* Offer Image */}
+                        <div className="relative mb-3">
+                          {o.image_url ? (
+                            <div className="w-full h-20 rounded-xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+                              <img 
+                                src={getImageUrl(o.title, o.image_url)} 
+                                alt={o.title} 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://picsum.photos/seed/offer/160/80.jpg`;
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-full h-20 rounded-xl bg-gradient-to-br ${currentGradient.replace('/30', '/60')} flex items-center justify-center`}>
+                              <span className="text-2xl font-bold text-white">{o.title?.[0] || 'O'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Offer Title */}
+                        <h3 className="font-bold text-white text-sm mb-1 line-clamp-2 leading-tight">{o.title}</h3>
+
+                        {/* Subtitle */}
+                        <p className="text-xs text-gray-300 mb-2 line-clamp-1">{o.description || 'Complete this offer to earn rewards'}</p>
+
+                        {/* Payout */}
+                        <div className="mb-2">
+                          <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm px-3 py-1 rounded-full font-bold shadow-lg border-0">
+                            ${Number(o.payout).toFixed(2)}
+                          </Badge>
+                        </div>
+
+                        {/* Start Button */}
+                        <div className="mt-auto">
+                          <Button 
+                            className="w-full h-8 text-xs bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 border-0 rounded-lg" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOfferModal(o);
+                            }}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" /> Start
+                          </Button>
+                        </div>
+
+                      </CardContent>
+
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            </CardContent>
         </Card>
       )}
 
-      {/* Offer Walls Section - BadBoysAI Style */}
+        {/* Show Less Button */}
+        {showAllRegularOffers && (
+          <div className="mt-4 text-center relative z-50">
+            <Button 
+              onClick={() => setShowAllRegularOffers(false)}
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-6 py-2 rounded-lg shadow-lg"
+            >
+              Show Less
+            </Button>
+          </div>
+        )}
+
+      {/* Offer Walls Section - CoinLooty Style Design */}
       {providers.length > 0 && (
-        <Card className="border-purple-500/30 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-purple-900/20 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                <Network className="h-4 w-4 text-white" />
+        <>
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Network className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Offer Walls</h2>
+                  <p className="text-sm text-gray-400">Premium offer networks with hundreds of tasks</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-bold text-white">Offer Walls</h2>
-                <p className="text-xs text-gray-400">Premium offer networks with hundreds of tasks</p>
-              </div>
-              <Badge className="ml-auto bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs border-0">
+              <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs border-0">
                 {providers.length} Networks
               </Badge>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-              {providers.map((p) => (
-                <Card key={p.id} className="bg-white/5 border border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20 group relative backdrop-blur-sm rounded-xl">
-                  <CardContent className="p-4 text-center">
-                    {p.image_url && (
-                      <div className="relative mb-3">
-                        <img src={p.image_url} alt={p.name} className="w-full h-16 object-contain transition-transform duration-300 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none rounded" />
+          </div>
+
+          {/* EarnLab Style OfferWalls */}
+                    {!showAllOfferWalls && providers.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {providers.slice(0, 12).map((p, index) => {
+                // Define different gradient colors for each card
+                const gradients = [
+                  'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                  'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                  'from-green-600/30 via-green-800/20 to-green-900/30',
+                  'from-red-600/30 via-red-800/20 to-red-900/30',
+                  'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                  'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                  'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                  'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                  'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                  'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                ];
+
+                const borderColors = [
+                  'border-purple-400/80',
+                  'border-blue-400/80',
+                  'border-green-400/80',
+                  'border-red-400/80',
+                  'border-yellow-400/80',
+                  'border-pink-400/80',
+                  'border-indigo-400/80',
+                  'border-teal-400/80',
+                  'border-orange-400/80',
+                  'border-cyan-400/80',
+                ];
+
+                const shadowColors = [
+                  'hover:shadow-purple-500/40',
+                  'hover:shadow-blue-500/40',
+                  'hover:shadow-green-500/40',
+                  'hover:shadow-red-500/40',
+                  'hover:shadow-yellow-500/40',
+                  'hover:shadow-pink-500/40',
+                  'hover:shadow-indigo-500/40',
+                  'hover:shadow-teal-500/40',
+                  'hover:shadow-orange-500/40',
+                  'hover:shadow-cyan-500/40',
+                ];
+
+                const currentGradient = gradients[index % gradients.length];
+                const currentBorder = borderColors[index % borderColors.length];
+                const currentShadow = shadowColors[index % shadowColors.length];
+
+                return (
+                  <div 
+                    key={p.id}
+                    className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
+                    onClick={() => {
+                      // Handle offer wall click - open in new tab or iframe
+                      if (p.iframe_url || p.iframe_code) {
+                        window.open(p.iframe_url || '#', '_blank');
+                      } else if (p.url) {
+                        window.open(p.url, '_blank');
+                      }
+                    }}
+                  >
+                    {/* Bonus Badge */}
+                    {p.point_percentage > 100 && (
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg z-10">
+                        +{p.point_percentage - 100}%
                       </div>
                     )}
-                    <h3 className="font-semibold text-sm text-white truncate mb-3 leading-tight">{p.name}</h3>
-                    {p.point_percentage > 100 && (
-                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1 rounded-md font-semibold shadow-md">
-                        +{p.point_percentage - 100}% Bonus
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+
+                    {/* Provider Logo and Name - EarnLab Style */}
+                    <div className="flex flex-col items-center justify-center h-full gap-3">
+                      {p.image_url ? (
+                        <img 
+                          src={getImageUrl(p.name, p.image_url)} 
+                          alt={p.name} 
+                          className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            // Fallback to provider-specific logos
+                            const providerLogos: Record<string, string> = {
+                              'Freecash': 'https://freecash.com/logo.png',
+                              'AdGate': 'https://cdn.adgate-media.com/offerwall-logo.png',
+                              'Adscend': 'https://www.adscendmedia.com/logo.png',
+                              'CPAGrip': 'https://cpagrip.com/logo.png',
+                              'Notik': 'https://notik.me/logo.png',
+                              'RevenueUniverse': 'https://revenueuniverse.com/logo.png',
+                              'Timewall': 'https://timewall.com/logo.png',
+                              'BitLabs': 'https://bitlabs.io/logo.png',
+                              'AyetStudios': 'https://ayetstudios.com/logo.png',
+                              'FusionCash': 'https://fusioncash.com/logo.png',
+                              'OfferToro': 'https://offertoro.com/logo.png',
+                              'RevenueWall': 'https://revenuewall.com/logo.png',
+                              'AdWorkMedia': 'https://adworkmedia.com/logo.png',
+                              'KiwiWall': 'https://kiwiwall.com/logo.png',
+                              'MyLead': 'https://mylead.com/logo.png',
+                              'SuperRewards': 'https://superrewards.com/logo.png',
+                              'RewardingWays': 'https://rewardingways.com/logo.png',
+                              'CPXResearch': 'https://cpxresearch.com/logo.png',
+                              'Heypiggy': 'https://heypiggy.com/logo.png',
+                              'PeanutLabs': 'https://peanutlabs.com/logo.png',
+                              'incarese': 'https://incarese.com/logo.png',
+                              'AdGem': 'https://adgem.com/logo.png',
+                              'CPALead': 'https://cpalead.com/logo.png',
+                              'MonuMatic': 'https://monumate.com/logo.png',
+                              'RevU': 'https://revu.com/logo.png',
+                              'AdWork': 'https://adwork.com/logo.png',
+                              'CPABuild': 'https://cpabuild.com/logo.png',
+                              'AdShift': 'https://adshift.com/logo.png',
+                              'RevenueJet': 'https://revenuejet.com/logo.png',
+                              'CPALocker': 'https://cpalocker.com/logo.png',
+                              'AdCapital': 'https://adcapital.com/logo.png',
+                              'CPAStrike': 'https://cpastrike.com/logo.png',
+                              'AdVerse': 'https://adverse.com/logo.png',
+                              'RevenueGiant': 'https://revenuegiant.com/logo.png',
+                              'CPAFusion': 'https://cpafusion.com/logo.png',
+                              'AdPrime': 'https://adprime.com/logo.png',
+                              'RevenueFlow': 'https://revenueflow.com/logo.png',
+                              'CPAEvolution': 'https://cpaevolution.com/logo.png',
+                              'AdCore': 'https://adcore.com/logo.png',
+                              'RevenueZen': 'https://revenuezen.com/logo.png',
+                              'CPAEpic': 'https://cpaepic.com/logo.png',
+                              'AdNova': 'https://adnova.com/logo.png',
+                              'RevenuePeak': 'https://revenuepeak.com/logo.png',
+                              'CPAVelocity': 'https://cpavelocity.com/logo.png',
+                              'AdVortex': 'https://advortex.com/logo.png',
+                              'RevenueSurge': 'https://revenuesurge.com/logo.png',
+                              'CPAFury': 'https://cpafury.com/logo.png',
+                              'AdEclipse': 'https://adeclipse.com/logo.png',
+                              'RevenueWave': 'https://revenuewave.com/logo.png',
+                              'CPALegend': 'https://cpalegend.com/logo.png',
+                              'AdCosmos': 'https://adcosmos.com/logo.png',
+                              'RevenueNova': 'https://revenuenova.com/logo.png',
+                              'CPANebula': 'https://cpanebula.com/logo.png',
+                              'AdStellar': 'https://adstellar.com/logo.png',
+                              'RevenueComet': 'https://revenuecomet.com/logo.png',
+                              'CPAInfinity': 'https://cpainfinity.com/logo.png',
+                              'AdInfinity': 'https://adinfinity.com/logo.png',
+                              'RevenueEternal': 'https://revenueeternal.com/logo.png',
+                              'CPACosmos': 'https://cpacosmos.com/logo.png',
+                              'AdUniverse': 'https://aduniverse.com/logo.png',
+                              'RevenueGalaxy': 'https://revenuegalaxy.com/logo.png',
+                              'CPAOmega': 'https://cpaomega.com/logo.png'
+                            };
+                            e.currentTarget.src = providerLogos[p.name] || `https://picsum.photos/seed/provider/80/80.jpg`;
+                          }}
+                        />
+                      ) : (
+                        <span className="text-2xl font-bold text-white">{p.name[0]}</span>
+                      )}
+
+                                          </div>
+
+                    {/* Subtle glow effect */}
+                    <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
+                  </div>
+                );
+              })}
+              
+              {/* Show More Button */}
+              <div 
+                onClick={() => setShowAllOfferWalls(true)}
+                className="relative w-[180px] h-[140px] bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30 flex flex-col items-center justify-center"
+              >
+                <ChevronRight className="h-8 w-8 text-gray-300 mb-2" />
+                <span className="text-white font-semibold text-[16px] text-center">View All</span>
+                <span className="text-gray-400 text-xs text-center">+{providers.length - 12} more</span>
+                
+                {/* Subtle glow effect */}
+                <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            /* Grid View for All Offer Walls */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {providers.map((p, index) => {
+                // Define different gradient colors for each card
+                const gradients = [
+                  'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                  'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                  'from-green-600/30 via-green-800/20 to-green-900/30',
+                  'from-red-600/30 via-red-800/20 to-red-900/30',
+                  'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                  'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                  'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                  'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                  'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                  'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                ];
+
+                const borderColors = [
+                  'border-purple-400/80',
+                  'border-blue-400/80',
+                  'border-green-400/80',
+                  'border-red-400/80',
+                  'border-yellow-400/80',
+                  'border-pink-400/80',
+                  'border-indigo-400/80',
+                  'border-teal-400/80',
+                  'border-orange-400/80',
+                  'border-cyan-400/80',
+                ];
+
+                const shadowColors = [
+                  'hover:shadow-purple-500/40',
+                  'hover:shadow-blue-500/40',
+                  'hover:shadow-green-500/40',
+                  'hover:shadow-red-500/40',
+                  'hover:shadow-yellow-500/40',
+                  'hover:shadow-pink-500/40',
+                  'hover:shadow-indigo-500/40',
+                  'hover:shadow-teal-500/40',
+                  'hover:shadow-orange-500/40',
+                  'hover:shadow-cyan-500/40',
+                ];
+
+                const currentGradient = gradients[index % gradients.length];
+                const currentBorder = borderColors[index % borderColors.length];
+                const currentShadow = shadowColors[index % shadowColors.length];
+
+                return (
+                  <div 
+                    key={p.id}
+                    className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
+                    onClick={() => {
+                      // Handle offer wall click - open in new tab or iframe
+                      if (p.iframe_url || p.iframe_code) {
+                        window.open(p.iframe_url || '#', '_blank');
+                      } else if (p.url) {
+                        window.open(p.url, '_blank');
+                      }
+                    }}
+                  >
+                    {/* Bonus Badge */}
+                    {p.point_percentage > 100 && (
+                      <div className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg z-10">
+                        +{p.point_percentage - 100}%
+                      </div>
+                    )}
+
+                    {/* Provider Logo and Name - EarnLab Style */}
+                    <div className="flex flex-col items-center justify-center h-full gap-3">
+                      {p.image_url ? (
+                        <img 
+                          src={getImageUrl(p.name, p.image_url)} 
+                          alt={p.name} 
+                          className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            // Fallback to provider-specific logos
+                            const providerLogos: Record<string, string> = {
+                              'Freecash': 'https://freecash.com/logo.png',
+                              'AdGate': 'https://cdn.adgate-media.com/offerwall-logo.png',
+                              'Adscend': 'https://www.adscendmedia.com/logo.png',
+                              'CPAGrip': 'https://cpagrip.com/logo.png',
+                              'Notik': 'https://notik.me/logo.png',
+                              'RevenueUniverse': 'https://revenueuniverse.com/logo.png',
+                              'Timewall': 'https://timewall.com/logo.png',
+                              'BitLabs': 'https://bitlabs.io/logo.png',
+                              'AyetStudios': 'https://ayetstudios.com/logo.png',
+                              'FusionCash': 'https://fusioncash.com/logo.png',
+                              'OfferToro': 'https://offertoro.com/logo.png',
+                              'RevenueWall': 'https://revenuewall.com/logo.png',
+                              'AdWorkMedia': 'https://adworkmedia.com/logo.png',
+                              'KiwiWall': 'https://kiwiwall.com/logo.png',
+                              'MyLead': 'https://mylead.com/logo.png',
+                              'SuperRewards': 'https://superrewards.com/logo.png',
+                              'RewardingWays': 'https://rewardingways.com/logo.png',
+                              'CPXResearch': 'https://cpxresearch.com/logo.png',
+                              'Heypiggy': 'https://heypiggy.com/logo.png',
+                              'PeanutLabs': 'https://peanutlabs.com/logo.png',
+                              'incarese': 'https://incarese.com/logo.png',
+                              'AdGem': 'https://adgem.com/logo.png',
+                              'CPALead': 'https://cpalead.com/logo.png',
+                              'MonuMatic': 'https://monumate.com/logo.png',
+                              'RevU': 'https://revu.com/logo.png',
+                              'AdWork': 'https://adwork.com/logo.png',
+                              'CPABuild': 'https://cpabuild.com/logo.png',
+                              'AdShift': 'https://adshift.com/logo.png',
+                              'RevenueJet': 'https://revenuejet.com/logo.png',
+                              'CPALocker': 'https://cpalocker.com/logo.png',
+                              'AdCapital': 'https://adcapital.com/logo.png',
+                              'CPAStrike': 'https://cpastrike.com/logo.png',
+                              'AdVerse': 'https://adverse.com/logo.png',
+                              'RevenueGiant': 'https://revenuegiant.com/logo.png',
+                              'CPAFusion': 'https://cpafusion.com/logo.png',
+                              'AdPrime': 'https://adprime.com/logo.png',
+                              'RevenueFlow': 'https://revenueflow.com/logo.png',
+                              'CPAEvolution': 'https://cpaevolution.com/logo.png',
+                              'AdCore': 'https://adcore.com/logo.png',
+                              'RevenueZen': 'https://revenuezen.com/logo.png',
+                              'CPAEpic': 'https://cpaepic.com/logo.png',
+                              'AdNova': 'https://adnova.com/logo.png',
+                              'RevenuePeak': 'https://revenuepeak.com/logo.png',
+                              'CPAVelocity': 'https://cpavelocity.com/logo.png',
+                              'AdVortex': 'https://advortex.com/logo.png',
+                              'RevenueSurge': 'https://revenuesurge.com/logo.png',
+                              'CPAFury': 'https://cpafury.com/logo.png',
+                              'AdEclipse': 'https://adeclipse.com/logo.png',
+                              'RevenueWave': 'https://revenuewave.com/logo.png',
+                              'CPALegend': 'https://cpalegend.com/logo.png',
+                              'AdCosmos': 'https://adcosmos.com/logo.png',
+                              'RevenueNova': 'https://revenuenova.com/logo.png',
+                              'CPANebula': 'https://cpanebula.com/logo.png',
+                              'AdStellar': 'https://adstellar.com/logo.png',
+                              'RevenueComet': 'https://revenuecomet.com/logo.png',
+                              'CPAInfinity': 'https://cpainfinity.com/logo.png',
+                              'AdInfinity': 'https://adinfinity.com/logo.png',
+                              'RevenueEternal': 'https://revenueeternal.com/logo.png',
+                              'CPACosmos': 'https://cpacosmos.com/logo.png',
+                              'AdUniverse': 'https://aduniverse.com/logo.png',
+                              'RevenueGalaxy': 'https://revenuegalaxy.com/logo.png',
+                              'CPAOmega': 'https://cpaomega.com/logo.png'
+                            };
+                            e.currentTarget.src = providerLogos[p.name] || `https://picsum.photos/seed/provider/80/80.jpg`;
+                          }}
+                        />
+                      ) : (
+                        <span className="text-2xl font-bold text-white">{p.name[0]}</span>
+                      )}
+
+                                          </div>
+
+                    {/* Subtle glow effect */}
+                    <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Show Less Button */}
+          {showAllOfferWalls && (
+            <div className="mt-4 text-center">
+              <Button 
+                onClick={() => setShowAllOfferWalls(false)}
+                className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-2 rounded-lg"
+              >
+                Show Less
+              </Button>
+            </div>
+          )}
+
+        </>
       )}
 
       {filtered.length === 0 && providers.length === 0 && (

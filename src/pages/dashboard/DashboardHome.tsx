@@ -344,7 +344,7 @@ const DashboardHome = () => {
 
       </div>
 
-      {/* Offer Walls - Premium Design */}
+      {/* Offer Walls - CoinLooty Style Design */}
 
       {surveyProviders.length > 0 && (
 
@@ -354,7 +354,7 @@ const DashboardHome = () => {
 
             <div className="flex items-center gap-3">
 
-              <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
 
                 <Network className="h-4 w-4 text-white" />
 
@@ -362,9 +362,9 @@ const DashboardHome = () => {
 
               <div>
 
-                <h2 className="text-2xl font-bold text-gradient">Offer Walls</h2>
+                <h2 className="text-2xl font-bold text-white">Offer Walls</h2>
 
-                <p className="text-sm text-muted-foreground">Premium offer networks with hundreds of tasks</p>
+                <p className="text-sm text-gray-400">Premium offer networks with hundreds of tasks</p>
 
               </div>
 
@@ -372,7 +372,7 @@ const DashboardHome = () => {
 
             {surveyProviders.length > WALLS_PER_ROW && (
 
-              <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10" onClick={() => setShowAllWalls(!showAllWalls)}>
+              <Button variant="outline" size="sm" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10" onClick={() => setShowAllWalls(!showAllWalls)}>
 
                 {showAllWalls ? "Show Less" : "View All"}
 
@@ -384,73 +384,159 @@ const DashboardHome = () => {
 
           
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+          {/* Horizontal Scroll Layout - CoinLooty Style */}
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-4 min-w-max" style={{ scrollSnapType: 'x mandatory' }}>
 
-            {visibleWalls.map((p) => (
+              {visibleWalls.map((p, index) => {
 
-              <Link key={p.id} to="/dashboard/daily-surveys">
+                // Define different gradient colors for each card
+                const gradients = [
+                  'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                  'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                  'from-green-600/30 via-green-800/20 to-green-900/30',
+                  'from-red-600/30 via-red-800/20 to-red-900/30',
+                  'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                  'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                  'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                  'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                  'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                  'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                ];
 
-                <Card className="premium-card-small h-48 cursor-pointer group">
+                const borderColors = [
+                  'border-purple-400/80',
+                  'border-blue-400/80',
+                  'border-green-400/80',
+                  'border-red-400/80',
+                  'border-yellow-400/80',
+                  'border-pink-400/80',
+                  'border-indigo-400/80',
+                  'border-teal-400/80',
+                  'border-orange-400/80',
+                  'border-cyan-400/80',
+                ];
 
-                  <CardContent className="p-4 h-full flex flex-col items-center justify-center text-center relative">
+                const shadowColors = [
+                  'hover:shadow-purple-500/40',
+                  'hover:shadow-blue-500/40',
+                  'hover:shadow-green-500/40',
+                  'hover:shadow-red-500/40',
+                  'hover:shadow-yellow-500/40',
+                  'hover:shadow-pink-500/40',
+                  'hover:shadow-indigo-500/40',
+                  'hover:shadow-teal-500/40',
+                  'hover:shadow-orange-500/40',
+                  'hover:shadow-cyan-500/40',
+                ];
 
-                    {p.point_percentage > 100 && (
+                const currentGradient = gradients[index % gradients.length];
+                const currentBorder = borderColors[index % borderColors.length];
+                const currentShadow = shadowColors[index % shadowColors.length];
 
-                      <Badge className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs border-0">
+                return (
 
-                        +{p.point_percentage - 100}%
+                <div key={p.id} className="flex-shrink-0" style={{ scrollSnapAlign: 'start' }}>
 
-                      </Badge>
+                  <Card className={`w-32 h-48 bg-gradient-to-br ${currentGradient} border-4 ${currentBorder} rounded-2xl cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-2xl ${currentShadow} backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40`}>
 
-                    )}
+                    {/* Gradient Overlay with transparency */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 pointer-events-none"></div>
+                    
+                    {/* Inner shadow for thickness effect */}
+                    <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/30 pointer-events-none"></div>
 
-                    {p.image_url ? (
+                    <CardContent className="p-3 h-full flex flex-col items-center justify-between text-center relative z-10">
 
-                      <img 
+                      {/* Bonus Badge */}
+                      {p.point_percentage > 100 && (
 
-                        src={getImageUrl(p.name, p.image_url)} 
+                        <div className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg">
 
-                        alt={p.name} 
+                          +{p.point_percentage - 100}%
 
-                        className="w-16 h-16 object-contain mb-3 group-hover:scale-110 transition-transform duration-300"
+                        </div>
 
-                        onError={(e) => {
+                      )}
 
-                          e.currentTarget.src = `https://picsum.photos/seed/provider/64/64.jpg`;
+                      {/* Provider Logo */}
+                      <div className="flex-1 flex flex-col items-center justify-center">
 
-                        }}
+                        {p.image_url ? (
 
-                      />
+                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${currentGradient.replace('/30', '/40')} p-1 mb-2 group-hover:scale-110 transition-transform duration-300 border-2 ${currentBorder} shadow-xl shadow-black/30`}>
 
-                    ) : (
+                            <img 
 
-                      <div className="w-16 h-16 gradient-primary-subtle rounded-xl flex items-center justify-center mb-3">
+                              src={getImageUrl(p.name, p.image_url)} 
 
-                        <span className="text-xl font-bold text-primary">{p.name[0]}</span>
+                              alt={p.name} 
+
+                              className="w-full h-full object-contain rounded-lg"
+
+                              onError={(e) => {
+
+                                e.currentTarget.src = `https://picsum.photos/seed/provider/48/48.jpg`;
+
+                              }}
+
+                            />
+
+                          </div>
+
+                        ) : (
+
+                          <div className={`w-12 h-12 bg-gradient-to-br ${currentGradient.replace('/30', '/60')} rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300 border-2 ${currentBorder} shadow-xl shadow-black/30`}>
+
+                            <span className="text-lg font-bold text-white">{p.name[0]}</span>
+
+                          </div>
+
+                        )}
+
+                        {/* Provider Name */}
+                        <h3 className="font-semibold text-white text-xs mb-1 line-clamp-2 leading-tight">{p.name}</h3>
+
+                        {/* Level Badge */}
+                        {p.level && p.level > 0 && (
+
+                          <div className={`text-xs bg-gradient-to-r ${currentGradient.replace('/30', '/50')} text-white px-2 py-0.5 rounded-full border ${currentBorder}`}>
+
+                            Level {p.level}+
+
+                          </div>
+
+                        )}
 
                       </div>
 
-                    )}
+                      {/* Star Rating */}
+                      <div className="flex items-center gap-0.5 mb-1">
 
-                    <h3 className="font-semibold text-white text-sm mb-1 line-clamp-1">{p.name}</h3>
+                        {[...Array(5)].map((_, i) => (
 
-                    {p.level && p.level > 0 && (
+                          <Star 
 
-                      <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                            key={i} 
 
-                        Level {p.level}+
+                            className={`h-2.5 w-2.5 ${i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} 
 
-                      </Badge>
+                          />
 
-                    )}
+                        ))}
 
-                  </CardContent>
+                      </div>
 
-                </Card>
+                    </CardContent>
 
-              </Link>
+                  </Card>
 
-            ))}
+                </div>
+
+                );
+              })}
+
+            </div>
 
           </div>
 

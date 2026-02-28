@@ -4,8 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Monitor, Smartphone, Tablet, ExternalLink } from "lucide-react";
+import { Monitor, Smartphone, Tablet, ExternalLink, Star, Network } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import OfferWallIframe from "@/components/OfferWallIframe";
 
 const DailySurveys = () => {
   const { profile } = useAuth();
@@ -13,10 +14,8 @@ const DailySurveys = () => {
   const [offers, setOffers] = useState<any[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
-  const [selectedType, setSelectedType] = useState<"survey" | "offer" | "provider">("survey");
-  const [showIframeModal, setShowIframeModal] = useState(false);
-  const [currentIframeUrl, setCurrentIframeUrl] = useState("");
-  const [currentIframeCode, setCurrentIframeCode] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState<any>(null);
+  const [selectedType, setSelectedType] = useState<"survey" | "offer">("survey");
 
   useEffect(() => {
     supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveys(data || []));
@@ -36,112 +35,15 @@ const DailySurveys = () => {
     }
   };
 
-  // Helper function to get username from profile
-  const getUsername = (): string => {
-    // Try different sources for username
-    return profile?.username || 
-           profile?.email?.split('@')[0] || 
-           `user_${profile?.id?.substring(0, 8)}` || 
-           'user';
-  };
-
-  // Helper function to replace user parameters in URLs and iframe code
-  const replaceUserParams = (text: string): string => {
-    if (!text) return text;
-    
-    const username = getUsername();
-    const userId = profile?.id || '';
-    
-    // Common user parameter variations to replace
-    const replacements: Record<string, string> = {
-      // User ID variations - replace with USERNAME
-      '{user_id}': username,
-      '{userId}': username,
-      '{userid}': username,
-      '{uid}': username,
-      '{USER_ID}': username,
-      '{{user_id}}': username,
-      '[user_id]': username,
-      '%user_id%': username,
-      '$user_id': username,
-      
-      // Username variations - also replace with username
-      '{username}': username,
-      '{user_name}': username,
-      '{user}': username,
-      '{USERNAME}': username,
-      
-      // Email variations
-      '{email}': profile?.email || username,
-      '{user_email}': profile?.email || username,
-      
-      // Keep user_id for reference if needed elsewhere
-      '{actual_user_id}': userId,
-    };
-
-    // Replace all variations
-    let result = text;
-    Object.entries(replacements).forEach(([placeholder, value]) => {
-      result = result.replace(new RegExp(escapeRegExp(placeholder), 'g'), value);
-    });
-
-    return result;
-  };
-
-  // Helper function to escape special characters in regex
-  const escapeRegExp = (string: string): string => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  };
-
-  // Helper function to extract URL from iframe code
-  const extractUrlFromIframeCode = (iframeCode: string): string | null => {
-    if (!iframeCode) return null;
-    
-    // Try different regex patterns to extract the src
-    const patterns = [
-      /src=["'](.*?)["']/,
-      /src=['"](.*?)['"]/,
-      /src=([^\s>]+)/,
-      /<iframe.*?src=["'](.*?)["']/,
-    ];
-    
-    for (const pattern of patterns) {
-      const match = iframeCode.match(pattern);
-      if (match && match[1]) {
-        return match[1];
-      }
-    }
-    
-    return null;
-  };
-
-  // Helper function to create iframe HTML with replaced parameters
-  const processIframeCode = (iframeCode: string): string => {
-    if (!iframeCode) return '';
-    
-    // Replace user parameters in iframe code
-    let processed = replaceUserParams(iframeCode);
-    
-    // Ensure iframe has proper sandbox attributes for security
-    if (!processed.includes('sandbox=')) {
-      processed = processed.replace('<iframe', '<iframe sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation"');
-    }
-    
-    return processed;
-  };
-
-  const trackClick = async (item: any, type: "survey" | "offer" | "provider") => {
+  const trackClick = async (item: any, type: "survey" | "offer" | "provider", providerId?: string) => {
     if (!profile) return;
-    
     const ipInfo = await fetchIpInfo();
     const utmParams: Record<string, string> = {};
     const urlParams = new URLSearchParams(window.location.search);
-    
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
       const v = urlParams.get(k);
       if (v) utmParams[k] = v;
     });
-    
     if (Object.keys(utmParams).length === 0 && document.referrer) {
       try {
         const refUrl = new URL(document.referrer);
@@ -156,17 +58,9 @@ const DailySurveys = () => {
     utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
-    const sessionId = sessionStorage.getItem("session_id") || crypto.randomUUID();
-    
-    // Store session ID if not exists
-    if (!sessionStorage.getItem("session_id")) {
-      sessionStorage.setItem("session_id", sessionId);
-    }
-
     const payload: any = {
       user_id: profile.id,
-      username: getUsername(),
-      session_id: sessionId,
+      session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
       user_agent: navigator.userAgent,
       device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
       browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
@@ -180,96 +74,53 @@ const DailySurveys = () => {
       session_start: sessionStart,
       session_end: sessionStart,
     };
-    
-    if (type === "offer") payload.offer_id = item.id;
-    else if (type === "survey") payload.survey_link_id = item.id;
-    else if (type === "provider") payload.provider_id = item.id;
+
+    // Different tracking based on type
+    if (type === "offer") {
+      payload.offer_id = item.id;
+    } else if (type === "survey") {
+      payload.survey_link_id = item.id;
+    } else if (type === "provider") {
+      payload.provider_id = providerId;
+    }
 
     const { data: inserted } = await supabase.from("offer_clicks").insert(payload).select("id").single();
-    
     if (inserted?.id) {
       const updateEnd = () => {
         const endTime = new Date().toISOString();
         const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ 
-          session_end: endTime, 
-          time_spent: timeSpent 
-        }).eq("id", inserted.id).then(() => {});
+        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
       };
-      
       window.addEventListener("beforeunload", updateEnd, { once: true });
-      
       setTimeout(async () => {
         const endTime = new Date().toISOString();
         const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        await supabase.from("offer_clicks").update({ 
-          session_end: endTime, 
-          time_spent: timeSpent 
-        }).eq("id", inserted.id);
+        await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
       }, 30000);
     }
-
-    return inserted?.id;
   };
 
-  const handleStart = async (item: any, type: "survey" | "offer" | "provider") => {
-    if (!profile) {
-      alert("Please login first");
-      return;
-    }
-
-    // Track the click first
+  const handleStart = async (item: any, type: "survey" | "offer") => {
     await trackClick(item, type);
-
-    if (type === "provider") {
-      // Check if we have iframe code
-      if (item.iframe_code) {
-        // Process the iframe code (replace {user_id} with username)
-        const processedIframeCode = processIframeCode(item.iframe_code);
-        
-        // Try to extract URL from processed iframe code
-        const extractedUrl = extractUrlFromIframeCode(processedIframeCode);
-        
-        if (extractedUrl) {
-          // If we can extract URL, open in new tab
-          console.log("Opening offerwall URL with username:", extractedUrl);
-          window.open(extractedUrl, "_blank");
-        } else {
-          // If we can't extract URL, show iframe in modal
-          console.log("Showing iframe in modal with username replaced");
-          const blob = new Blob([processedIframeCode], { type: 'text/html' });
-          const blobUrl = URL.createObjectURL(blob);
-          setCurrentIframeUrl(blobUrl);
-          setCurrentIframeCode(processedIframeCode);
-          setShowIframeModal(true);
-        }
-        return;
-      }
-      
-      // Check for iframe URL or regular URL
-      let url = item.iframe_url || item.url;
-      
-      if (url) {
-        // Replace user parameters in URL (including {user_id} with username)
-        const finalUrl = replaceUserParams(url);
-        console.log("Opening offerwall URL with username:", finalUrl);
-        window.open(finalUrl, "_blank");
-      } else {
-        alert("This offer wall has no URL or iframe code configured");
-      }
-      return;
-    }
-    
-    // For surveys and offers
     const url = type === "offer" ? item.url : item.link;
+    if (url) window.open(url, "_blank");
+  };
+
+  /**
+   * Handle opening offerwall provider
+   * First tries iframe, falls back to new tab if iframe fails
+   */
+  const handleOpenProvider = async (provider: any) => {
+    await trackClick(provider, "provider", provider.id);
     
-    if (url) {
-      // Replace user parameters in survey/offer URL
-      const finalUrl = replaceUserParams(url);
-      console.log("Opening survey/offer URL with username:", finalUrl);
-      window.open(finalUrl, "_blank");
+    // If provider has iframe_url or iframe_code, use iframe modal
+    // Otherwise open in new tab
+    if (provider.iframe_url || provider.iframe_code) {
+      setSelectedProvider(provider);
     } else {
-      alert("This item has no URL configured");
+      // Fallback: open in new tab
+      const url = provider.external_url || provider.url;
+      if (url) window.open(url, "_blank");
     }
   };
 
@@ -282,6 +133,15 @@ const DailySurveys = () => {
         {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-2.5 w-2.5 text-muted-foreground" />}
       </div>
     );
+  };
+
+  // API image integration function
+  const getImageUrl = (title: string, existingUrl?: string) => {
+    if (existingUrl && existingUrl.startsWith('http')) {
+      return existingUrl;
+    }
+    // Use a placeholder API for better image quality
+    return `https://picsum.photos/seed/${encodeURIComponent(title)}/200/150.jpg`;
   };
 
   // Featured Tasks = survey_links (single link providers)
@@ -338,50 +198,192 @@ const DailySurveys = () => {
         </div>
       )}
 
-      {/* Offer Walls = survey_providers (iframes) */}
+      {/* Offer Walls - CoinLooty Style Design */}
       {providers.length > 0 && (
         <>
           <div className="mt-4">
-            <h2 className="text-lg font-bold">Offer Walls</h2>
-            <p className="text-xs text-muted-foreground">Each offer wall contains hundreds of offers to complete</p>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Network className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Offer Walls</h2>
+                  <p className="text-sm text-gray-400">Premium offer networks with hundreds of tasks</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-            {providers.map((p) => (
-              <Card 
-                key={p.id} 
-                className="hover:border-primary/50 transition-colors cursor-pointer border-0 relative"
-                onClick={() => {
-                  // Direct click handler for offer walls
-                  const hasContent = p.iframe_url || p.url || p.iframe_code;
-                  if (hasContent) {
-                    // Track the click first, then open URL/iframe
-                    handleStart(p, "provider");
-                  } else {
-                    // If no content, show in dialog for details
-                    setSelected(p);
-                    setSelectedType("provider");
-                  }
-                }}
-              >
-                <CardContent className="p-3 text-center">
-                  {p.point_percentage > 100 && (
-                    <Badge className="absolute top-1 right-1 text-[8px] px-1 py-0 bg-primary/90">+{p.point_percentage - 100}%</Badge>
-                  )}
-                  {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="w-full h-10 object-contain mb-1.5" />
-                  ) : (
-                    <div className="h-10 flex items-center justify-center mb-1.5">
-                      <span className="text-sm font-bold text-primary/60">{p.name[0]}</span>
-                    </div>
-                  )}
-                  <p className="font-medium text-[10px] truncate">{p.name}</p>
-                  {p.level && p.level > 0 && (
-                    <p className="text-[8px] text-muted-foreground">Level {p.level}+</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+
+          {/* Horizontal Scroll Layout - CoinLooty Style */}
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-4 min-w-max" style={{ scrollSnapType: 'x mandatory' }}>
+
+              {providers.map((p, index) => {
+
+                // Define different gradient colors for each card
+                const gradients = [
+                  'from-purple-600/30 via-purple-800/20 to-purple-900/30',
+                  'from-blue-600/30 via-blue-800/20 to-blue-900/30',
+                  'from-green-600/30 via-green-800/20 to-green-900/30',
+                  'from-red-600/30 via-red-800/20 to-red-900/30',
+                  'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
+                  'from-pink-600/30 via-pink-800/20 to-pink-900/30',
+                  'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
+                  'from-teal-600/30 via-teal-800/20 to-teal-900/30',
+                  'from-orange-600/30 via-orange-800/20 to-orange-900/30',
+                  'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
+                ];
+
+                const borderColors = [
+                  'border-purple-400/80',
+                  'border-blue-400/80',
+                  'border-green-400/80',
+                  'border-red-400/80',
+                  'border-yellow-400/80',
+                  'border-pink-400/80',
+                  'border-indigo-400/80',
+                  'border-teal-400/80',
+                  'border-orange-400/80',
+                  'border-cyan-400/80',
+                ];
+
+                const shadowColors = [
+                  'hover:shadow-purple-500/40',
+                  'hover:shadow-blue-500/40',
+                  'hover:shadow-green-500/40',
+                  'hover:shadow-red-500/40',
+                  'hover:shadow-yellow-500/40',
+                  'hover:shadow-pink-500/40',
+                  'hover:shadow-indigo-500/40',
+                  'hover:shadow-teal-500/40',
+                  'hover:shadow-orange-500/40',
+                  'hover:shadow-cyan-500/40',
+                ];
+
+                const currentGradient = gradients[index % gradients.length];
+                const currentBorder = borderColors[index % borderColors.length];
+                const currentShadow = shadowColors[index % shadowColors.length];
+
+                return (
+
+                <div key={p.id} className="flex-shrink-0" style={{ scrollSnapAlign: 'start' }}>
+
+                  <Card className={`w-32 h-48 bg-gradient-to-br ${currentGradient} border-4 ${currentBorder} rounded-2xl cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-2xl ${currentShadow} backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40`}
+
+                    onClick={() => {
+                      console.log("Provider clicked:", p.name);
+                      handleOpenProvider(p);
+                    }}
+
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        handleOpenProvider(p);
+                      }
+                    }}>
+
+                    {/* Gradient Overlay with transparency */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 pointer-events-none"></div>
+                    
+                    {/* Inner shadow for thickness effect */}
+                    <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/30 pointer-events-none"></div>
+
+                    <CardContent className="p-3 h-full flex flex-col items-center justify-between text-center relative z-10">
+
+                      {/* Bonus Badge */}
+                      {p.point_percentage > 100 && (
+
+                        <div className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg">
+
+                          +{p.point_percentage - 100}%
+
+                        </div>
+
+                      )}
+
+                      {/* Provider Logo */}
+                      <div className="flex-1 flex flex-col items-center justify-center">
+
+                        {p.image_url ? (
+
+                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${currentGradient.replace('/30', '/40')} p-1 mb-2 group-hover:scale-110 transition-transform duration-300 border-2 ${currentBorder} shadow-xl shadow-black/30`}>
+
+                            <img 
+
+                              src={getImageUrl(p.name, p.image_url)} 
+
+                              alt={p.name} 
+
+                              className="w-full h-full object-contain rounded-lg"
+
+                              onError={(e) => {
+
+                                e.currentTarget.src = `https://picsum.photos/seed/provider/48/48.jpg`;
+
+                              }}
+
+                            />
+
+                          </div>
+
+                        ) : (
+
+                          <div className={`w-12 h-12 bg-gradient-to-br ${currentGradient.replace('/30', '/60')} rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300 border-2 ${currentBorder} shadow-xl shadow-black/30`}>
+
+                            <span className="text-lg font-bold text-white">{p.name[0]}</span>
+
+                          </div>
+
+                        )}
+
+                        {/* Provider Name */}
+                        <h3 className="font-semibold text-white text-xs mb-1 line-clamp-2 leading-tight">{p.name}</h3>
+
+                        {/* Level Badge */}
+                        {p.level && p.level > 0 && (
+
+                          <div className={`text-xs bg-gradient-to-r ${currentGradient.replace('/30', '/50')} text-white px-2 py-0.5 rounded-full border ${currentBorder}`}>
+
+                            Level {p.level}+
+
+                          </div>
+
+                        )}
+
+                      </div>
+
+                      {/* Star Rating */}
+                      <div className="flex items-center gap-0.5 mb-1">
+
+                        {[...Array(5)].map((_, i) => (
+
+                          <Star 
+
+                            key={i} 
+
+                            className={`h-2.5 w-2.5 ${i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} 
+
+                          />
+
+                        ))}
+
+                      </div>
+
+                    </CardContent>
+
+                  </Card>
+
+                </div>
+
+                );
+              })}
+
+            </div>
+
           </div>
+
         </>
       )}
 
@@ -389,9 +391,9 @@ const DailySurveys = () => {
         <Card><CardContent className="p-6 text-center text-muted-foreground text-xs">No tasks available. Check back later!</CardContent></Card>
       )}
 
-      {/* Detail Dialog */}
+      {/* Featured Task Details Dialog */}
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md pointer-events-auto">
           <DialogHeader><DialogTitle className="text-sm">Task Details</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-3">
@@ -408,9 +410,7 @@ const DailySurveys = () => {
                 <div className="flex-1">
                   <h3 className="text-sm font-bold">{selected.title || selected.name}</h3>
                   <p className="text-primary font-bold text-sm">
-                    {selectedType === "offer" ? `${selected.currency || "$"} ${selected.payout}` : 
-                     selectedType === "survey" ? `${selected.payout} pts` :
-                     "Offer Wall"}
+                    {selectedType === "offer" ? `${selected.currency || "$"} ${selected.payout}` : `${selected.payout} pts`}
                   </p>
                   <div className="mt-0.5">{deviceIcons(selected.device || selected.devices || "")}</div>
                 </div>
@@ -432,80 +432,42 @@ const DailySurveys = () => {
                     {selected.rating > 0 && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Rating</p><p className="text-xs font-medium">⭐ {selected.rating}</p></div>}
                   </>
                 )}
-                {selectedType === "provider" && (
-                  <>
-                    {selected.iframe_url && (
-                      <div className="bg-accent/50 rounded-md p-2 col-span-2">
-                        <p className="text-[9px] text-muted-foreground">Offer Wall URL</p>
-                        <p className="text-xs font-medium truncate">{selected.iframe_url}</p>
-                      </div>
-                    )}
-                    {selected.iframe_code && (
-                      <div className="bg-accent/50 rounded-md p-2 col-span-2">
-                        <p className="text-[9px] text-muted-foreground">Iframe Code</p>
-                        <p className="text-xs font-medium text-green-500">✓ Embedded iframe will be used</p>
-                        <p className="text-[8px] text-muted-foreground mt-1">Your username will replace {'{user_id}'}</p>
-                      </div>
-                    )}
-                    {selected.url && !selected.iframe_url && !selected.iframe_code && (
-                      <div className="bg-accent/50 rounded-md p-2 col-span-2">
-                        <p className="text-[9px] text-muted-foreground">URL</p>
-                        <p className="text-xs font-medium truncate">{selected.url}</p>
-                      </div>
-                    )}
-                    {selected.point_percentage > 100 && (
-                      <div className="bg-accent/50 rounded-md p-2">
-                        <p className="text-[9px] text-muted-foreground">Bonus</p>
-                        <p className="text-xs font-medium">+{selected.point_percentage - 100}%</p>
-                      </div>
-                    )}
-                    {selected.level && (
-                      <div className="bg-accent/50 rounded-md p-2">
-                        <p className="text-[9px] text-muted-foreground">Level Required</p>
-                        <p className="text-xs font-medium">{selected.level}+</p>
-                      </div>
-                    )}
-                  </>
-                )}
               </div>
 
               {(selected.description || selected.content) && (
                 <div className="bg-accent/30 rounded-md p-2 text-xs">{selected.description || selected.content}</div>
               )}
 
-              <Button 
-                className="w-full h-8 text-xs" 
-                onClick={() => handleStart(selected, selectedType)}
-                style={selected.button_gradient ? { background: selected.button_gradient } : undefined}
-              >
+              <Button className="w-full h-8 text-xs" onClick={() => handleStart(selected, selectedType)}
+                style={selected.button_gradient ? { background: selected.button_gradient } : undefined}>
                 <ExternalLink className="h-3 w-3 mr-1.5" />
-                {selected.button_text || (selectedType === "provider" ? "Open Offer Wall" : "Start Task")}
+                {selected.button_text || "Start Task"}
               </Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Iframe Modal - for displaying iframe code directly */}
-      <Dialog open={showIframeModal} onOpenChange={setShowIframeModal}>
-        <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Offer Wall</DialogTitle>
-          </DialogHeader>
-          {currentIframeUrl ? (
-            <iframe 
-              src={currentIframeUrl}
-              className="w-full h-full"
-              title="Offer Wall"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation"
-            />
-          ) : currentIframeCode ? (
-            <div dangerouslySetInnerHTML={{ __html: currentIframeCode }} className="w-full h-full" />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      {/* Offerwall Provider iframe Modal */}
+      {selectedProvider && (
+        <OfferWallIframe
+          provider={selectedProvider}
+          isOpen={!!selectedProvider}
+          onClose={() => setSelectedProvider(null)}
+          onframeLoad={() => {
+            // Optional: Do something when iframe loads
+            console.log(`Iframe loaded: ${selectedProvider.name}`);
+          }}
+          onFrameError={() => {
+            // If iframe fails, offer alternative
+            console.error(`Iframe failed: ${selectedProvider.name}`);
+            // Optionally auto-open in new tab on error
+            // const url = selectedProvider.external_url || selectedProvider.url;
+            // if (url) window.open(url, "_blank");
+          }}
+        />
+      )}
     </div>
   );
 };
-
 export default DailySurveys;

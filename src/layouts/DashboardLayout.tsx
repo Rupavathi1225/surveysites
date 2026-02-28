@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
-  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus, Copy
+  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus, Copy, PanelLeftClose,
+  TrendingUp, Network, MessageSquare, Headphones
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -15,16 +16,19 @@ import { Button } from "@/components/ui/button";
 
 interface NavGroup {
   label: string;
+  icon: any;
   items: { to: string; icon: any; label: string }[];
 }
 
 const navGroups: NavGroup[] = [
   {
     label: "Dashboard",
+    icon: LayoutDashboard,
     items: [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }],
   },
   {
-    label: "Account & Finance",
+    label: "Account",
+    icon: DollarSign,
     items: [
       { to: "/dashboard/balance-history", icon: History, label: "Balance History" },
       { to: "/dashboard/withdrawal", icon: Wallet, label: "Withdrawal" },
@@ -34,7 +38,8 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Earnings & Activities",
+    label: "Earnings",
+    icon: TrendingUp,
     items: [
       { to: "/dashboard/daily-surveys", icon: ClipboardList, label: "Daily Surveys" },
       { to: "/dashboard/offers", icon: Gift, label: "Offers" },
@@ -43,18 +48,20 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Network & Performance",
+    label: "Network",
+    icon: Network,
     items: [
       { to: "/dashboard/affiliates", icon: Users, label: "Your Affiliates" },
       { to: "/dashboard/leaderboard", icon: Star, label: "Leaderboard" },
     ],
   },
   {
-    label: "Communication & Support",
+    label: "Support",
+    icon: MessageSquare,
     items: [
       { to: "/dashboard/inbox", icon: Mail, label: "Inbox" },
       { to: "/dashboard/news", icon: Newspaper, label: "News" },
-      { to: "/dashboard/support", icon: HelpCircle, label: "Support Ticket" },
+      { to: "/dashboard/support", icon: Headphones, label: "Support Ticket" },
     ],
   },
 ];
@@ -66,6 +73,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarClosed, setSidebarClosed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
@@ -109,6 +117,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    setSidebarClosed(true);
+  };
+
+  const openSidebar = () => {
+    setSidebarOpen(true);
+    setSidebarClosed(false);
+  };
+
   // Guard: if not logged in, show auth prompt when clicking sidebar links
   const handleNavClick = (e: React.MouseEvent, to: string) => {
     if (!user) {
@@ -121,16 +139,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-background">
+      {/* Mobile menu toggle */}
       <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card rounded-lg border border-border">
         {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
+      
+      {/* Desktop sidebar toggle - only show when sidebar is closed */}
+      {sidebarClosed && (
+        <button 
+          onClick={openSidebar} 
+          className="hidden lg:flex fixed top-4 left-4 z-50 p-2 bg-card rounded-lg border border-border items-center gap-2"
+          title="Open Sidebar"
+        >
+          <Menu className="h-5 w-5" />
+          <span className="text-sm font-medium">Menu</span>
+        </button>
+      )}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-60 bg-sidebar border-r border-sidebar-border transform transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 overflow-y-auto`}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-60 bg-sidebar border-r border-sidebar-border transform transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} ${sidebarClosed ? "lg:-translate-x-full" : "lg:translate-x-0"} overflow-y-auto`}>
         <div className="p-4 pb-2">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-primary" />
-            <span className="text-base font-bold text-primary">SurveyForever</span>
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link to="/dashboard" className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-primary" />
+              <span className="text-base font-bold text-primary">SurveyForever</span>
+            </Link>
+            <button
+              onClick={closeSidebar}
+              className="p-1 rounded-md hover:bg-accent/50 transition-colors"
+              title="Close Sidebar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
           {profile && (
             <div className="mt-3 mb-2">
               <p className="font-medium text-xs">{profile.first_name || profile.username}</p>
@@ -149,11 +189,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <button
                   onClick={() => toggleGroup(group.label)}
                   className={cn(
-                    "flex items-center justify-between w-full px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider rounded-md transition-colors",
+                    "flex items-center justify-between w-full px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider rounded-md transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <span>{group.label}</span>
+                  <div className="flex items-center gap-2">
+                    <group.icon className="h-3.5 w-3.5" />
+                    <span>{group.label}</span>
+                  </div>
                   {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 </button>
                 {isExpanded && (
@@ -164,7 +207,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         to={item.to}
                         onClick={(e) => handleNavClick(e, item.to)}
                         className={cn(
-                          "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
+                          "flex items-center gap-2 px-3 py-1.5 text-[10px] rounded-md transition-colors",
                           location.pathname === item.to
                             ? "bg-primary/15 text-primary font-medium"
                             : "text-sidebar-foreground hover:bg-accent/50"
@@ -182,10 +225,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           {isAdminOrSubAdmin && (
             <div className="mb-1">
-              <p className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</p>
+              <p className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</p>
               <div className="ml-1">
                 <Link to="/admin" onClick={(e) => handleNavClick(e, "/admin")} className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
+                  "flex items-center gap-2 px-3 py-1.5 text-[10px] rounded-md transition-colors",
                   location.pathname.startsWith("/admin")
                     ? "bg-primary/15 text-primary font-medium"
                     : "text-sidebar-foreground hover:bg-accent/50"
@@ -197,7 +240,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           )}
 
-          <div className="mt-2 border-t border-sidebar-border pt-2">
+          <div className="mt-2 border-t border-sidebar-border pt-2 space-y-1">
+            <button 
+              onClick={closeSidebar}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs text-sidebar-foreground hover:bg-accent/50 rounded-md w-full transition-colors lg:flex hidden"
+              title="Close Sidebar"
+            >
+              <PanelLeftClose className="h-3.5 w-3.5" />
+              Close Sidebar
+            </button>
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 text-xs text-sidebar-foreground hover:bg-accent/50 rounded-md w-full transition-colors">
               <LogOut className="h-3.5 w-3.5" />
               Logout
@@ -208,7 +259,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {sidebarOpen && <div className="lg:hidden fixed inset-0 bg-background/80 z-30" onClick={() => setSidebarOpen(false)} />}
 
-      <main className="flex-1 overflow-auto">
+      <main className={`flex-1 overflow-auto transition-all duration-300 ${sidebarClosed ? "lg:ml-0" : "lg:ml-60"}`}>
         <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-1.5 flex items-center gap-2 overflow-x-auto">
           <div className="lg:hidden w-8 shrink-0" />
           <div className="flex items-center gap-2 ml-auto">
