@@ -44,17 +44,6 @@ const DailySurveys = () => {
       const v = urlParams.get(k);
       if (v) utmParams[k] = v;
     });
-    if (Object.keys(utmParams).length === 0 && document.referrer) {
-      try {
-        const refUrl = new URL(document.referrer);
-        const refParams = new URLSearchParams(refUrl.search);
-        ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
-          const v = refParams.get(k);
-          if (v) utmParams[k] = v;
-        });
-        if (Object.keys(utmParams).length === 0) utmParams["referrer"] = refUrl.hostname;
-      } catch {}
-    }
     utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
@@ -75,29 +64,11 @@ const DailySurveys = () => {
       session_end: sessionStart,
     };
 
-    // Different tracking based on type
-    if (type === "offer") {
-      payload.offer_id = item.id;
-    } else if (type === "survey") {
-      payload.survey_link_id = item.id;
-    } else if (type === "provider") {
-      payload.provider_id = providerId;
-    }
+    if (type === "offer") payload.offer_id = item.id;
+    else if (type === "survey") payload.survey_link_id = item.id;
+    else if (type === "provider") payload.provider_id = providerId;
 
-    const { data: inserted } = await supabase.from("offer_clicks").insert(payload).select("id").single();
-    if (inserted?.id) {
-      const updateEnd = () => {
-        const endTime = new Date().toISOString();
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
-      };
-      window.addEventListener("beforeunload", updateEnd, { once: true });
-      setTimeout(async () => {
-        const endTime = new Date().toISOString();
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
-      }, 30000);
-    }
+    await supabase.from("offer_clicks").insert(payload).select("id").single();
   };
 
   const handleStart = async (item: any, type: "survey" | "offer") => {
@@ -106,19 +77,11 @@ const DailySurveys = () => {
     if (url) window.open(url, "_blank");
   };
 
-  /**
-   * Handle opening offerwall provider
-   * First tries iframe, falls back to new tab if iframe fails
-   */
   const handleOpenProvider = async (provider: any) => {
     await trackClick(provider, "provider", provider.id);
-    
-    // If provider has iframe_url or iframe_code, use iframe modal
-    // Otherwise open in new tab
     if (provider.iframe_url || provider.iframe_code) {
       setSelectedProvider(provider);
     } else {
-      // Fallback: open in new tab
       const url = provider.external_url || provider.url;
       if (url) window.open(url, "_blank");
     }
@@ -128,66 +91,58 @@ const DailySurveys = () => {
     const d = (device || "").toLowerCase();
     return (
       <div className="flex gap-0.5">
-        {(d.includes("desktop") || d.includes("all") || !d) && <Monitor className="h-2.5 w-2.5 text-muted-foreground" />}
-        {(d.includes("mobile") || d.includes("all") || !d) && <Smartphone className="h-2.5 w-2.5 text-muted-foreground" />}
-        {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-2.5 w-2.5 text-muted-foreground" />}
+        {(d.includes("desktop") || d.includes("all") || !d) && <Monitor className="h-3 w-3 text-muted-foreground" />}
+        {(d.includes("mobile") || d.includes("all") || !d) && <Smartphone className="h-3 w-3 text-muted-foreground" />}
+        {(d.includes("tablet") || d.includes("all")) && <Tablet className="h-3 w-3 text-muted-foreground" />}
       </div>
     );
   };
 
-  // API image integration function
   const getImageUrl = (title: string, existingUrl?: string) => {
-    if (existingUrl && existingUrl.startsWith('http')) {
-      return existingUrl;
-    }
-    // Use a placeholder API for better image quality
+    if (existingUrl && existingUrl.startsWith('http')) return existingUrl;
     return `https://picsum.photos/seed/${encodeURIComponent(title)}/200/150.jpg`;
   };
 
-  // Featured Tasks = survey_links (single link providers)
   const featuredTasks = [...surveys, ...offers];
 
   return (
-    <div className="space-y-4">
-      {/* Featured Tasks - compact cards like EarnLab */}
+    <div className="space-y-6">
+      {/* Featured Tasks */}
       <div>
-        <h2 className="text-lg font-bold">Featured Tasks</h2>
-        <p className="text-xs text-muted-foreground">Featured tasks are the best tasks to complete, with the highest rewards</p>
+        <h2 className="text-xl font-bold text-foreground">Featured Tasks</h2>
+        <p className="text-xs text-muted-foreground mb-4">Featured tasks are the best tasks to complete, with the highest rewards</p>
       </div>
 
       {featuredTasks.length === 0 ? (
-        <p className="text-muted-foreground text-xs text-center py-6">No featured tasks available. Check back later!</p>
+        <p className="text-muted-foreground text-xs text-center py-6">No featured tasks available.</p>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
           {featuredTasks.map((item) => {
             const isOffer = 'title' in item && 'url' in item && !('link' in item);
             const name = isOffer ? item.title : item.name;
             const payout = item.payout;
-            const imgUrl = item.image_url;
+            const imgUrl = getImageUrl(name, item.image_url);
 
             return (
               <Card
                 key={item.id}
-                className="hover:border-primary/50 transition-all cursor-pointer group overflow-hidden border-0"
+                className="bg-card border-border hover:border-primary/40 transition-all cursor-pointer group overflow-hidden"
                 onClick={() => { setSelected(item); setSelectedType(isOffer ? "offer" : "survey"); }}
               >
                 <CardContent className="p-0">
-                  {imgUrl ? (
-                    <div className="aspect-[4/3] bg-accent overflow-hidden">
-                      <img src={imgUrl} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    </div>
-                  ) : (
-                    <div className="aspect-[4/3] bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center">
-                      <span className="text-xl font-bold text-primary/40">{(name || "?")[0]}</span>
-                    </div>
-                  )}
-                  <div className="p-1.5">
-                    <p className="font-medium text-[10px] truncate">{name}</p>
-                    <p className="text-[9px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-primary font-bold text-[10px]">
-                        $ {Number(payout || 0).toFixed(2)}
-                      </span>
+                  <div className="aspect-square bg-accent overflow-hidden">
+                    <img
+                      src={imgUrl}
+                      alt={name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/fallback/200/200.jpg`; }}
+                    />
+                  </div>
+                  <div className="p-2">
+                    <p className="font-semibold text-xs text-foreground truncate">{name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{item.description || item.content || "Complete to earn"}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-primary font-bold text-xs">$ {Number(payout || 0).toFixed(2)}</span>
                       {deviceIcons(item.device || item.devices || "")}
                     </div>
                   </div>
@@ -198,202 +153,54 @@ const DailySurveys = () => {
         </div>
       )}
 
-      {/* Offer Walls - CoinLooty Style Design */}
+      {/* Offer Walls - EarnLab Style Grid */}
       {providers.length > 0 && (
-        <>
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                  <Network className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Offer Walls</h2>
-                  <p className="text-sm text-gray-400">Premium offer networks with hundreds of tasks</p>
-                </div>
-              </div>
-            </div>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Offer Walls</h2>
+          <p className="text-xs text-muted-foreground mb-4">Each offer wall contains hundreds of offers to complete</p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {providers.map((p) => (
+              <Card
+                key={p.id}
+                className="bg-card border-border hover:border-primary/40 transition-all cursor-pointer group relative overflow-hidden"
+                onClick={() => handleOpenProvider(p)}
+              >
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  {p.point_percentage > 100 && (
+                    <div className="absolute top-2 right-2 bg-emerald-500 text-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      +{p.point_percentage - 100}%
+                    </div>
+                  )}
+
+                  <div className="w-16 h-16 rounded-xl bg-accent border border-border flex items-center justify-center mb-3 overflow-hidden group-hover:scale-105 transition-transform">
+                    {p.image_url ? (
+                      <img
+                        src={getImageUrl(p.name, p.image_url)}
+                        alt={p.name}
+                        className="w-full h-full object-contain p-1"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <span className="text-xl font-bold text-primary">{p.name[0]}</span>
+                    )}
+                  </div>
+
+                  <h3 className="font-semibold text-xs text-foreground line-clamp-2">{p.name}</h3>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-
-          {/* Horizontal Scroll Layout - CoinLooty Style */}
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-4 min-w-max" style={{ scrollSnapType: 'x mandatory' }}>
-
-              {providers.map((p, index) => {
-
-                // Define different gradient colors for each card
-                const gradients = [
-                  'from-purple-600/30 via-purple-800/20 to-purple-900/30',
-                  'from-blue-600/30 via-blue-800/20 to-blue-900/30',
-                  'from-green-600/30 via-green-800/20 to-green-900/30',
-                  'from-red-600/30 via-red-800/20 to-red-900/30',
-                  'from-yellow-600/30 via-yellow-800/20 to-yellow-900/30',
-                  'from-pink-600/30 via-pink-800/20 to-pink-900/30',
-                  'from-indigo-600/30 via-indigo-800/20 to-indigo-900/30',
-                  'from-teal-600/30 via-teal-800/20 to-teal-900/30',
-                  'from-orange-600/30 via-orange-800/20 to-orange-900/30',
-                  'from-cyan-600/30 via-cyan-800/20 to-cyan-900/30',
-                ];
-
-                const borderColors = [
-                  'border-purple-400/80',
-                  'border-blue-400/80',
-                  'border-green-400/80',
-                  'border-red-400/80',
-                  'border-yellow-400/80',
-                  'border-pink-400/80',
-                  'border-indigo-400/80',
-                  'border-teal-400/80',
-                  'border-orange-400/80',
-                  'border-cyan-400/80',
-                ];
-
-                const shadowColors = [
-                  'hover:shadow-purple-500/40',
-                  'hover:shadow-blue-500/40',
-                  'hover:shadow-green-500/40',
-                  'hover:shadow-red-500/40',
-                  'hover:shadow-yellow-500/40',
-                  'hover:shadow-pink-500/40',
-                  'hover:shadow-indigo-500/40',
-                  'hover:shadow-teal-500/40',
-                  'hover:shadow-orange-500/40',
-                  'hover:shadow-cyan-500/40',
-                ];
-
-                const currentGradient = gradients[index % gradients.length];
-                const currentBorder = borderColors[index % borderColors.length];
-                const currentShadow = shadowColors[index % shadowColors.length];
-
-                return (
-
-                <div key={p.id} className="flex-shrink-0" style={{ scrollSnapAlign: 'start' }}>
-
-                  <Card className={`w-32 h-48 bg-gradient-to-br ${currentGradient} border-4 ${currentBorder} rounded-2xl cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-2xl ${currentShadow} backdrop-blur-sm relative overflow-hidden opacity-80 hover:opacity-100 shadow-2xl shadow-black/40`}
-
-                    onClick={() => {
-                      console.log("Provider clicked:", p.name);
-                      handleOpenProvider(p);
-                    }}
-
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        handleOpenProvider(p);
-                      }
-                    }}>
-
-                    {/* Gradient Overlay with transparency */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/10 pointer-events-none"></div>
-                    
-                    {/* Inner shadow for thickness effect */}
-                    <div className="absolute inset-0 rounded-2xl shadow-inner shadow-black/30 pointer-events-none"></div>
-
-                    <CardContent className="p-3 h-full flex flex-col items-center justify-between text-center relative z-10">
-
-                      {/* Bonus Badge */}
-                      {p.point_percentage > 100 && (
-
-                        <div className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg">
-
-                          +{p.point_percentage - 100}%
-
-                        </div>
-
-                      )}
-
-                      {/* Provider Logo */}
-                      <div className="flex-1 flex flex-col items-center justify-center">
-
-                        {p.image_url ? (
-
-                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${currentGradient.replace('/30', '/40')} p-1 mb-2 group-hover:scale-110 transition-transform duration-300 border-2 ${currentBorder} shadow-xl shadow-black/30`}>
-
-                            <img 
-
-                              src={getImageUrl(p.name, p.image_url)} 
-
-                              alt={p.name} 
-
-                              className="w-full h-full object-contain rounded-lg"
-
-                              onError={(e) => {
-
-                                e.currentTarget.src = `https://picsum.photos/seed/provider/48/48.jpg`;
-
-                              }}
-
-                            />
-
-                          </div>
-
-                        ) : (
-
-                          <div className={`w-12 h-12 bg-gradient-to-br ${currentGradient.replace('/30', '/60')} rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-300 border-2 ${currentBorder} shadow-xl shadow-black/30`}>
-
-                            <span className="text-lg font-bold text-white">{p.name[0]}</span>
-
-                          </div>
-
-                        )}
-
-                        {/* Provider Name */}
-                        <h3 className="font-semibold text-white text-xs mb-1 line-clamp-2 leading-tight">{p.name}</h3>
-
-                        {/* Level Badge */}
-                        {p.level && p.level > 0 && (
-
-                          <div className={`text-xs bg-gradient-to-r ${currentGradient.replace('/30', '/50')} text-white px-2 py-0.5 rounded-full border ${currentBorder}`}>
-
-                            Level {p.level}+
-
-                          </div>
-
-                        )}
-
-                      </div>
-
-                      {/* Star Rating */}
-                      <div className="flex items-center gap-0.5 mb-1">
-
-                        {[...Array(5)].map((_, i) => (
-
-                          <Star 
-
-                            key={i} 
-
-                            className={`h-2.5 w-2.5 ${i < 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} 
-
-                          />
-
-                        ))}
-
-                      </div>
-
-                    </CardContent>
-
-                  </Card>
-
-                </div>
-
-                );
-              })}
-
-            </div>
-
-          </div>
-
-        </>
+        </div>
       )}
 
       {featuredTasks.length === 0 && providers.length === 0 && (
-        <Card><CardContent className="p-6 text-center text-muted-foreground text-xs">No tasks available. Check back later!</CardContent></Card>
+        <Card><CardContent className="p-6 text-center text-muted-foreground text-xs">No tasks available.</CardContent></Card>
       )}
 
-      {/* Featured Task Details Dialog */}
+      {/* Task Details Dialog */}
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="max-w-md pointer-events-auto">
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle className="text-sm">Task Details</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-3">
@@ -403,71 +210,39 @@ const DailySurveys = () => {
                     <img src={selected.image_url} alt="" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-accent flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg font-bold text-primary/40">{(selected.title || selected.name || "?")[0]}</span>
+                  <div className="w-16 h-16 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg font-bold text-primary">{(selected.title || selected.name || "?")[0]}</span>
                   </div>
                 )}
                 <div className="flex-1">
                   <h3 className="text-sm font-bold">{selected.title || selected.name}</h3>
-                  <p className="text-primary font-bold text-sm">
-                    {selectedType === "offer" ? `${selected.currency || "$"} ${selected.payout}` : `${selected.payout} pts`}
-                  </p>
-                  <div className="mt-0.5">{deviceIcons(selected.device || selected.devices || "")}</div>
+                  <p className="text-primary font-bold text-sm">$ {Number(selected.payout || 0).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{selected.description || selected.content || "Complete this task to earn rewards"}</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {selectedType === "offer" && (
-                  <>
-                    {selected.offer_id && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Offer ID</p><p className="text-xs font-medium">{selected.offer_id}</p></div>}
-                    {selected.payout_model && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Model</p><p className="text-xs font-medium">{selected.payout_model}</p></div>}
-                    {selected.countries && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Countries</p><p className="text-xs font-medium">{selected.countries}</p></div>}
-                    {selected.platform && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Platform</p><p className="text-xs font-medium">{selected.platform}</p></div>}
-                  </>
-                )}
-                {selectedType === "survey" && (
-                  <>
-                    {selected.country && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Country</p><p className="text-xs font-medium">{selected.country}</p></div>}
-                    {selected.level && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Level</p><p className="text-xs font-medium">{selected.level}</p></div>}
-                    {selected.rating > 0 && <div className="bg-accent/50 rounded-md p-2"><p className="text-[9px] text-muted-foreground">Rating</p><p className="text-xs font-medium">⭐ {selected.rating}</p></div>}
-                  </>
-                )}
+              <div className="flex gap-2">
+                <Button size="sm" className="flex-1" onClick={() => { handleStart(selected, selectedType); setSelected(null); }}>
+                  <ExternalLink className="h-3 w-3 mr-1" /> Start Task
+                </Button>
               </div>
-
-              {(selected.description || selected.content) && (
-                <div className="bg-accent/30 rounded-md p-2 text-xs">{selected.description || selected.content}</div>
-              )}
-
-              <Button className="w-full h-8 text-xs" onClick={() => handleStart(selected, selectedType)}
-                style={selected.button_gradient ? { background: selected.button_gradient } : undefined}>
-                <ExternalLink className="h-3 w-3 mr-1.5" />
-                {selected.button_text || "Start Task"}
-              </Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Offerwall Provider iframe Modal */}
-      {selectedProvider && (
-        <OfferWallIframe
-          provider={selectedProvider}
-          isOpen={!!selectedProvider}
-          onClose={() => setSelectedProvider(null)}
-          onframeLoad={() => {
-            // Optional: Do something when iframe loads
-            console.log(`Iframe loaded: ${selectedProvider.name}`);
-          }}
-          onFrameError={() => {
-            // If iframe fails, offer alternative
-            console.error(`Iframe failed: ${selectedProvider.name}`);
-            // Optionally auto-open in new tab on error
-            // const url = selectedProvider.external_url || selectedProvider.url;
-            // if (url) window.open(url, "_blank");
-          }}
-        />
-      )}
+      {/* Provider Iframe Dialog */}
+      <Dialog open={!!selectedProvider} onOpenChange={(v) => !v && setSelectedProvider(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader><DialogTitle>{selectedProvider?.name}</DialogTitle></DialogHeader>
+          {selectedProvider && (
+            <div className="h-[70vh]">
+              <OfferWallIframe provider={selectedProvider} isOpen={!!selectedProvider} onClose={() => setSelectedProvider(null)} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 export default DailySurveys;

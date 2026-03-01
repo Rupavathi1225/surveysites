@@ -86,7 +86,7 @@ const AdminClickTracking = () => {
         survey_links: click.survey_link_id ? surveyMap.get(click.survey_link_id) : null
       }));
 
-      const enhancedProviderClicks = (providerClicksRes.data || []).map(click => ({
+      const enhancedProviderClicks = (providerClicksRes.data || []).map((click: any) => ({
         ...click,
         profiles: profileMap.get(click.user_id) || null,
         survey_providers: click.provider_id ? providerMap.get(click.provider_id) : null

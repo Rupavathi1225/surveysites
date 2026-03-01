@@ -26,10 +26,13 @@ import { autoFillOfferData } from "@/lib/bulkImportUtils";
 interface ApiConfig {
   id: string;
   provider_name: string;
-  network_type: string;
-  network_id: string;
+  network_type?: string;
+  network_id?: string;
   api_endpoint: string;
+  api_key_secret_name?: string;
   is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface OfferPreview {
@@ -379,14 +382,11 @@ const ApiImport = () => {
             is_active: configForm.is_active,
           })
           .eq("id", editingConfig.id)
-      : await supabase
-          .from("api_import_configs")
+      : await (supabase.from("api_import_configs") as any)
           .insert({
             provider_name: configForm.provider_name,
-            network_type: configForm.network_type,
-            network_id: configForm.network_id,
             api_endpoint: configForm.api_endpoint,
-            api_key: configForm.api_key,
+            api_key_secret_name: configForm.api_key || "",
             is_active: configForm.is_active,
           });
 

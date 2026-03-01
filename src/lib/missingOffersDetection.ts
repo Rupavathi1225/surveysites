@@ -121,7 +121,7 @@ export async function saveMissingOffersReport(
   matchingCriteria: string[]
 ): Promise<void> {
   try {
-    await supabase.from("missing_offers_report").insert({
+    await (supabase.from("missing_offers_report") as any).insert({
       batch_id: batchId,
       report_name: reportName,
       uploaded_offers: uploadedOffers,
@@ -144,8 +144,7 @@ export async function saveMissingOffersReport(
  */
 export async function getMissingOffersReports(): Promise<any[]> {
   try {
-    const { data, error } = await supabase
-      .from("missing_offers_report")
+    const { data, error } = await (supabase.from("missing_offers_report") as any)
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -162,7 +161,7 @@ export async function getMissingOffersReports(): Promise<any[]> {
  */
 export async function deleteMissingOffersReport(reportId: string): Promise<void> {
   try {
-    await supabase.from("missing_offers_report").delete().eq("id", reportId);
+    await (supabase.from("missing_offers_report") as any).delete().eq("id", reportId);
   } catch (error) {
     console.error("Error deleting missing offers report:", error);
   }
