@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_import_configs: {
+        Row: {
+          api_endpoint: string
+          api_key_secret_name: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          provider_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_endpoint: string
+          api_key_secret_name: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_endpoint?: string
+          api_key_secret_name?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      bulk_import_logs: {
+        Row: {
+          batch_id: string
+          completed_at: string | null
+          created_at: string | null
+          duplicate_skipped: number | null
+          error_log: Json | null
+          failed_imports: number | null
+          id: string
+          import_data: Json | null
+          import_type: string
+          imported_by: string | null
+          started_at: string | null
+          successful_imports: number | null
+          total_records: number | null
+        }
+        Insert: {
+          batch_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          duplicate_skipped?: number | null
+          error_log?: Json | null
+          failed_imports?: number | null
+          id?: string
+          import_data?: Json | null
+          import_type: string
+          imported_by?: string | null
+          started_at?: string | null
+          successful_imports?: number | null
+          total_records?: number | null
+        }
+        Update: {
+          batch_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          duplicate_skipped?: number | null
+          error_log?: Json | null
+          failed_imports?: number | null
+          id?: string
+          import_data?: Json | null
+          import_type?: string
+          imported_by?: string | null
+          started_at?: string | null
+          successful_imports?: number | null
+          total_records?: number | null
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           created_at: string | null
@@ -178,6 +256,36 @@ export type Database = {
         }
         Relationships: []
       }
+      duplicate_detection_logs: {
+        Row: {
+          action: string | null
+          batch_id: string
+          created_at: string | null
+          id: string
+          matching_criteria: string[] | null
+          matching_offer_id: string | null
+          offer_name: string
+        }
+        Insert: {
+          action?: string | null
+          batch_id: string
+          created_at?: string | null
+          id?: string
+          matching_criteria?: string[] | null
+          matching_offer_id?: string | null
+          offer_name: string
+        }
+        Update: {
+          action?: string | null
+          batch_id?: string
+          created_at?: string | null
+          id?: string
+          matching_criteria?: string[] | null
+          matching_offer_id?: string | null
+          offer_name?: string
+        }
+        Relationships: []
+      }
       earning_history: {
         Row: {
           amount: number | null
@@ -322,6 +430,45 @@ export type Database = {
           },
         ]
       }
+      missing_offers_report: {
+        Row: {
+          batch_id: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          matching_criteria: string[] | null
+          missing_offers: Json
+          report_data: Json | null
+          report_name: string | null
+          updated_at: string | null
+          uploaded_offers: Json
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          matching_criteria?: string[] | null
+          missing_offers: Json
+          report_data?: Json | null
+          report_name?: string | null
+          updated_at?: string | null
+          uploaded_offers: Json
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          matching_criteria?: string[] | null
+          missing_offers?: Json
+          report_data?: Json | null
+          report_name?: string | null
+          updated_at?: string | null
+          uploaded_offers?: Json
+        }
+        Relationships: []
+      }
       news: {
         Row: {
           content: string | null
@@ -390,6 +537,7 @@ export type Database = {
           ip_address: string | null
           offer_id: string | null
           os: string | null
+          provider_id: string | null
           risk_score: number | null
           session_end: string | null
           session_id: string | null
@@ -413,6 +561,7 @@ export type Database = {
           ip_address?: string | null
           offer_id?: string | null
           os?: string | null
+          provider_id?: string | null
           risk_score?: number | null
           session_end?: string | null
           session_id?: string | null
@@ -436,6 +585,7 @@ export type Database = {
           ip_address?: string | null
           offer_id?: string | null
           os?: string | null
+          provider_id?: string | null
           risk_score?: number | null
           session_end?: string | null
           session_id?: string | null
@@ -450,10 +600,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "offer_clicks_offer_id_fkey"
-            columns: ["offer_id"]
+            foreignKeyName: "offer_clicks_provider_id_fkey"
+            columns: ["provider_id"]
             isOneToOne: false
-            referencedRelation: "offers"
+            referencedRelation: "survey_providers"
             referencedColumns: ["id"]
           },
           {
@@ -475,6 +625,11 @@ export type Database = {
       offers: {
         Row: {
           allowed_countries: string | null
+          approval_status: string | null
+          approved_by: string | null
+          approved_date: string | null
+          boost_expiry_date: string | null
+          category: string | null
           countries: string | null
           created_at: string | null
           currency: string | null
@@ -484,13 +639,12 @@ export type Database = {
           devices: string | null
           expiry_date: string | null
           id: string
-          import_batch_id: string | null
           image_url: string | null
+          import_batch_id: string | null
           is_deleted: boolean | null
           is_public: boolean | null
           network_id: string | null
           non_access_url: string | null
-          tracking_url: string | null
           offer_id: string | null
           payout: number | null
           payout_model: string | null
@@ -498,9 +652,11 @@ export type Database = {
           platform: string | null
           preview_url: string | null
           provider: string | null
+          rejection_reason: string | null
           source: string | null
           status: string | null
-          title: string
+          title: string | null
+          tracking_url: string | null
           traffic_sources: string | null
           updated_at: string | null
           url: string | null
@@ -508,6 +664,11 @@ export type Database = {
         }
         Insert: {
           allowed_countries?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          approved_date?: string | null
+          boost_expiry_date?: string | null
+          category?: string | null
           countries?: string | null
           created_at?: string | null
           currency?: string | null
@@ -530,9 +691,11 @@ export type Database = {
           platform?: string | null
           preview_url?: string | null
           provider?: string | null
+          rejection_reason?: string | null
           source?: string | null
           status?: string | null
-          title: string
+          title?: string | null
+          tracking_url?: string | null
           traffic_sources?: string | null
           updated_at?: string | null
           url?: string | null
@@ -540,6 +703,11 @@ export type Database = {
         }
         Update: {
           allowed_countries?: string | null
+          approval_status?: string | null
+          approved_by?: string | null
+          approved_date?: string | null
+          boost_expiry_date?: string | null
+          category?: string | null
           countries?: string | null
           created_at?: string | null
           currency?: string | null
@@ -550,112 +718,27 @@ export type Database = {
           expiry_date?: string | null
           id?: string
           image_url?: string | null
+          import_batch_id?: string | null
           is_deleted?: boolean | null
           is_public?: boolean | null
           network_id?: string | null
           non_access_url?: string | null
           offer_id?: string | null
-          tracking_url?: string | null
           payout?: number | null
           payout_model?: string | null
           percent?: number | null
           platform?: string | null
           preview_url?: string | null
           provider?: string | null
+          rejection_reason?: string | null
           source?: string | null
           status?: string | null
-          title?: string
+          title?: string | null
+          tracking_url?: string | null
           traffic_sources?: string | null
           updated_at?: string | null
           url?: string | null
           vertical?: string | null
-        }
-        Relationships: []
-      }
-      recycle_bin: {
-        Row: {
-          id: string
-          offer_id: string
-          offer_data: Json
-          deleted_by: string | null
-          deleted_at: string | null
-          expires_at: string | null
-          restored_at: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          offer_id: string
-          offer_data: Json
-          deleted_by?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          restored_at?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          offer_id?: string
-          offer_data?: Json
-          deleted_by?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          restored_at?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recycle_bin_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recycle_bin_deleted_by_fkey"
-            columns: ["deleted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      api_import_configs: {
-        Row: {
-          id: string
-          provider_name: string
-          api_endpoint: string
-          api_key_secret_name: string
-          network_type: string | null
-          network_id: string | null
-          api_key: string | null
-          is_active: boolean
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          provider_name: string
-          api_endpoint: string
-          api_key_secret_name?: string
-          network_type?: string | null
-          network_id?: string | null
-          api_key?: string | null
-          is_active?: boolean
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          provider_name?: string
-          api_endpoint?: string
-          api_key_secret_name?: string
-          network_type?: string | null
-          network_id?: string | null
-          api_key?: string | null
-          is_active?: boolean
-          created_at?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -953,6 +1036,39 @@ export type Database = {
         }
         Relationships: []
       }
+      recycle_bin: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          expires_at: string | null
+          id: string
+          offer_data: Json
+          offer_id: string
+          restored_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          expires_at?: string | null
+          id?: string
+          offer_data: Json
+          offer_id: string
+          restored_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          expires_at?: string | null
+          id?: string
+          offer_data?: Json
+          offer_id?: string
+          restored_at?: string | null
+        }
+        Relationships: []
+      }
       single_link_providers: {
         Row: {
           code: string | null
@@ -1184,6 +1300,7 @@ export type Database = {
           id: string
           iframe_code: string | null
           iframe_keys: string | null
+          iframe_url: string | null
           image_url: string | null
           is_recommended: boolean | null
           level: number | null
@@ -1210,6 +1327,7 @@ export type Database = {
           id?: string
           iframe_code?: string | null
           iframe_keys?: string | null
+          iframe_url?: string | null
           image_url?: string | null
           is_recommended?: boolean | null
           level?: number | null
@@ -1236,6 +1354,7 @@ export type Database = {
           id?: string
           iframe_code?: string | null
           iframe_keys?: string | null
+          iframe_url?: string | null
           image_url?: string | null
           is_recommended?: boolean | null
           level?: number | null
