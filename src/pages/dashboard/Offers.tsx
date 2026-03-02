@@ -675,7 +675,7 @@ const Offers = () => {
             </div>
             {/* CoinLooty Style Cards */}
                         {!showAllRegularOffers && regularOffers.length > 0 ? (
-              <div className="flex gap-1 overflow-hidden items-start">
+              <div className="flex gap-1 overflow-x-auto items-start scrollbar-hide">
                 {regularOffers.slice(0, 10).map((o, index) => {
                   // Define different gradient colors for each card
                   const gradients = [
@@ -954,7 +954,7 @@ const Offers = () => {
 
         {/* Show Less Button */}
         {showAllRegularOffers && (
-          <div className="mt-4 text-center relative z-50">
+          <div className="text-center relative z-50">
             <Button 
               onClick={() => setShowAllRegularOffers(false)}
               className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-6 py-2 rounded-lg shadow-lg"
@@ -967,7 +967,7 @@ const Offers = () => {
       {/* Offer Walls Section - CoinLooty Style Design */}
       {providers.length > 0 && (
         <>
-          <div className="mt-4">
+          <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
@@ -1313,7 +1313,7 @@ const Offers = () => {
 
           {/* Show Less Button */}
           {showAllOfferWalls && (
-            <div className="mt-4 text-center">
+            <div className="text-center">
               <Button 
                 onClick={() => setShowAllOfferWalls(false)}
                 className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-2 rounded-lg"
