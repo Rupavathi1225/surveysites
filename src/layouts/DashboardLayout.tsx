@@ -18,6 +18,7 @@ interface NavGroup {
   label: string;
   icon: any;
   items: { to: string; icon: any; label: string }[];
+  collapsible?: boolean;
 }
 
 const navGroups: NavGroup[] = [
@@ -25,9 +26,10 @@ const navGroups: NavGroup[] = [
     label: "Dashboard",
     icon: LayoutDashboard,
     items: [{ to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }],
+    collapsible: false, // Single item, no dropdown
   },
   {
-    label: "Account",
+    label: "Account & Finance",
     icon: DollarSign,
     items: [
       { to: "/dashboard/balance-history", icon: History, label: "Balance History" },
@@ -36,9 +38,10 @@ const navGroups: NavGroup[] = [
       { to: "/dashboard/convert-points", icon: ArrowLeftRight, label: "Convert Points" },
       { to: "/dashboard/update-account", icon: UserCog, label: "Update Account" },
     ],
+    collapsible: true,
   },
   {
-    label: "Earnings",
+    label: "Earnings & Activities",
     icon: TrendingUp,
     items: [
       { to: "/dashboard/daily-surveys", icon: ClipboardList, label: "Daily Surveys" },
@@ -46,23 +49,26 @@ const navGroups: NavGroup[] = [
       { to: "/dashboard/contest", icon: Trophy, label: "Contest" },
       { to: "/dashboard/promocode", icon: Tag, label: "Promocode" },
     ],
+    collapsible: true,
   },
   {
-    label: "Network",
+    label: "Network & Performance",
     icon: Network,
     items: [
       { to: "/dashboard/affiliates", icon: Users, label: "Your Affiliates" },
       { to: "/dashboard/leaderboard", icon: Star, label: "Leaderboard" },
     ],
+    collapsible: true,
   },
   {
-    label: "Support",
+    label: "Communication & Support",
     icon: MessageSquare,
     items: [
       { to: "/dashboard/inbox", icon: Mail, label: "Inbox" },
       { to: "/dashboard/news", icon: Newspaper, label: "News" },
       { to: "/dashboard/support", icon: Headphones, label: "Support Ticket" },
     ],
+    collapsible: true,
   },
 ];
 
@@ -127,7 +133,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setSidebarClosed(false);
   };
 
-  // Guard: if not logged in, show auth prompt when clicking sidebar links
   const handleNavClick = (e: React.MouseEvent, to: string) => {
     if (!user) {
       e.preventDefault();
@@ -152,29 +157,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           title="Open Sidebar"
         >
           <Menu className="h-5 w-5" />
-          <span className="text-sm font-medium">Menu</span>
         </button>
       )}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-60 bg-sidebar border-r border-sidebar-border transform transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} ${sidebarClosed ? "lg:-translate-x-full" : "lg:translate-x-0"} overflow-y-auto`}>
+      {/* Sidebar - NO gap when closed */}
+      <aside className={cn(
+        "fixed lg:static inset-y-0 left-0 z-40 w-56 bg-sidebar border-r border-sidebar-border transform transition-all duration-300 overflow-y-auto",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        sidebarClosed ? "lg:-translate-x-full lg:w-0 lg:border-0" : "lg:translate-x-0"
+      )}>
         <div className="p-4 pb-2">
           <div className="flex items-center justify-between">
             <Link to="/dashboard" className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-primary" />
-              <span className="text-base font-bold text-primary">SurveyForever</span>
+              <span className="text-sm font-bold text-primary">SurveyForever</span>
             </Link>
-            <button
-              onClick={closeSidebar}
-              className="p-1 rounded-md hover:bg-accent/50 transition-colors"
-              title="Close Sidebar"
-            >
+            <button onClick={closeSidebar} className="p-1 rounded-md hover:bg-accent/50 transition-colors" title="Close Sidebar">
               <X className="h-4 w-4" />
             </button>
           </div>
           {profile && (
             <div className="mt-3 mb-2">
-              <p className="font-medium text-xs">{profile.first_name || profile.username}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{profile.email}</p>
+              <p className="font-semibold text-sm">{profile.first_name || profile.username}</p>
+              <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
             </div>
           )}
         </div>
@@ -184,12 +189,34 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const isExpanded = expandedGroups[group.label] ?? false;
             const isActive = group.items.some((item) => location.pathname === item.to);
 
+            // Single-item group (Dashboard) - render as direct link, no dropdown
+            if (!group.collapsible) {
+              const item = group.items[0];
+              return (
+                <div key={group.label} className="mb-1">
+                  <Link
+                    to={item.to}
+                    onClick={(e) => handleNavClick(e, item.to)}
+                    className={cn(
+                      "flex items-center gap-2 w-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location.pathname === item.to
+                        ? "bg-primary/15 text-primary"
+                        : "text-sidebar-foreground hover:bg-accent/50"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                </div>
+              );
+            }
+
             return (
               <div key={group.label} className="mb-1">
                 <button
                   onClick={() => toggleGroup(group.label)}
                   className={cn(
-                    "flex items-center justify-between w-full px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider rounded-md transition-colors",
+                    "flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-md transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -207,7 +234,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         to={item.to}
                         onClick={(e) => handleNavClick(e, item.to)}
                         className={cn(
-                          "flex items-center gap-2 px-3 py-1.5 text-[10px] rounded-md transition-colors",
+                          "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
                           location.pathname === item.to
                             ? "bg-primary/15 text-primary font-medium"
                             : "text-sidebar-foreground hover:bg-accent/50"
@@ -225,10 +252,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           {isAdminOrSubAdmin && (
             <div className="mb-1">
-              <p className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</p>
+              <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Administration</p>
               <div className="ml-1">
                 <Link to="/admin" onClick={(e) => handleNavClick(e, "/admin")} className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 text-[10px] rounded-md transition-colors",
+                  "flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors",
                   location.pathname.startsWith("/admin")
                     ? "bg-primary/15 text-primary font-medium"
                     : "text-sidebar-foreground hover:bg-accent/50"
@@ -241,14 +268,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           )}
 
           <div className="mt-2 border-t border-sidebar-border pt-2 space-y-1">
-            <button 
-              onClick={closeSidebar}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs text-sidebar-foreground hover:bg-accent/50 rounded-md w-full transition-colors lg:flex hidden"
-              title="Close Sidebar"
-            >
-              <PanelLeftClose className="h-3.5 w-3.5" />
-              Close Sidebar
-            </button>
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-1.5 text-xs text-sidebar-foreground hover:bg-accent/50 rounded-md w-full transition-colors">
               <LogOut className="h-3.5 w-3.5" />
               Logout
@@ -259,39 +278,49 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {sidebarOpen && <div className="lg:hidden fixed inset-0 bg-background/80 z-30" onClick={() => setSidebarOpen(false)} />}
 
-      <main className={`flex-1 overflow-auto transition-all duration-300 ${sidebarClosed ? "lg:ml-0" : "lg:ml-60"}`}>
-        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-1.5 flex items-center gap-2 overflow-x-auto">
+      {/* Main content - NO margin when sidebar closed */}
+      <main className={cn(
+        "flex-1 overflow-auto transition-all duration-300",
+        sidebarClosed ? "lg:ml-0" : ""
+      )}>
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-2 flex items-center gap-2 overflow-x-auto">
+          {/* Show menu button in header when sidebar closed */}
+          {sidebarClosed && (
+            <button onClick={openSidebar} className="hidden lg:flex p-1.5 rounded-md hover:bg-accent/50 shrink-0">
+              <Menu className="h-4 w-4" />
+            </button>
+          )}
           <div className="lg:hidden w-8 shrink-0" />
           <div className="flex items-center gap-2 ml-auto">
             {profile && (
               <>
-                <span className="text-[10px] font-semibold whitespace-nowrap">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></span>
-                <span className="text-[8px] text-muted-foreground">|</span>
-                <span className="text-primary text-[10px] font-bold whitespace-nowrap">${Number(profile.cash_balance).toFixed(2)}</span>
-                <span className="text-[8px] text-muted-foreground">|</span>
-                <span className="text-info text-[10px] font-bold whitespace-nowrap">{profile.points} pts</span>
-                <span className="text-[8px] text-muted-foreground">|</span>
-                <span className="text-[8px] font-semibold text-success whitespace-nowrap">Refer & Earn</span>
+                <span className="text-xs font-semibold whitespace-nowrap">Hi, <span className="text-primary">{profile.first_name || profile.username}</span></span>
+                <span className="text-[10px] text-muted-foreground">|</span>
+                <span className="text-primary text-xs font-bold whitespace-nowrap">${Number(profile.cash_balance).toFixed(2)}</span>
+                <span className="text-[10px] text-muted-foreground">|</span>
+                <span className="text-info text-xs font-bold whitespace-nowrap">{profile.points} pts</span>
+                <span className="text-[10px] text-muted-foreground">|</span>
+                <span className="text-xs font-semibold text-success whitespace-nowrap">Refer & Earn</span>
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Input
                     value={`${window.location.origin}/auth?ref=${profile.referral_code}`}
                     readOnly
-                    className="h-5 text-[8px] bg-accent/50 w-36 px-1.5 py-0"
+                    className="h-6 text-[10px] bg-accent/50 w-40 px-1.5 py-0"
                   />
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-5 w-5 p-0 shrink-0"
+                    className="h-6 w-6 p-0 shrink-0"
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/auth?ref=${profile.referral_code}`);
                       toast({ title: "Copied!", description: "Referral link copied" });
                     }}
                   >
-                    <Copy className="h-2.5 w-2.5" />
+                    <Copy className="h-3 w-3" />
                   </Button>
                 </div>
                 <Link to="/dashboard/withdrawal" className="shrink-0">
-                  <Button size="sm" className="h-5 text-[8px] px-2 rounded">Withdraw</Button>
+                  <Button size="sm" className="h-6 text-xs px-3 rounded">Withdraw</Button>
                 </Link>
               </>
             )}

@@ -1037,11 +1037,11 @@ const Offers = () => {
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
                     onClick={() => {
-                      // Handle offer wall click - open in same tab
+                      // open in new tab
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_self');
+                        window.open(p.iframe_url || '#', '_blank');
                       } else if (p.url) {
-                        window.open(p.url, '_self');
+                        window.open(p.url, '_blank');
                       }
                     }}
                   >
@@ -1206,11 +1206,11 @@ const Offers = () => {
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
                     onClick={() => {
-                      // Handle offer wall click - open in same tab
+                      // open in new tab
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_self');
+                        window.open(p.iframe_url || '#', '_blank');
                       } else if (p.url) {
-                        window.open(p.url, '_self');
+                        window.open(p.url, '_blank');
                       }
                     }}
                   >
@@ -1338,7 +1338,7 @@ const Offers = () => {
         </Card>
       )}
 
-      {/* Offer Modal - BadBoysAI Style */}
+      {/* Offer Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border border-purple-500/30">
           <DialogHeader>
@@ -1367,15 +1367,15 @@ const Offers = () => {
           
           {selectedOffer && (
             <div className="space-y-6">
-              {/* Offer Header */}
+              {/* Offer Header with Image */}
               <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg border border-purple-500/20">
-                {selectedOffer.image_url && (
-                  <img 
-                    src={selectedOffer.image_url} 
-                    alt={selectedOffer.title}
-                    className="w-24 h-24 object-contain rounded-lg border border-purple-500/30 bg-gray-800/50"
-                  />
-                )}
+                {/* Always show image */}
+                <img 
+                  src={selectedOffer.image_url && selectedOffer.image_url.startsWith('http') ? selectedOffer.image_url : `https://picsum.photos/seed/${encodeURIComponent(selectedOffer.title || 'offer')}/200/200.jpg`}
+                  alt={selectedOffer.title}
+                  className="w-24 h-24 object-cover rounded-lg border border-purple-500/30 bg-gray-800/50"
+                  onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/fallback/200/200.jpg`; }}
+                />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-sm px-3 py-1">
@@ -1397,23 +1397,18 @@ const Offers = () => {
                         <span className="text-white">{selectedOffer.countries}</span>
                       </p>
                     )}
-                    {selectedOffer.platform && (
+                    {/* Show only Device (merge platform + device) */}
+                    {(selectedOffer.device || selectedOffer.platform) && (
                       <p className="flex items-center gap-2">
                         <Filter className="h-4 w-4 text-purple-400" />
-                        <span className="text-white">Platform: {selectedOffer.platform}</span>
-                      </p>
-                    )}
-                    {selectedOffer.device && (
-                      <p className="flex items-center gap-2">
-                        <Filter className="h-4 w-4 text-purple-400" />
-                        <span className="text-white">Device: {selectedOffer.device}</span>
+                        <span className="text-white">Device: {selectedOffer.device || selectedOffer.platform}</span>
                       </p>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Description */}
+              {/* Description - strip HTML tags */}
               {selectedOffer.description && (
                 <div className="p-4 bg-gray-800/50 rounded-lg border border-purple-500/20">
                   <h3 className="font-semibold text-white mb-2 flex items-center gap-2">
@@ -1421,7 +1416,7 @@ const Offers = () => {
                     Description
                   </h3>
                   <p className="text-sm text-gray-300 whitespace-pre-wrap">
-                    {selectedOffer.description}
+                    {selectedOffer.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
                   </p>
                 </div>
               )}
@@ -1441,7 +1436,7 @@ const Offers = () => {
                 </Button>
               </div>
 
-              {/* Additional Info */}
+              {/* Additional Info - removed offer_id and network */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-purple-500/20">
                 <div>
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
@@ -1449,8 +1444,6 @@ const Offers = () => {
                     Offer Details
                   </h4>
                   <div className="space-y-2 text-sm text-gray-300">
-                    <p><span className="text-gray-500">Offer ID:</span> <span className="text-white">{selectedOffer.offer_id || "-"}</span></p>
-                    <p><span className="text-gray-500">Network:</span> <span className="text-white">{selectedOffer.network_id || "-"}</span></p>
                     <p><span className="text-gray-500">Category:</span> <span className="text-white">{selectedOffer.category || "-"}</span></p>
                     <p><span className="text-gray-500">Vertical:</span> <span className="text-white">{selectedOffer.vertical || "-"}</span></p>
                   </div>
