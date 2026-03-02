@@ -986,7 +986,7 @@ const Offers = () => {
 
           {/* EarnLab Style OfferWalls */}
                     {!showAllOfferWalls && providers.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {providers.slice(0, 12).map((p, index) => {
                 // Define different gradient colors for each card
                 const gradients = [
@@ -1155,7 +1155,7 @@ const Offers = () => {
             </div>
           ) : (
             /* Grid View for All Offer Walls */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {providers.map((p, index) => {
                 // Define different gradient colors for each card
                 const gradients = [
