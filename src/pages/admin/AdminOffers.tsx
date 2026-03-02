@@ -3316,15 +3316,49 @@ Expiry Date: ${o.expiry_date || "-"}`;
         {/* Duplicates Tab */}
         <TabsContent value="duplicates" className="space-y-6">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h2 className="text-2xl font-bold">Duplicate Detection</h2>
                 <p className="text-sm text-muted-foreground">Find and manage duplicate offers in your database</p>
               </div>
-              <Button onClick={loadDuplicateGroups} variant="outline" disabled={loadingDuplicates}>
-                {loadingDuplicates ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                Refresh
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                {duplicateGroups.length > 0 && (
+                  <Button 
+                    variant="destructive" 
+                    onClick={async () => {
+                      // Bulk delete all duplicates (keep first, delete rest)
+                      const toDelete: string[] = [];
+                      duplicateGroups.forEach(group => {
+                        // Keep the first offer, delete the rest
+                        group.offers.slice(1).forEach((offer: any) => toDelete.push(offer.id));
+                      });
+                      if (toDelete.length === 0) return;
+                      if (!confirm(`Delete ${toDelete.length} duplicate offers (keeping one from each group)?`)) return;
+                      try {
+                        // Build offer data map for recycle bin
+                        const offerDataMap = new Map<string, any>();
+                        duplicateGroups.forEach(group => {
+                          group.offers.slice(1).forEach((offer: any) => {
+                            offerDataMap.set(offer.id, offer);
+                          });
+                        });
+                        await moveMultipleToRecycleBin(toDelete, offerDataMap);
+                        toast({ title: "Bulk Delete Complete", description: `Moved ${toDelete.length} duplicates to recycle bin` });
+                        loadDuplicateGroups();
+                        load();
+                      } catch (e) {
+                        toast({ title: "Error", description: String(e), variant: "destructive" });
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Bulk Delete Duplicates
+                  </Button>
+                )}
+                <Button onClick={loadDuplicateGroups} variant="outline" disabled={loadingDuplicates}>
+                  {loadingDuplicates ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  Refresh
+                </Button>
+              </div>
             </div>
 
             {loadingDuplicates ? (

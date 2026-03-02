@@ -25,7 +25,8 @@ const DashboardHome = () => {
     if (!profile) return;
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
     supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyLinks(data || []));
-    supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
+    // Only fetch active offers for featured tasks
+    supabase.from("offers").select("*").eq("status", "active").eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
   }, [profile]);
 
   const loadChat = async () => {
@@ -51,6 +52,8 @@ const DashboardHome = () => {
 
   if (!profile) return <div className="text-center py-10 text-muted-foreground">Loading...</div>;
 
+  // Separate boosted offers (with percent > 0)
+  const boostedOffers = offers.filter(o => o.percent && o.percent > 0);
   const featuredTasks = [...surveyLinks, ...offers];
   const TASKS_LIMIT = 7;
   const WALLS_LIMIT = 6;
@@ -214,11 +217,11 @@ const DashboardHome = () => {
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
                     onClick={() => {
-                      // Handle offer wall click - open in same tab
+                      // Handle offer wall click - open in new tab
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_self');
+                        window.open(p.iframe_url || '#', '_blank');
                       } else if (p.url) {
-                        window.open(p.url, '_self');
+                        window.open(p.url, '_blank');
                       }
                     }}
                   >
@@ -383,11 +386,10 @@ const DashboardHome = () => {
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
                     onClick={() => {
-                      // Handle offer wall click - open in same tab
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_self');
+                        window.open(p.iframe_url || '#', '_blank');
                       } else if (p.url) {
-                        window.open(p.url, '_self');
+                        window.open(p.url, '_blank');
                       }
                     }}
                   >

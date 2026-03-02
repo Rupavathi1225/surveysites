@@ -39,7 +39,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
             id: `e-${e.id}`,
             username: prof?.name || "Anonymous",
             source: e.offer_name || e.description || "Task",
-            amount: `$${(e.amount || 0).toFixed(2)}`,
+            amount: `$ ${(e.amount || 0).toFixed(2)}`,
             avatarUrl: prof?.avatar || undefined,
           });
         });
@@ -68,41 +68,54 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
     return name.charAt(0).toUpperCase();
   };
 
+  // Purple/blue gradient colors for each box
+  const gradients = [
+    "from-purple-600 to-blue-600",
+    "from-blue-600 to-purple-600",
+    "from-violet-600 to-indigo-600",
+    "from-indigo-600 to-purple-600",
+    "from-purple-700 to-blue-500",
+    "from-blue-500 to-violet-600",
+  ];
+
   return (
     <div className="w-full overflow-hidden bg-card/50 border border-border rounded-xl py-3 px-4">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
         <Activity className="h-4 w-4 text-primary" />
         <span className="text-sm font-bold text-foreground">Live Activity Feed</span>
+        <p className="text-xs text-muted-foreground hidden sm:block">Real-time earnings from our community</p>
         <div className="ml-auto flex items-center gap-1.5">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
           <span className="text-xs text-emerald-400 font-medium">LIVE</span>
         </div>
       </div>
 
-      {/* Scrolling items */}
+      {/* Scrolling items - bigger purple/blue boxes */}
       <div className="relative overflow-hidden">
-        <div className="flex gap-3 animate-scroll-slow whitespace-nowrap" style={{ width: "max-content" }}>
+        <div className="flex gap-4 animate-scroll-slow whitespace-nowrap" style={{ width: "max-content" }}>
           {tripled.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center gap-2.5 shrink-0 bg-accent/60 border border-border rounded-lg px-3 py-2"
+              className={`inline-flex items-center gap-3 shrink-0 bg-gradient-to-r ${gradients[i % gradients.length]} rounded-xl px-4 py-3 min-w-[220px] shadow-lg`}
             >
               {/* Avatar */}
-              <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-primary">{getInitial(item.username)}</span>
+              <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-white">{getInitial(item.username)}</span>
               </div>
 
               {/* Info */}
-              <div className="flex flex-col">
-                <span className="text-xs font-semibold text-foreground">{item.username}</span>
-                <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{item.source}</span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-bold text-white truncate">{item.username}</span>
+                <span className="text-xs text-white/70 truncate">{item.source}</span>
               </div>
 
-              {/* Amount */}
-              <div className="flex items-center gap-1 ml-1">
-                <span className="text-sm font-bold text-emerald-400">{item.amount}</span>
-                <TrendingUp className="h-3 w-3 text-emerald-400" />
+              {/* Amount + icon */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-lg font-bold text-white">{item.amount}</span>
+                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                  <TrendingUp className="h-3.5 w-3.5 text-white" />
+                </div>
               </div>
             </div>
           ))}
