@@ -986,7 +986,7 @@ const Offers = () => {
 
           {/* EarnLab Style OfferWalls */}
                     {!showAllOfferWalls && providers.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 offer-walls-grid">
               {providers.slice(0, 12).map((p, index) => {
                 // Define different gradient colors for each card
                 const gradients = [
@@ -1037,11 +1037,11 @@ const Offers = () => {
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
                     onClick={() => {
-                      // Handle offer wall click - open in new tab or iframe
+                      // Handle offer wall click - open in same tab
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_blank');
+                        window.open(p.iframe_url || '#', '_self');
                       } else if (p.url) {
-                        window.open(p.url, '_blank');
+                        window.open(p.url, '_self');
                       }
                     }}
                   >
@@ -1155,7 +1155,7 @@ const Offers = () => {
             </div>
           ) : (
             /* Grid View for All Offer Walls */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 offer-walls-grid">
               {providers.map((p, index) => {
                 // Define different gradient colors for each card
                 const gradients = [
@@ -1206,11 +1206,11 @@ const Offers = () => {
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
                     onClick={() => {
-                      // Handle offer wall click - open in new tab or iframe
+                      // Handle offer wall click - open in same tab
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_blank');
+                        window.open(p.iframe_url || '#', '_self');
                       } else if (p.url) {
-                        window.open(p.url, '_blank');
+                        window.open(p.url, '_self');
                       }
                     }}
                   >
