@@ -42,16 +42,94 @@ export async function moveToRecycleBin(offerId: string, offerData: any): Promise
     console.log("✅ Inserted to recycle_bin");
 
     // Mark as deleted in offers table
-    const { error: updateError } = await supabase
-      .from("offers")
-      .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-      .eq("id", offerId);
+    console.log("🗑️ About to update offers table - setting is_deleted=true for offer:", offerId);
+    
+    try {
+      // First attempt: Update with is_deleted flag
+      const { error: updateError } = await supabase
+        .from("offers")
+        .update({ 
+          is_deleted: true, 
+          deleted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", offerId);
 
-    if (updateError) {
-      console.error("❌ Update offers failed:", updateError);
-      throw updateError;
+      if (updateError) {
+        console.error("❌ First update attempt failed:", updateError);
+        
+        // Second attempt: Try with different syntax
+        const { error: retryError } = await supabase
+          .from("offers")
+          .update({ 
+            is_deleted: true, 
+            deleted_at: new Date().toISOString()
+          })
+          .eq("id", offerId);
+
+        if (retryError) {
+          console.error("❌ Second update attempt failed:", retryError);
+          throw retryError;
+        } else {
+          console.log("✅ Second update attempt succeeded");
+        }
+      } else {
+        console.log("✅ First update attempt succeeded");
+      }
+    } catch (error) {
+      console.error("❌ Update offers failed with exception:", error);
+      throw error;
     }
-    console.log("✅ Updated offers table");
+    
+    // Always verify the update worked
+    console.log("🔍 Verifying update - checking if offer is now marked as deleted");
+    let verifyAttempts = 0;
+    const maxAttempts = 3;
+    
+    while (verifyAttempts < maxAttempts) {
+      verifyAttempts++;
+      console.log(`🔍 Verification attempt ${verifyAttempts}/${maxAttempts}`);
+      
+      const { data: verifyData, error: verifyError } = await supabase
+        .from("offers")
+        .select("id, is_deleted, deleted_at, updated_at")
+        .eq("id", offerId)
+        .single();
+        
+      if (verifyError) {
+        console.error("❌ Verification failed:", verifyError);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+        continue;
+      }
+      
+      console.log("✅ Verification successful - offer status:", {
+        id: verifyData.id,
+        is_deleted: verifyData.is_deleted,
+        deleted_at: verifyData.deleted_at,
+        updated_at: verifyData.updated_at
+      });
+      
+      if (verifyData.is_deleted === true) {
+        console.log("✅ CONFIRMED - is_deleted is now true");
+        break;
+      } else {
+        console.error("🚨 CRITICAL ERROR - is_deleted was not set to true! Current value:", verifyData.is_deleted);
+        
+        // Force update one more time
+        if (verifyAttempts < maxAttempts) {
+          console.log("🔧 Forcing update - setting is_deleted=true again");
+          await supabase
+            .from("offers")
+            .update({ 
+              is_deleted: true, 
+              deleted_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", offerId);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        }
+      }
+    }
     
     console.log("✅ Successfully moved to recycle bin:", offerId);
     
@@ -188,6 +266,15 @@ export async function restoreFromRecycleBin(recycleId: string, offerId: string):
       .eq("id", offerId);
 
     if (offerUpdateError) throw offerUpdateError;
+    
+    // Trigger refresh of All Offers data
+    console.log('🔄 Triggering All Offers refresh after restore');
+    // Dispatch custom event to notify frontend
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recycleBinUpdated', { 
+        detail: { action: 'item_restored', offerId } 
+      }));
+    }
   } catch (error) {
     console.error("Error restoring from recycle bin:", error);
     throw error;
@@ -259,6 +346,15 @@ export async function restoreMultipleFromRecycleBin(
     failed = recycleIds.length - recycleItems.length;
 
     if (onProgress) onProgress(recycleIds.length, recycleIds.length);
+    
+    // Trigger refresh of All Offers data after bulk restore
+    console.log('🔄 Triggering All Offers refresh after bulk restore');
+    // Dispatch custom event to notify frontend
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recycleBinUpdated', { 
+        detail: { action: 'bulk_restored', count: successful } 
+      }));
+    }
 
   } catch (error) {
     console.error("Error in bulk restore:", error);
@@ -298,10 +394,22 @@ export async function permanentlyDeleteFromRecycleBin(recycleId: string): Promis
     // Step 2: Delete from offers table first
     if (recycleItem.offer_id) {
       console.log(`🗑️ Step 2: Deleting offer ${recycleItem.offer_id} from offers table`);
-      const { error: offerDeleteError } = await supabase
+      
+      // DEBUG: Check if offer exists before deletion
+      const { data: offerCheck, error: checkError } = await supabase
+        .from('offers')
+        .select('id, title, is_deleted')
+        .eq('id', recycleItem.offer_id);
+      
+      console.log('🔍 PERMANENT DELETE DEBUG - Offer check before deletion:', offerCheck);
+      console.log('🔍 PERMANENT DELETE DEBUG - Check error:', checkError);
+      
+      const { error: offerDeleteError, count: deleteCount } = await supabase
         .from('offers')
         .delete()
         .eq('id', recycleItem.offer_id);
+
+      console.log('🔍 PERMANENT DELETE DEBUG - Delete result:', { error: offerDeleteError, count: deleteCount });
 
       if (offerDeleteError) {
         console.error('❌ Error deleting from offers table:', offerDeleteError);
@@ -407,6 +515,16 @@ export async function permanentlyDeleteMultipleFromRecycleBin(
     // Bulk delete all offers at once - BATCHED
     if (offerIdsToDelete.length > 0) {
       console.log('🔍 BACKEND DEBUG - Deleting offers from offers table...');
+      
+      // DEBUG: Check if offers exist before deletion
+      const { data: existingOffers, error: checkError } = await supabase
+        .from('offers')
+        .select('id, title, is_deleted')
+        .in('id', offerIdsToDelete);
+      
+      console.log('🔍 BULK DELETE DEBUG - Offers found before deletion:', existingOffers?.length || 0);
+      console.log('🔍 BULK DELETE DEBUG - Check error:', checkError);
+      console.log('🔍 BULK DELETE DEBUG - Sample offers:', existingOffers?.slice(0, 3));
       
       // Delete offers in batches too
       const offerBatchSize = 100;

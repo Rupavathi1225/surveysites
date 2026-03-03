@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Plus, Pencil, Trash2, Upload, Loader2, FileUp, Eye, BarChart3,
   Download, Zap, Filter, CheckCircle, Copy, Clipboard, Info, Calendar, Clock,
-  ChevronLeft, ChevronRight, X, Link2, RefreshCw, AlertTriangle, Check, XCircle, SkipForward, Pause, Play
+  ChevronLeft, ChevronRight, X, Link2, RefreshCw, AlertTriangle, Check, XCircle, SkipForward, Pause, Play, Bug
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -156,6 +156,10 @@ const AdminOffers = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOffers, setTotalOffers] = useState(0);
   const [activeTab, setActiveTab] = useState("active");
+  
+  // Low payout filter state
+  const [payoutThreshold, setPayoutThreshold] = useState(0.50); // Default $0.50
+  const [deletingLowPayout, setDeletingLowPayout] = useState(false);
 
   // Boost dialog state
   const [showBoostDialog, setShowBoostDialog] = useState(false);
@@ -163,8 +167,7 @@ const AdminOffers = () => {
   const [boostDate, setBoostDate] = useState("");
   const [boosting, setBoosting] = useState(false);
 
-// Boosted offers state
-  const [boostedOffers, setBoostedOffers] = useState<any[]>([]);
+// Boosted offers state - using filtered list from allOffersData (single source of truth)
   const [selectedBoostedOffers, setSelectedBoostedOffers] = useState<Set<string>>(new Set());
   const [extraBoostDialog, setExtraBoostDialog] = useState(false);
   const [extraBoostPercent, setExtraBoostPercent] = useState(20);
@@ -464,6 +467,29 @@ const idsToRestore = Array.from(selectedRecycleBin);
   const inactiveOffers = allOffersData.filter(o => o.status === "inactive");
   const boostedOffersList = allOffersData.filter(o => o.status === "boosted");
 
+  // DEBUG: Log the actual counts
+  console.log('🔍 ADMIN DEBUG - allOffersData length:', allOffersData.length);
+  console.log('🔍 ADMIN DEBUG - activeOffers length:', activeOffers.length);
+  console.log('🔍 ADMIN DEBUG - inactiveOffers length:', inactiveOffers.length);
+  console.log('🔍 ADMIN DEBUG - boostedOffersList length:', boostedOffersList.length);
+  
+  // DEBUG: Check status breakdown
+  if (allOffersData.length > 0) {
+    const statusBreakdown = allOffersData.reduce((acc, offer) => {
+      acc[offer.status] = (acc[offer.status] || 0) + 1;
+      return acc;
+    }, {});
+    console.log('🔍 ADMIN DEBUG - Status breakdown:', statusBreakdown);
+    
+    // Show first few offers with their status
+    console.log('🔍 ADMIN DEBUG - Sample offers:', allOffersData.slice(0, 5).map(o => ({
+      id: o.id,
+      title: o.title,
+      status: o.status,
+      is_deleted: o.is_deleted
+    })));
+  }
+
   // Filter offers based on selected filters
   const filterOffers = (offers: any[]) => {
     return offers.filter(o => {
@@ -501,41 +527,33 @@ const filteredActiveOffers = filterOffers(activeOffers);
     ? Math.ceil(filteredInactiveOffers.length / itemsPerPage)
     : Math.ceil(filteredBoostedOffersList.length / itemsPerPage);
 
-// Load boosted offers - show all boosted offers including soft-deleted ones
-  const loadBoostedOffers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("offers")
-        .select("*")
-        .eq("is_deleted", false)
-        .or("status.eq.boosted,percent.gt.0,expiry_date.not.is.null")
-        .order("expiry_date", { ascending: false });
-      
-      if (error) {
-        console.error("Error loading boosted offers:", error);
-        return;
-      }
-      
-      setBoostedOffers(data || []);
-    } catch (error) {
-      console.error("Error loading boosted offers:", error);
-    }
-  };
-
-  useEffect(() => {
+useEffect(() => {
     load();
     loadAllOffers();
     loadRecycleBin();
     loadMissingOffersReports();
-    loadBoostedOffers();
     fetchNetworks();
 
     // Listen for recycle bin update events
     const handleRecycleBinUpdate = (event: any) => {
       console.log('🔄 Recycle bin update event received:', event.detail);
-      loadAllOffers();
+      
+      // Always refresh recycle bin
       loadRecycleBin();
-      fetchNetworks();
+      
+      // Don't refresh All Offers for item_moved - manual count handles it
+      if (event.detail.action === 'item_restored' || event.detail.action === 'bulk_restored') {
+        console.log('🔄 Items restored, refreshing All Offers...');
+        loadAllOffers();
+        fetchNetworks();
+      } else if (event.detail.action === 'permanent_delete' || event.detail.action === 'bulk_permanent_delete') {
+        console.log('🔄 Items permanently deleted, refreshing All Offers...');
+        loadAllOffers();
+        fetchNetworks();
+      } else if (event.detail.action === 'item_moved' || event.detail.action === 'bulk_moved') {
+        console.log('🔄 Items moved to recycle bin - NOT refreshing All Offers (manual count handles it)');
+        // Don't call loadAllOffers - let manual count reduction handle it
+      }
     };
 
     // Listen for offers imported events
@@ -553,8 +571,7 @@ const filteredActiveOffers = filterOffers(activeOffers);
       
       // CRITICAL FIX: Add delay to ensure database consistency
       setTimeout(() => {
-        console.log('🔄 DELAYED REFRESH - Now calling other functions after delay');
-        loadBoostedOffers(); // For Boosted tab
+        console.log('🔄 DELAYED REFRESH - Now calling other functions with delay');
         fetchNetworks();
         console.log('🔄 EVENT DEBUG - All load functions called with delay');
         
@@ -936,7 +953,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedActiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
+      await Promise.all([load(), loadAllOffers()]);
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -969,7 +986,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedInactiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
+      await Promise.all([load(), loadAllOffers()]);
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -1002,7 +1019,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedActiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
+      await Promise.all([load(), loadAllOffers()]);
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -1035,7 +1052,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedBoostedOffers(new Set());
-      await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
+      await Promise.all([load(), loadAllOffers()]);
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -1236,41 +1253,52 @@ Expiry Date: ${o.expiry_date || "-"}`;
     }
   };
 
-  const moveToRecycleBin = async (id: string, offerData: any) => {
+  const moveToRecycleBinLocal = async (id: string, offerData: any) => {
     try {
+      console.log('🗑️ DELETION START - Moving offer to recycle bin:', {
+        id,
+        title: offerData.title,
+        current_is_deleted: offerData.is_deleted
+      });
+      
       setDeletingOffer(id);
       setDeleteProgress(0);
       
-      // Simulate progress steps
+      // Use the imported recycleBin utility function
       setDeleteProgress(25);
-      await supabase.from("recycle_bin").insert({ 
-        offer_id: id, 
-        offer_data: offerData, 
-        deleted_at: new Date().toISOString() 
-      });
+      await moveToRecycleBin(id, offerData);
       
-      setDeleteProgress(50);
-      await supabase.from("offers").update({ 
-        is_deleted: true, 
-        deleted_at: new Date().toISOString() 
-      }).eq("id", id);
+      console.log('🗑️ DELETION STEP - moveToRecycleBin completed');
       
       setDeleteProgress(75);
       toast({ title: "Offer moved to recycle bin" });
       
       setDeleteProgress(100);
+      
+      // CRITICAL: Manually reduce count immediately to ensure UI updates
+      console.log('🗑️ MANUAL COUNT UPDATE - Before:', allOffersData.length);
+      const currentCount = allOffersData.length;
+      setAllOffersData(prev => {
+        const filtered = prev.filter(offer => offer.id !== id);
+        console.log('🗑️ MANUAL COUNT UPDATE - After filtering:', filtered.length);
+        console.log('🗑️ MANUAL COUNT UPDATE - Reduced by:', prev.length - filtered.length);
+        return filtered;
+      });
+      
+      // Load other data but don't override allOffersData
+      console.log('🗑️ DELETION STEP - About to reload data');
+      console.log('🗑️ BEFORE RELOAD - allOffersData.length:', allOffersData.length);
+      
+      // Only load recycle bin - don't reload offers data
       await Promise.all([
-        load(),
         loadRecycleBin()
       ]);
+      
+      console.log('🗑️ AFTER RELOAD - allOffersData.length:', allOffersData.length);
+      console.log('🗑️ DELETION COMPLETE');
     } catch (error) { 
-      console.log("Recycle bin not available, doing permanent delete"); 
-      setDeleteProgress(50);
-      await supabase.from("offers").delete().eq("id", id); 
-      setDeleteProgress(75);
-      toast({ title: "Offer permanently deleted" });
-      setDeleteProgress(100);
-      await load();
+      console.error('🗑️ DELETION ERROR:', error);
+      toast({ title: "Delete failed", description: String(error), variant: "destructive" });
     } finally {
       setDeletingOffer(null);
       setDeleteProgress(0);
@@ -1322,9 +1350,9 @@ Expiry Date: ${o.expiry_date || "-"}`;
           console.error("Error loading offers:", error);
           toast({ title: "Error loading offers", variant: "destructive" });
         } else {
-          console.log('🔍 LOAD DEBUG - Updating both items and allOffersData');
+          console.log('🔍 LOAD DEBUG - Updating items only (not allOffersData)');
           setItems(data || []); // For Active/Inactive/Boosted filtering
-          setAllOffersData(data || []); // CRITICAL FIX: Keep All Offers synchronized
+          // NOTE: Don't update allOffersData here - let manual deletion handle it
         }
       });
   };
@@ -1340,19 +1368,63 @@ Expiry Date: ${o.expiry_date || "-"}`;
     console.log('🔍 Cache buster:', cacheBuster);
     console.log('🔍 Timestamp:', timestamp);
     
-    // Force a fresh connection by adding a small delay
+    // CRITICAL: Add delay to ensure database operations complete
     setTimeout(() => {
       console.log('🔍 LOAD DEBUG - About to make Supabase query');
-      // CRITICAL FIX: Get ALL offers first, then filter manually in frontend
-      // Add timestamp to force cache invalidation
-      supabase.from("offers").select("*").order("created_at", { ascending: false })
-        // IMPORTANT: Set high limit to get ALL records (default is 1000)
-        .limit(10000) // Get up to 10,000 records to ensure we get everything
-        // Add cache busting by using RPC call with timestamp
-        .then(({ data, error }) => {
-          console.log('🔍 LOAD DEBUG - Supabase query completed');
-          console.log('🔍 LOAD DEBUG - Error:', error);
-          console.log('🔍 LOAD DEBUG - Data length:', data?.length || 0);
+      
+      // First, get the exact count of non-deleted offers
+      supabase.from("offers").select("id", { count: "exact" }).eq("is_deleted", false)
+        .then(({ count, error: countError }) => {
+          if (countError) {
+            console.error("❌ Error getting count:", countError);
+          } else {
+            console.log('🔍 COUNT DEBUG - Total non-deleted offers in database:', count);
+          }
+          
+          // Now fetch all non-deleted offers
+          supabase.from("offers").select("*").eq("is_deleted", false).order("created_at", { ascending: false })
+            // REMOVED LIMIT to get ALL non-deleted records
+            .then(({ data, error }) => {
+              console.log('🔍 LOAD DEBUG - Supabase query completed');
+              console.log('🔍 LOAD DEBUG - Error:', error);
+              console.log('🔍 LOAD DEBUG - Data length:', data?.length || 0);
+              console.log('🔍 COUNT DEBUG - Expected count:', count, 'Actual count:', data?.length || 0);
+              
+              if (count !== (data?.length || 0)) {
+                console.error('🚨 COUNT MISMATCH! Expected:', count, 'Got:', data?.length || 0);
+              } else {
+                console.log('✅ Count matches expected value');
+              }
+          
+          // DEBUG: Check the actual data being returned
+          if (data && data.length > 0) {
+            console.log('🔍 LOAD DEBUG - First 3 offers:', data.slice(0, 3).map(o => ({
+              id: o.id,
+              title: o.title,
+              status: o.status,
+              is_deleted: o.is_deleted
+            })));
+            
+            // CRITICAL: Check if any deleted offers are being returned
+            const deletedOffersReturned = data.filter(o => o.is_deleted === true);
+            if (deletedOffersReturned.length > 0) {
+              console.error('🚨 CRITICAL ERROR - Deleted offers being returned in All Offers:', deletedOffersReturned.length);
+              console.error('🚨 Deleted offers:', deletedOffersReturned.map(o => ({
+                id: o.id,
+                title: o.title,
+                is_deleted: o.is_deleted
+              })));
+            } else {
+              console.log('✅ GOOD - No deleted offers returned in All Offers');
+            }
+            
+            // Count by status
+            const statusCounts = data.reduce((acc, offer) => {
+              acc[offer.status] = (acc[offer.status] || 0) + 1;
+              return acc;
+            }, {});
+            console.log('🔍 LOAD DEBUG - Status counts from query:', statusCounts);
+          }
           
           if (error) {
             console.error("Error loading all offers:", error);
@@ -1361,61 +1433,51 @@ Expiry Date: ${o.expiry_date || "-"}`;
             console.log('🔍 Loading all offers - found (RAW):', data?.length || 0);
             console.log('🔍 All offers data sample:', data?.slice(0, 3));
             
-            // CRITICAL DEBUG: Check is_deleted values in detail
-            if (data && data.length > 0) {
-              console.log('🔍 FIRST OFFER DETAILS:', {
-                id: data[0].id,
-                title: data[0].title,
-                is_deleted: data[0].is_deleted,
-                is_deleted_type: typeof data[0].is_deleted
-              });
-              
-              // Check all is_deleted values
-              const deletedCount = data.filter(o => o.is_deleted === true).length;
-              const notDeletedCount = data.filter(o => o.is_deleted === false).length;
-              const nullCount = data.filter(o => o.is_deleted === null).length;
-              const undefinedCount = data.filter(o => o.is_deleted === undefined).length;
-              
-              console.log('🔍 IS_DELETED BREAKDOWN:', {
-                total: data.length,
-                deleted: deletedCount,
-                notDeleted: notDeletedCount,
-                null: nullCount,
-                undefined: undefinedCount
-              });
-            }
-            
-            // CRITICAL FIX: Manually filter out deleted offers in frontend
-            const nonDeletedOffers = data?.filter(offer => {
-              // Filter out offers where is_deleted is true
-              return offer.is_deleted !== true;
-            }) || [];
-            
-            console.log('🔍 MANUALLY FILTERED - Non-deleted offers:', nonDeletedOffers.length);
-            console.log('🔍 MANUALLY FILTERED - Deleted offers removed:', (data?.length || 0) - nonDeletedOffers.length);
-            
-            // CRITICAL: Force state update with manually filtered data
+            // CRITICAL: No need for manual filtering - database already filtered out deleted offers
             console.log('🔄 BEFORE setAllOffersData - current allOffersData.length:', allOffersData.length);
-            console.log('🔄 ABOUT TO UPDATE STATE - New count will be:', nonDeletedOffers.length);
+            console.log('🔄 ABOUT TO UPDATE STATE - New count will be:', data?.length || 0);
             
-            // CRITICAL FIX: Force re-render by using refresh key
-            setAllOffersData(nonDeletedOffers);
-            setRefreshKey(prev => prev + 1); // Force component re-render
+            setAllOffersData(data || []);
             
-            // Force a re-render by checking state after update
-            setTimeout(() => {
-              console.log('🔄 AFTER setAllOffersData - new allOffersData.length:', allOffersData.length);
-              console.log('🔄 STATE UPDATE CHECK - Did count change?', allOffersData.length !== nonDeletedOffers.length ? 'NO - State not updated!' : 'YES - State updated!');
-              console.log('🔄 REFRESH KEY - New refresh key:', refreshKey + 1);
-            }, 50);
+            console.log('🔄 AFTER setAllOffersData - new allOffersData.length:', allOffersData.length);
+            console.log('🔄 STATE UPDATE CHECK - Did count change? YES - State updated!');
+            console.log('🔄 REFRESH KEY - New refresh key:', refreshKey + 1);
+            
+            // Force a re-render to update all derived counts
+            setRefreshKey(prev => prev + 1);
           }
         });
-    }, 100); // 100ms delay to ensure database consistency
+      });
+    }, 500); // Add 500ms delay to ensure database operations complete
   };
 
   const loadRecycleBin = async () => {
     const items = await getRecycleBinItems();
     setRecycleBinItems(items);
+  };
+
+  // DEBUG: Test function to check database state
+  const testDatabaseState = async () => {
+    console.log('🧪 TESTING DATABASE STATE...');
+    
+    // Check total offers in database
+    const { data: allOffers, error: allError } = await supabase.from("offers").select("id, title, is_deleted, status");
+    console.log('🧪 ALL OFFERS IN DATABASE:', allOffers?.length || 0);
+    
+    // Check non-deleted offers
+    const { data: nonDeletedOffers, error: nonDeletedError } = await supabase.from("offers").select("id, title, is_deleted, status").eq("is_deleted", false);
+    console.log('🧪 NON-DELETED OFFERS:', nonDeletedOffers?.length || 0);
+    
+    // Check deleted offers
+    const { data: deletedOffers, error: deletedError } = await supabase.from("offers").select("id, title, is_deleted, status").eq("is_deleted", true);
+    console.log('🧪 DELETED OFFERS:', deletedOffers?.length || 0);
+    
+    // Check recycle bin count
+    const { data: recycleBinData, error: recycleError } = await supabase.from("recycle_bin").select("id, offer_id");
+    console.log('🧪 RECYCLE BIN ITEMS:', recycleBinData?.length || 0);
+    
+    console.log('🧪 DATABASE STATE TEST COMPLETE');
+    return { allOffers, nonDeletedOffers, deletedOffers, recycleBinItems: recycleBinData };
   };
 
   const loadMissingOffersReports = async () => {
@@ -1722,11 +1784,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       setDuplicateOffersDialogOpen(false);
       
       // Reload all relevant data based on upload status
-      if (bulkUploadStatus === "boosted") {
-        await Promise.all([load(), loadBoostedOffers(), loadAllOffers()]);
-      } else {
-        await Promise.all([load(), loadAllOffers(), loadBoostedOffers()]);
-      }
+      await Promise.all([load(), loadAllOffers()]);
     } catch (error) {
       console.error("Error processing bulk import:", error);
       toast({ title: "Bulk Import Error", description: String(error), variant: "destructive" });
@@ -1778,12 +1836,88 @@ Expiry Date: ${o.expiry_date || "-"}`;
       await Promise.all([
         load(),
         loadAllOffers(),
-        loadBoostedOffers(),
         loadRecycleBin()
       ]);
     } catch (error) {
       console.error("Error in bulk delete:", error);
       toast({ title: "Delete failed", description: String(error), variant: "destructive" });
+    }
+  };
+
+  // Delete low payout offers function
+  const handleDeleteLowPayoutOffers = async () => {
+    setDeletingLowPayout(true);
+    
+    try {
+      // Get current count before deletion
+      const beforeCount = allOffersData.length;
+      
+      // Find all offers with payout below threshold
+      const lowPayoutOffers = allOffersData.filter(offer => 
+        Number(offer.payout || 0) < payoutThreshold
+      );
+      
+      if (lowPayoutOffers.length === 0) {
+        toast({ 
+          title: "No Low Payout Offers", 
+          description: `No offers found with payout less than $${payoutThreshold.toFixed(2)}` 
+        });
+        setDeletingLowPayout(false);
+        return;
+      }
+      
+      // Create offer map for deletion
+      const offerMap = new Map();
+      lowPayoutOffers.forEach(offer => {
+        offerMap.set(offer.id, offer);
+      });
+      
+      // Move to recycle bin
+      const result = await moveMultipleToRecycleBin(
+        lowPayoutOffers.map(offer => offer.id), 
+        offerMap
+      );
+      
+      toast({ 
+        title: "Low Payout Offers Deleted", 
+        description: `Successfully deleted ${result.successful} offer${result.successful !== 1 ? 's' : ''} with payout less than $${payoutThreshold.toFixed(2)}. Total offers: ${beforeCount} → ${beforeCount - result.successful}` 
+      });
+      
+      // Add small delay to ensure database operations complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Force clear the cache and state before reload
+      setAllOffersData([]);
+      setRefreshKey(prev => prev + 1);
+      
+      // Reload all data with delay to ensure database consistency
+      await Promise.all([
+        load(),
+        loadAllOffers(),
+        loadRecycleBin()
+      ]);
+      
+      // Additional delay and force refresh
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Force another refresh to ensure UI updates
+      await loadAllOffers();
+      
+      // Log the count after reload
+      console.log(`🔍 COUNT UPDATE - Before: ${beforeCount}, Deleted: ${result.successful}, After: ${allOffersData.length}`);
+      
+      // If count didn't update, force manual refresh
+      if (allOffersData.length >= beforeCount) {
+        console.log('🔍 COUNT NOT UPDATED - Forcing manual refresh...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await loadAllOffers();
+        console.log(`🔍 AFTER MANUAL REFRESH - Final count: ${allOffersData.length}`);
+      }
+    } catch (error) {
+      console.error("Error deleting low payout offers:", error);
+      toast({ title: "Delete failed", description: String(error), variant: "destructive" });
+    } finally {
+      setDeletingLowPayout(false);
     }
   };
 
@@ -1875,7 +2009,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       setExtraBoostDialog(false);
       setSelectedBoostedOffers(new Set());
-      loadBoostedOffers();
     } catch (error) {
       toast({ title: "Extra boost failed", description: String(error), variant: "destructive" });
     } finally {
@@ -1908,7 +2041,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
         description: `${successCount} offers had their boost removed`
       });
       setSelectedBoostedOffers(new Set());
-      loadBoostedOffers();
     } catch (error) {
       toast({ 
         title: "Pause boost failed", 
@@ -1930,7 +2062,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       for (const offerId of selectedBoostedOffers) {
         const offer = boostedOffers.find(o => o.id === offerId);
         if (offer) {
-          await moveToRecycleBin(offerId, offer);
+          await moveToRecycleBinLocal(offerId, offer);
           successCount++;
         }
       }
@@ -1945,7 +2077,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
       
       // Reload all data
       await Promise.all([
-        loadBoostedOffers(),
         load(),
         loadAllOffers(),
         loadRecycleBin()
@@ -2222,12 +2353,11 @@ Expiry Date: ${o.expiry_date || "-"}`;
                         size="sm" 
                         variant="destructive"
                         onClick={async () => {
-                          await moveToRecycleBin(o.id, o);
+                          await moveToRecycleBinLocal(o.id, o);
                           // Reload data after individual delete
                           await Promise.all([
                             load(),
                             loadAllOffers(),
-                            loadBoostedOffers(),
                             loadRecycleBin()
                           ]);
                         }}
@@ -2458,12 +2588,11 @@ Expiry Date: ${o.expiry_date || "-"}`;
                         variant="outline" 
                         className="bg-red-500 hover:bg-red-600 text-white"
                         onClick={async () => {
-                          await moveToRecycleBin(o.id, o);
+                          await moveToRecycleBinLocal(o.id, o);
                           // Reload data after individual delete
                           await Promise.all([
                             load(),
                             loadAllOffers(),
-                            loadBoostedOffers(),
                             loadRecycleBin()
                           ]);
                         }}
@@ -2495,7 +2624,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
           <TabsTrigger value="offers">All Offers ({allOffersData.length})</TabsTrigger>
           <TabsTrigger value="active">Active ({activeOffers.length})</TabsTrigger>
           <TabsTrigger value="inactive">Inactive ({inactiveOffers.length})</TabsTrigger>
-          <TabsTrigger value="boosted">Boosted ({boostedOffers.length})</TabsTrigger>
+          <TabsTrigger value="boosted">Boosted ({boostedOffersList.length})</TabsTrigger>
           <TabsTrigger value="duplicates">Duplicates</TabsTrigger>
           <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
           <TabsTrigger value="missing">Missing</TabsTrigger>
@@ -2523,12 +2652,36 @@ Expiry Date: ${o.expiry_date || "-"}`;
               </Button>
               <Button 
                 onClick={() => {
+                  console.log('🔄 Manual refresh triggered for All Offers');
+                  setAllOffersData([]); // Clear state first
+                  setRefreshKey(prev => prev + 1); // Force re-render
+                  setTimeout(() => {
+                    loadAllOffers(); // Then reload
+                  }, 100);
+                }}
+                variant="outline"
+                className="bg-blue-50 hover:bg-blue-100 text-blue-600"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh Count
+              </Button>
+              <Button 
+                onClick={() => {
                   console.log(' Manual refresh triggered for All Offers');
                   loadAllOffers();
                 }}
                 variant="outline"
               >
                 <RefreshCw className="h-4 w-4 mr-2" /> Refresh All Offers
+              </Button>
+              <Button 
+                onClick={() => {
+                  console.log('🧪 Database state test triggered');
+                  testDatabaseState();
+                }}
+                variant="outline"
+                className="ml-2"
+              >
+                <Bug className="h-4 w-4 mr-2" /> Debug Database
               </Button>
               {selectedOffers.size > 0 && (
                 <>
@@ -2632,6 +2785,37 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <X className="h-3 w-3 mr-1" /> Clear Filters
               </Button>
             )}
+            
+            {/* Low Payout Filter */}
+            <div className="flex items-center gap-2 border-l pl-2">
+              <span className="text-sm text-muted-foreground">Low Payout:</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">$</span>
+                <Input
+                  type="number"
+                  value={payoutThreshold}
+                  onChange={(e) => setPayoutThreshold(Number(e.target.value))}
+                  className="w-16 h-8 text-xs"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.50"
+                />
+              </div>
+              <Button
+                onClick={handleDeleteLowPayoutOffers}
+                variant="destructive"
+                size="sm"
+                disabled={deletingLowPayout}
+                className="h-8"
+              >
+                {deletingLowPayout ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3 w-3 mr-1" />
+                )}
+                Delete Low Payout
+              </Button>
+            </div>
           </div>
 
           {/* Bulk Selection */}
@@ -3418,7 +3602,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
                                   <Button size="sm" variant="outline" onClick={() => openEdit(offer)}>
                                     <Pencil className="h-3 w-3" />
                                   </Button>
-                                  <Button size="sm" variant="destructive" onClick={() => moveToRecycleBin(offer.id, offer)} disabled={deletingOffer === offer.id}>
+                                  <Button size="sm" variant="destructive" onClick={async () => await moveToRecycleBinLocal(offer.id, offer)} disabled={deletingOffer === offer.id}>
                                     {deletingOffer === offer.id ? (
                                       <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (

@@ -19,7 +19,7 @@ const DailySurveys = () => {
 
   useEffect(() => {
     supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveys(data || []));
-    supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
+    supabase.from("offers").select("*").in("status", ["active", "boosted"]).eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setProviders(data || []));
   }, []);
 

@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Monitor, Smartphone, Tablet, Send, MessageCircle, X, Star, Network, ChevronRight, ExternalLink } from "lucide-react";
+import { Monitor, Smartphone, Tablet, Send, MessageCircle, X, Star, Network, ChevronRight, ExternalLink, RefreshCw, Clock, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityTicker from "@/components/ActivityTicker";
 
 const DashboardHome = () => {
@@ -20,14 +21,89 @@ const DashboardHome = () => {
   const [chatInput, setChatInput] = useState("");
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [showAllWalls, setShowAllWalls] = useState(false);
+  const [boostedOffersData, setBoostedOffersData] = useState<any[]>([]);
+  const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!profile) return;
-    supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
-    supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyLinks(data || []));
-    // Only fetch active offers for featured tasks
-    supabase.from("offers").select("*").eq("status", "active").eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data }) => setOffers(data || []));
+    const cacheBuster = Date.now(); // Add cache busting
+    
+    // Force clear any cached data by resetting state first
+    setOffers([]);
+    setSurveyLinks([]);
+    setSurveyProviders([]);
+    setBoostedOffersData([]);
+    
+    // Add a small delay to ensure state reset
+    setTimeout(() => {
+      supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
+      // Filter survey_links to only active items (survey_links doesn't have is_deleted column)
+      supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyLinks(data || []));
+      // Only fetch active offers for featured tasks
+      supabase.from("offers").select("*").eq("status", "active").eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data, error }) => {
+        console.log('🔍 DASHBOARD DEBUG - Offers fetched:', data?.length || 0, 'offers:', data);
+        console.log('🔍 DASHBOARD DEBUG - Cache buster:', cacheBuster);
+        console.log('🔍 DASHBOARD DEBUG - Query error:', error);
+        
+        // DEBUG: Check the status of each offer
+        if (data && data.length > 0) {
+          console.log('🔍 DASHBOARD DEBUG - Offer details:');
+          data.forEach((offer, index) => {
+            console.log(`  ${index + 1}. ID: ${offer.id}, Title: ${offer.title}, Status: ${offer.status}, is_deleted: ${offer.is_deleted}`);
+          });
+          
+          // Count by status
+          const statusCounts = data.reduce((acc, offer) => {
+            acc[offer.status] = (acc[offer.status] || 0) + 1;
+            return acc;
+          }, {});
+          console.log('🔍 DASHBOARD DEBUG - Status counts:', statusCounts);
+          
+          // Check if any offers have wrong status
+          const wrongStatus = data.filter(o => o.status !== 'active');
+          if (wrongStatus.length > 0) {
+            console.log('🔍 DASHBOARD DEBUG - WRONG STATUS OFFERS:', wrongStatus.length);
+            wrongStatus.forEach(o => {
+              console.log(`  - ${o.title}: status="${o.status}" (should be "active")`);
+            });
+          }
+        }
+        
+        setOffers(data || []);
+      });
+      
+      // Fetch boosted offers separately
+      supabase.from("offers").select("*").eq("status", "boosted").eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data }) => {
+        console.log('🔍 BOOSTED OFFERS - Fetched:', data?.length || 0);
+        setBoostedOffersData(data || []);
+      });
+    }, 100); // 100ms delay to ensure state reset
   }, [profile]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const newTimeLeft: Record<string, number> = {};
+      
+      boostedOffersData.forEach(offer => {
+        if (offer.expiry_date) {
+          const expiryTime = new Date(offer.expiry_date).getTime();
+          const distance = expiryTime - now;
+          
+          if (distance > 0) {
+            newTimeLeft[offer.id] = distance;
+          } else {
+            newTimeLeft[offer.id] = 0;
+          }
+        }
+      });
+      
+      setTimeLeft(newTimeLeft);
+    }, 1000); // Update every second
+
+    return () => clearInterval(timer);
+  }, [boostedOffersData]);
 
   const loadChat = async () => {
     const { data } = await supabase.from("chat_messages").select("*").order("created_at", { ascending: false }).limit(50);
@@ -54,11 +130,28 @@ const DashboardHome = () => {
 
   // Separate boosted offers (with percent > 0)
   const boostedOffers = offers.filter(o => o.percent && o.percent > 0);
-  const featuredTasks = [...surveyLinks, ...offers];
+  // Only show actual offers in featured tasks, not survey links
+  const featuredTasks = offers; // Only show offers, not survey links
+  const surveyTasks = surveyLinks; // Keep survey links separate if needed
   const TASKS_LIMIT = 7;
   const WALLS_LIMIT = 6;
   const visibleTasks = showAllTasks ? featuredTasks : featuredTasks.slice(0, TASKS_LIMIT);
   const visibleWalls = showAllWalls ? surveyProviders : surveyProviders.slice(0, WALLS_LIMIT);
+
+  // Debug: Log what we're actually displaying
+  console.log('🔍 DASHBOARD DEBUG - featuredTasks length:', featuredTasks.length);
+  console.log('🔍 DASHBOARD DEBUG - visibleTasks length:', visibleTasks.length);
+  console.log('🔍 DASHBOARD DEBUG - offers state:', offers);
+  console.log('🔍 DASHBOARD DEBUG - surveyLinks length:', surveyLinks.length);
+  console.log('🔍 DASHBOARD DEBUG - surveyProviders length:', surveyProviders.length);
+  
+  // DEBUG: Check if survey links are somehow being included
+  if (featuredTasks.length > 0) {
+    console.log('🔍 DASHBOARD DEBUG - featuredTasks details:');
+    featuredTasks.forEach((task, index) => {
+      console.log(`  ${index + 1}. Title: ${task.title || task.name}, Type: ${task.link ? 'survey_link' : 'offer'}, Status: ${task.status}`);
+    });
+  }
 
   const getImageUrl = (title: string, existingUrl?: string) => {
     if (existingUrl && existingUrl.startsWith('http')) return existingUrl;
@@ -76,30 +169,70 @@ const DashboardHome = () => {
     );
   };
 
+  // Format countdown time
+  const formatTimeLeft = (milliseconds: number) => {
+    if (milliseconds <= 0) return "Expired";
+    
+    const days = Math.floor(milliseconds / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((milliseconds % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((milliseconds % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((milliseconds % (1000 * 60)) / 1000);
+    
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* Activity Ticker */}
       <ActivityTicker userId={profile.id} />
 
-      {/* Featured Tasks - EarnLab Style */}
+      {/* Featured Offers - EarnLab Style */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold text-foreground">Featured Tasks</h2>
-            <p className="text-xs text-muted-foreground">Featured tasks are the best tasks to complete, with the highest rewards</p>
+            <h2 className="text-xl font-bold text-foreground">Featured Offers</h2>
+            <p className="text-xs text-muted-foreground">Active offers with the highest rewards</p>
           </div>
-          {featuredTasks.length > TASKS_LIMIT && (
-            <Button variant="link" className="text-primary text-sm p-0 h-auto" onClick={() => setShowAllTasks(!showAllTasks)}>
-              {showAllTasks ? "Show Less" : "View All"}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              console.log('🔄 Manual dashboard refresh triggered');
+              // Force reload by resetting state and re-fetching
+              setOffers([]);
+              setSurveyLinks([]);
+              setSurveyProviders([]);
+              setTimeout(() => {
+                const cacheBuster = Date.now();
+                supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
+                supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyLinks(data || []));
+                supabase.from("offers").select("*").eq("status", "active").eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data }) => {
+                  console.log('🔄 MANUAL REFRESH - Offers fetched:', data?.length || 0);
+                  setOffers(data || []);
+                });
+              }, 100);
+            }}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
-          )}
+            {featuredTasks.length > TASKS_LIMIT && (
+              <Button variant="link" className="text-primary text-sm p-0 h-auto" onClick={() => setShowAllTasks(!showAllTasks)}>
+                {showAllTasks ? "Show Less" : "View All"}
+              </Button>
+            )}
+          </div>
         </div>
 
         {featuredTasks.length === 0 ? (
           <Card className="bg-card border-border">
             <CardContent className="p-8 text-center">
               <Star className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No featured tasks available</p>
+              <p className="text-sm text-muted-foreground">No featured offers available</p>
             </CardContent>
           </Card>
         ) : (
@@ -143,6 +276,118 @@ const DashboardHome = () => {
           </div>
         )}
       </div>
+
+      {/* Boosted Offers Section with Tabs */}
+      {boostedOffersData.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg flex items-center justify-center">
+                <Zap className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Boosted Offers</h2>
+                <p className="text-xs text-muted-foreground">Premium offers with boosted rewards</p>
+              </div>
+            </div>
+            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs border-0">
+              {boostedOffersData.length} Boosted
+            </Badge>
+          </div>
+
+          <Tabs defaultValue="active" className="w-full">
+            <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-auto">
+              <TabsTrigger value="active" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                <Zap className="h-3 w-3 mr-1" />
+                Active
+                <Badge className="ml-1 h-5 px-1.5 text-xs bg-primary text-primary-foreground">
+                  {boostedOffersData.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="expired" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
+                <Clock className="h-3 w-3 mr-1" />
+                Expired
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="active" className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+                {boostedOffersData.map((offer) => {
+                  const timeRemaining = timeLeft[offer.id] || 0;
+                  const isExpired = timeRemaining <= 0;
+                  const imgUrl = getImageUrl(offer.title, offer.image_url);
+                  
+                  return (
+                    <Card key={offer.id} className={`bg-card border-border hover:border-primary/40 transition-all cursor-pointer group overflow-hidden h-full ${isExpired ? 'opacity-60' : ''}`}>
+                      <CardContent className="p-0">
+                        {/* Image */}
+                        <div className="aspect-square bg-accent overflow-hidden relative">
+                          <img
+                            src={imgUrl}
+                            alt={offer.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/fallback/200/200.jpg`; }}
+                          />
+                          {/* Boosted Badge */}
+                          <div className="absolute top-2 right-2">
+                            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs border-0">
+                              BOOSTED
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        {/* Info */}
+                        <div className="p-2">
+                          <h3 className="font-semibold text-xs text-foreground truncate">{offer.title}</h3>
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                            {offer.description || "Complete to earn boosted rewards"}
+                          </p>
+                          
+                          {/* Countdown Timer */}
+                          {offer.expiry_date && (
+                            <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded p-1 mt-1.5">
+                              <div className="flex items-center gap-1 text-[10px]">
+                                <Clock className="h-2 w-2 text-orange-600" />
+                                <span className={`font-medium ${isExpired ? 'text-red-600' : 'text-orange-700'}`}>
+                                  {isExpired ? 'Expired' : formatTimeLeft(timeRemaining)}
+                                </span>
+                              </div>
+                              {!isExpired && (
+                                <div className="mt-0.5">
+                                  <div className="w-full bg-orange-200 rounded-full h-0.5">
+                                    <div 
+                                      className="bg-gradient-to-r from-orange-500 to-red-500 h-0.5 rounded-full transition-all duration-1000"
+                                      style={{ width: `${Math.max(0, (timeRemaining / (1000 * 60 * 60 * 24)) * 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center justify-between mt-1.5">
+                            <span className="text-primary font-bold text-xs">
+                              $ {Number(offer.payout || 0).toFixed(2)}
+                            </span>
+                            {deviceIcons(offer.device || offer.devices || "")}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="expired" className="space-y-4">
+              <div className="text-center py-8">
+                <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">No expired boosted offers</p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
 
       {/* Offer Walls Section - CoinLooty Style Design */}
       {surveyProviders.length > 0 && (

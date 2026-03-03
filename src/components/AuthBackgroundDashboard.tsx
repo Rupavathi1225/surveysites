@@ -34,11 +34,11 @@ export default function AuthBackgroundDashboard() {
 
   useEffect(() => {
     supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).limit(7).then(({ data }) => setSurveyLinks(data || []));
-    supabase.from("offers").select("*").eq("status", "active").order("created_at", { ascending: false }).limit(7).then(({ data }) => setOffers(data || []));
+    supabase.from("offers").select("*").in("status", ["active", "boosted"]).eq("is_deleted", false).order("created_at", { ascending: false }).limit(7).then(({ data }) => setOffers(data || []));
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).limit(7).then(({ data }) => setSurveyProviders(data || []));
   }, []);
 
-  const featuredTasks = [...surveyLinks, ...offers].slice(0, 7);
+  const featuredTasks = offers.slice(0, 7); // Only show offers, not survey links
 
   const deviceIcons = (device: string) => {
     const d = (device || "").toLowerCase();
