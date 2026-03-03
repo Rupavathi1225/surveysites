@@ -2060,7 +2060,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
     try {
       let successCount = 0;
       for (const offerId of selectedBoostedOffers) {
-        const offer = boostedOffers.find(o => o.id === offerId);
+        const offer = boostedOffersList.find(o => o.id === offerId);
         if (offer) {
           await moveToRecycleBinLocal(offerId, offer);
           successCount++;
@@ -3932,6 +3932,21 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   </p>
                 </div>
               )}
+
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">Image URL</h3>
+                {viewingOffer.image_url ? (
+                  <div className="space-y-2">
+                    <a href={viewingOffer.image_url} target="_blank" rel="noopener noreferrer" 
+                       className="text-blue-500 hover:underline break-all text-sm">
+                      {viewingOffer.image_url}
+                    </a>
+                    <img src={viewingOffer.image_url} alt={viewingOffer.title} className="w-32 h-24 object-cover rounded border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No image URL</p>
+                )}
+              </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
