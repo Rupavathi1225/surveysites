@@ -120,6 +120,7 @@ const App = () => (
           <Route path="/admin/downward-partners" element={<AdminPage><DownwardPartners /></AdminPage>} />
           <Route path="/admin/postback-logs" element={<AdminPage><PostbackLogs /></AdminPage>} />
           <Route path="/admin/test-postback" element={<AdminPage><TestPostback /></AdminPage>} />
+          <Route path="/admin/user-generation" element={<AdminPage><UserGeneration /></AdminPage>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

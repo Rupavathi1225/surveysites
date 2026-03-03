@@ -862,6 +862,13 @@ serve(async (req: Request) => {
               response_keys: Object.keys(payload?.response || {}),
               data_shape: summarizeDataShape(payload?.response?.data),
               errorMessage: payload?.response?.errorMessage || null,
+            }
+          : undefined,
+      });
+    }
+
+    // Import action
+    const offersToImport = transformedOffers;
     const importResult = await importOffersWithDetails(offersToImport, networkId, supabase);
 
     console.log('Import result from function:', importResult);
