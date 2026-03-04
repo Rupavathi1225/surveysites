@@ -26,58 +26,18 @@ const DashboardHome = () => {
 
   useEffect(() => {
     if (!profile) return;
-    const cacheBuster = Date.now(); // Add cache busting
     
-    // Force clear any cached data by resetting state first
-    setOffers([]);
-    setSurveyLinks([]);
-    setSurveyProviders([]);
-    setBoostedOffersData([]);
-    
-    // Add a small delay to ensure state reset
-    setTimeout(() => {
-      supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
-      // Filter survey_links to only active items (survey_links doesn't have is_deleted column)
-      supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyLinks(data || []));
-      // Only fetch active offers for featured tasks
-      supabase.from("offers").select("*").eq("status", "active").eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data, error }) => {
-        console.log('🔍 DASHBOARD DEBUG - Offers fetched:', data?.length || 0, 'offers:', data);
-        console.log('🔍 DASHBOARD DEBUG - Cache buster:', cacheBuster);
-        console.log('🔍 DASHBOARD DEBUG - Query error:', error);
-        
-        // DEBUG: Check the status of each offer
-        if (data && data.length > 0) {
-          console.log('🔍 DASHBOARD DEBUG - Offer details:');
-          data.forEach((offer, index) => {
-            console.log(`  ${index + 1}. ID: ${offer.id}, Title: ${offer.title}, Status: ${offer.status}, is_deleted: ${offer.is_deleted}`);
-          });
-          
-          // Count by status
-          const statusCounts = data.reduce((acc, offer) => {
-            acc[offer.status] = (acc[offer.status] || 0) + 1;
-            return acc;
-          }, {});
-          console.log('🔍 DASHBOARD DEBUG - Status counts:', statusCounts);
-          
-          // Check if any offers have wrong status
-          const wrongStatus = data.filter(o => o.status !== 'active');
-          if (wrongStatus.length > 0) {
-            console.log('🔍 DASHBOARD DEBUG - WRONG STATUS OFFERS:', wrongStatus.length);
-            wrongStatus.forEach(o => {
-              console.log(`  - ${o.title}: status="${o.status}" (should be "active")`);
-            });
-          }
-        }
-        
-        setOffers(data || []);
-      });
-      
-      // Fetch boosted offers separately
-      supabase.from("offers").select("*").eq("status", "boosted").eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data }) => {
-        console.log('🔍 BOOSTED OFFERS - Fetched:', data?.length || 0);
-        setBoostedOffersData(data || []);
-      });
-    }, 100); // 100ms delay to ensure state reset
+    // Fetch active survey providers
+    supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyProviders(data || []));
+    // Fetch active survey links
+    supabase.from("survey_links").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setSurveyLinks(data || []));
+    // Only fetch active, non-deleted offers for featured tasks
+    supabase.from("offers").select("*").in("status", ["active", "boosted"]).eq("is_deleted", false).order("created_at", { ascending: false }).then(({ data }) => {
+      const active = (data || []).filter(o => o.status === "active");
+      const boosted = (data || []).filter(o => o.status === "boosted");
+      setOffers(active);
+      setBoostedOffersData(boosted);
+    });
   }, [profile]);
 
   // Countdown timer effect
@@ -137,21 +97,6 @@ const DashboardHome = () => {
   const WALLS_LIMIT = 6;
   const visibleTasks = showAllTasks ? featuredTasks : featuredTasks.slice(0, TASKS_LIMIT);
   const visibleWalls = showAllWalls ? surveyProviders : surveyProviders.slice(0, WALLS_LIMIT);
-
-  // Debug: Log what we're actually displaying
-  console.log('🔍 DASHBOARD DEBUG - featuredTasks length:', featuredTasks.length);
-  console.log('🔍 DASHBOARD DEBUG - visibleTasks length:', visibleTasks.length);
-  console.log('🔍 DASHBOARD DEBUG - offers state:', offers);
-  console.log('🔍 DASHBOARD DEBUG - surveyLinks length:', surveyLinks.length);
-  console.log('🔍 DASHBOARD DEBUG - surveyProviders length:', surveyProviders.length);
-  
-  // DEBUG: Check if survey links are somehow being included
-  if (featuredTasks.length > 0) {
-    console.log('🔍 DASHBOARD DEBUG - featuredTasks details:');
-    featuredTasks.forEach((task, index) => {
-      console.log(`  ${index + 1}. Title: ${task.title || task.name}, Type: ${task.link ? 'survey_link' : 'offer'}, Status: ${task.status}`);
-    });
-  }
 
   const getImageUrl = (title: string, existingUrl?: string) => {
     if (existingUrl && existingUrl.startsWith('http')) return existingUrl;
