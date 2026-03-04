@@ -462,33 +462,10 @@ const idsToRestore = Array.from(selectedRecycleBin);
   const devices = [...new Set(allOffersData.map(o => o.device || o.devices).filter(Boolean))];
   const countries = [...new Set(allOffersData.flatMap(o => (o.countries || "").split(",").map((c: string) => c.trim())).filter(Boolean))];
 
-  // CRITICAL FIX: Filter Active/Inactive/Boosted from allOffersData (master source)
+  // Filter Active/Inactive/Boosted from allOffersData (master source)
   const activeOffers = allOffersData.filter(o => o.status === "active");
   const inactiveOffers = allOffersData.filter(o => o.status === "inactive");
   const boostedOffersList = allOffersData.filter(o => o.status === "boosted");
-
-  // DEBUG: Log the actual counts
-  console.log('🔍 ADMIN DEBUG - allOffersData length:', allOffersData.length);
-  console.log('🔍 ADMIN DEBUG - activeOffers length:', activeOffers.length);
-  console.log('🔍 ADMIN DEBUG - inactiveOffers length:', inactiveOffers.length);
-  console.log('🔍 ADMIN DEBUG - boostedOffersList length:', boostedOffersList.length);
-  
-  // DEBUG: Check status breakdown
-  if (allOffersData.length > 0) {
-    const statusBreakdown = allOffersData.reduce((acc, offer) => {
-      acc[offer.status] = (acc[offer.status] || 0) + 1;
-      return acc;
-    }, {});
-    console.log('🔍 ADMIN DEBUG - Status breakdown:', statusBreakdown);
-    
-    // Show first few offers with their status
-    console.log('🔍 ADMIN DEBUG - Sample offers:', allOffersData.slice(0, 5).map(o => ({
-      id: o.id,
-      title: o.title,
-      status: o.status,
-      is_deleted: o.is_deleted
-    })));
-  }
 
   // Filter offers based on selected filters
   const filterOffers = (offers: any[]) => {
@@ -535,59 +512,14 @@ useEffect(() => {
     fetchNetworks();
 
     // Listen for recycle bin update events
-    const handleRecycleBinUpdate = (event: any) => {
-      console.log('🔄 Recycle bin update event received:', event.detail);
-      
-      // Always refresh recycle bin
+    const handleRecycleBinUpdate = () => {
       loadRecycleBin();
-      
-      // Don't refresh All Offers for item_moved - manual count handles it
-      if (event.detail.action === 'item_restored' || event.detail.action === 'bulk_restored') {
-        console.log('🔄 Items restored, refreshing All Offers...');
-        loadAllOffers();
-        fetchNetworks();
-      } else if (event.detail.action === 'permanent_delete' || event.detail.action === 'bulk_permanent_delete') {
-        console.log('🔄 Items permanently deleted, refreshing All Offers...');
-        loadAllOffers();
-        fetchNetworks();
-      } else if (event.detail.action === 'item_moved' || event.detail.action === 'bulk_moved') {
-        console.log('🔄 Items moved to recycle bin - NOT refreshing All Offers (manual count handles it)');
-        // Don't call loadAllOffers - let manual count reduction handle it
-      }
     };
 
-    // Listen for offers imported events
-    const handleOffersImported = (event: any) => {
-      console.log('🔄 Offers imported event received:', event.detail);
-      console.log('🔄 EVENT DEBUG - Event type:', event.type);
-      console.log('🔄 EVENT DEBUG - Event detail:', event.detail);
-      console.log('🔄 EVENT DEBUG - About to call loadAllOffers()');
-      
-      // CRITICAL FIX: Call loadAllOffers() to update All Offers tab
+    const handleOffersImported = () => {
       loadAllOffers();
-      
-      // CRITICAL FIX: Also call load() to keep items synchronized
-      load(); // This will update both items and allOffersData
-      
-      // CRITICAL FIX: Add delay to ensure database consistency
-      setTimeout(() => {
-        console.log('🔄 DELAYED REFRESH - Now calling other functions with delay');
-        fetchNetworks();
-        console.log('🔄 EVENT DEBUG - All load functions called with delay');
-        
-        // ULTIMATE FIX: Force page reload if count doesn't update after 2 seconds
-        setTimeout(() => {
-          console.log('🔥 ULTIMATE FIX - Checking if count updated...');
-          console.log('🔥 ULTIMATE FIX - Current count:', allOffersData.length);
-          console.log('🔥 ULTIMATE FIX - Expected count should be higher');
-          
-          // If count is still not updating, force page reload
-          if (allOffersData.length < (event.detail.count || 0)) {
-            console.log('🔥 ULTIMATE FIX - Forcing page reload to update counts');
-            window.location.reload();
-          }
-        }, 2000);
-      }, 500); // 500ms delay to ensure database consistency
+      load();
+      fetchNetworks();
     };
 
     window.addEventListener('recycleBinUpdated', handleRecycleBinUpdate);
@@ -1255,50 +1187,28 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
   const moveToRecycleBinLocal = async (id: string, offerData: any) => {
     try {
-      console.log('🗑️ DELETION START - Moving offer to recycle bin:', {
-        id,
-        title: offerData.title,
-        current_is_deleted: offerData.is_deleted
-      });
-      
       setDeletingOffer(id);
       setDeleteProgress(0);
       
-      // Use the imported recycleBin utility function
       setDeleteProgress(25);
       await moveToRecycleBin(id, offerData);
-      
-      console.log('🗑️ DELETION STEP - moveToRecycleBin completed');
       
       setDeleteProgress(75);
       toast({ title: "Offer moved to recycle bin" });
       
       setDeleteProgress(100);
       
-      // CRITICAL: Manually reduce count immediately to ensure UI updates
-      console.log('🗑️ MANUAL COUNT UPDATE - Before:', allOffersData.length);
-      const currentCount = allOffersData.length;
-      setAllOffersData(prev => {
-        const filtered = prev.filter(offer => offer.id !== id);
-        console.log('🗑️ MANUAL COUNT UPDATE - After filtering:', filtered.length);
-        console.log('🗑️ MANUAL COUNT UPDATE - Reduced by:', prev.length - filtered.length);
-        return filtered;
-      });
+      // Immediately remove from local state for instant UI update
+      setAllOffersData(prev => prev.filter(offer => offer.id !== id));
+      setItems(prev => prev.filter(offer => offer.id !== id));
       
-      // Load other data but don't override allOffersData
-      console.log('🗑️ DELETION STEP - About to reload data');
-      console.log('🗑️ BEFORE RELOAD - allOffersData.length:', allOffersData.length);
-      
-      // Only load recycle bin - don't reload offers data
-      await Promise.all([
-        loadRecycleBin()
-      ]);
-      
-      console.log('🗑️ AFTER RELOAD - allOffersData.length:', allOffersData.length);
-      console.log('🗑️ DELETION COMPLETE');
+      // Reload recycle bin to update its count
+      await loadRecycleBin();
     } catch (error) { 
-      console.error('🗑️ DELETION ERROR:', error);
+      console.error('Deletion error:', error);
       toast({ title: "Delete failed", description: String(error), variant: "destructive" });
+      // On error, reload everything to get correct state
+      await Promise.all([loadAllOffers(), loadRecycleBin()]);
     } finally {
       setDeletingOffer(null);
       setDeleteProgress(0);
@@ -1343,112 +1253,40 @@ Expiry Date: ${o.expiry_date || "-"}`;
     }
   };
 
-  const load = () => {
-    supabase.from("offers").select("*").eq("is_deleted", false).order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error loading offers:", error);
-          toast({ title: "Error loading offers", variant: "destructive" });
-        } else {
-          console.log('🔍 LOAD DEBUG - Updating items only (not allOffersData)');
-          setItems(data || []); // For Active/Inactive/Boosted filtering
-          // NOTE: Don't update allOffersData here - let manual deletion handle it
-        }
-      });
+  const load = async () => {
+    const { data, error } = await supabase
+      .from("offers")
+      .select("*")
+      .eq("is_deleted", false)
+      .order("created_at", { ascending: false })
+      .range(0, 4999);
+    if (error) {
+      console.error("Error loading offers:", error);
+    } else {
+      setItems(data || []);
+      setAllOffersData(data || []);
+    }
   };
 
-  // Load pending offers for All Offers section (offers not yet assigned to Active/Inactive/Boosted)
-  const loadAllOffers = () => {
-    console.log('🔄 Loading all offers for All Offers tab...');
-    console.log('🔍 LOAD DEBUG - Function called successfully');
-    
-    // Add aggressive cache busting with random parameter
-    const cacheBuster = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now();
-    console.log('🔍 Cache buster:', cacheBuster);
-    console.log('🔍 Timestamp:', timestamp);
-    
-    // CRITICAL: Add delay to ensure database operations complete
-    setTimeout(() => {
-      console.log('🔍 LOAD DEBUG - About to make Supabase query');
+  // Load ALL non-deleted offers for the All Offers tab (single source of truth)
+  const loadAllOffers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .range(0, 4999); // Override Supabase's default 1000-row limit
       
-      // First, get the exact count of non-deleted offers
-      supabase.from("offers").select("id", { count: "exact" }).eq("is_deleted", false)
-        .then(({ count, error: countError }) => {
-          if (countError) {
-            console.error("❌ Error getting count:", countError);
-          } else {
-            console.log('🔍 COUNT DEBUG - Total non-deleted offers in database:', count);
-          }
-          
-          // Now fetch all non-deleted offers
-          supabase.from("offers").select("*").eq("is_deleted", false).order("created_at", { ascending: false })
-            // REMOVED LIMIT to get ALL non-deleted records
-            .then(({ data, error }) => {
-              console.log('🔍 LOAD DEBUG - Supabase query completed');
-              console.log('🔍 LOAD DEBUG - Error:', error);
-              console.log('🔍 LOAD DEBUG - Data length:', data?.length || 0);
-              console.log('🔍 COUNT DEBUG - Expected count:', count, 'Actual count:', data?.length || 0);
-              
-              if (count !== (data?.length || 0)) {
-                console.error('🚨 COUNT MISMATCH! Expected:', count, 'Got:', data?.length || 0);
-              } else {
-                console.log('✅ Count matches expected value');
-              }
-          
-          // DEBUG: Check the actual data being returned
-          if (data && data.length > 0) {
-            console.log('🔍 LOAD DEBUG - First 3 offers:', data.slice(0, 3).map(o => ({
-              id: o.id,
-              title: o.title,
-              status: o.status,
-              is_deleted: o.is_deleted
-            })));
-            
-            // CRITICAL: Check if any deleted offers are being returned
-            const deletedOffersReturned = data.filter(o => o.is_deleted === true);
-            if (deletedOffersReturned.length > 0) {
-              console.error('🚨 CRITICAL ERROR - Deleted offers being returned in All Offers:', deletedOffersReturned.length);
-              console.error('🚨 Deleted offers:', deletedOffersReturned.map(o => ({
-                id: o.id,
-                title: o.title,
-                is_deleted: o.is_deleted
-              })));
-            } else {
-              console.log('✅ GOOD - No deleted offers returned in All Offers');
-            }
-            
-            // Count by status
-            const statusCounts = data.reduce((acc, offer) => {
-              acc[offer.status] = (acc[offer.status] || 0) + 1;
-              return acc;
-            }, {});
-            console.log('🔍 LOAD DEBUG - Status counts from query:', statusCounts);
-          }
-          
-          if (error) {
-            console.error("Error loading all offers:", error);
-          } else {
-            // Store ALL non-deleted offers for All Offers section
-            console.log('🔍 Loading all offers - found (RAW):', data?.length || 0);
-            console.log('🔍 All offers data sample:', data?.slice(0, 3));
-            
-            // CRITICAL: No need for manual filtering - database already filtered out deleted offers
-            console.log('🔄 BEFORE setAllOffersData - current allOffersData.length:', allOffersData.length);
-            console.log('🔄 ABOUT TO UPDATE STATE - New count will be:', data?.length || 0);
-            
-            setAllOffersData(data || []);
-            
-            console.log('🔄 AFTER setAllOffersData - new allOffersData.length:', allOffersData.length);
-            console.log('🔄 STATE UPDATE CHECK - Did count change? YES - State updated!');
-            console.log('🔄 REFRESH KEY - New refresh key:', refreshKey + 1);
-            
-            // Force a re-render to update all derived counts
-            setRefreshKey(prev => prev + 1);
-          }
-        });
-      });
-    }, 500); // Add 500ms delay to ensure database operations complete
+      if (error) {
+        console.error("Error loading all offers:", error);
+      } else {
+        setAllOffersData(data || []);
+        setRefreshKey(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error("Error in loadAllOffers:", err);
+    }
   };
 
   const loadRecycleBin = async () => {
