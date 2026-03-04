@@ -506,18 +506,15 @@ const filteredActiveOffers = filterOffers(activeOffers);
 
 useEffect(() => {
     load();
-    loadAllOffers();
     loadRecycleBin();
     loadMissingOffersReports();
     fetchNetworks();
 
-    // Listen for recycle bin update events
     const handleRecycleBinUpdate = () => {
       loadRecycleBin();
     };
 
     const handleOffersImported = () => {
-      loadAllOffers();
       load();
       fetchNetworks();
     };
@@ -1268,26 +1265,8 @@ Expiry Date: ${o.expiry_date || "-"}`;
     }
   };
 
-  // Load ALL non-deleted offers for the All Offers tab (single source of truth)
-  const loadAllOffers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("offers")
-        .select("*")
-        .eq("is_deleted", false)
-        .order("created_at", { ascending: false })
-        .range(0, 4999); // Override Supabase's default 1000-row limit
-      
-      if (error) {
-        console.error("Error loading all offers:", error);
-      } else {
-        setAllOffersData(data || []);
-        setRefreshKey(prev => prev + 1);
-      }
-    } catch (err) {
-      console.error("Error in loadAllOffers:", err);
-    }
-  };
+  // Alias for backward compatibility - same function
+  const loadAllOffers = load;
 
   const loadRecycleBin = async () => {
     const items = await getRecycleBinItems();
@@ -2489,37 +2468,17 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <Download className="h-4 w-4 mr-2" /> Export CSV
               </Button>
               <Button 
-                onClick={() => {
-                  console.log('🔄 Manual refresh triggered for All Offers');
-                  setAllOffersData([]); // Clear state first
-                  setRefreshKey(prev => prev + 1); // Force re-render
-                  setTimeout(() => {
-                    loadAllOffers(); // Then reload
-                  }, 100);
-                }}
+                onClick={() => load()}
                 variant="outline"
                 className="bg-blue-50 hover:bg-blue-100 text-blue-600"
               >
                 <RefreshCw className="h-4 w-4 mr-2" /> Refresh Count
               </Button>
               <Button 
-                onClick={() => {
-                  console.log(' Manual refresh triggered for All Offers');
-                  loadAllOffers();
-                }}
+                onClick={() => load()}
                 variant="outline"
               >
                 <RefreshCw className="h-4 w-4 mr-2" /> Refresh All Offers
-              </Button>
-              <Button 
-                onClick={() => {
-                  console.log('🧪 Database state test triggered');
-                  testDatabaseState();
-                }}
-                variant="outline"
-                className="ml-2"
-              >
-                <Bug className="h-4 w-4 mr-2" /> Debug Database
               </Button>
               {selectedOffers.size > 0 && (
                 <>
