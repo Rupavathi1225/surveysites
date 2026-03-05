@@ -882,7 +882,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedActiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers()]);
+      await load();
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -915,7 +915,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedInactiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers()]);
+      await load();
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -948,7 +948,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedActiveOffers(new Set());
-      await Promise.all([load(), loadAllOffers()]);
+      await load();
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -981,7 +981,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       
       setSelectedBoostedOffers(new Set());
-      await Promise.all([load(), loadAllOffers()]);
+      await load();
     } catch (error: any) {
       toast({ 
         title: "Error", 
@@ -1251,18 +1251,32 @@ Expiry Date: ${o.expiry_date || "-"}`;
   };
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from("offers")
-      .select("*")
-      .eq("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .range(0, 4999);
-    if (error) {
-      console.error("Error loading offers:", error);
-    } else {
-      setItems(data || []);
-      setAllOffersData(data || []);
+    // Paginated fetch to overcome Supabase's 1000-row default limit
+    let allData: any[] = [];
+    let from = 0;
+    const batchSize = 1000;
+    
+    while (true) {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .range(from, from + batchSize - 1);
+      
+      if (error) {
+        console.error("Error loading offers:", error);
+        break;
+      }
+      
+      allData = [...allData, ...(data || [])];
+      
+      if (!data || data.length < batchSize) break;
+      from += batchSize;
     }
+    
+    setItems(allData);
+    setAllOffersData(allData);
   };
 
   // Alias for backward compatibility - same function
@@ -1642,19 +1656,17 @@ Expiry Date: ${o.expiry_date || "-"}`;
     });
 
     try {
-      const result = await moveMultipleToRecycleBin(Array.from(selectedOffers), offerMap);
+      const idsToDelete = Array.from(selectedOffers);
+      const result = await moveMultipleToRecycleBin(idsToDelete, offerMap);
       toast({ title: "Offers Deleted", description: `Successfully deleted ${result.successful} offer${result.successful !== 1 ? 's' : ''}` });
-      setSelectedOffers(new Set()); 
       
-      // Add small delay to ensure database operations complete
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Immediately update local state
+      setAllOffersData(prev => prev.filter(o => !selectedOffers.has(o.id)));
+      setItems(prev => prev.filter(o => !selectedOffers.has(o.id)));
+      setSelectedOffers(new Set());
       
-      // Reload all data
-      await Promise.all([
-        load(),
-        loadAllOffers(),
-        loadRecycleBin()
-      ]);
+      // Only reload recycle bin count
+      await loadRecycleBin();
     } catch (error) {
       console.error("Error in bulk delete:", error);
       toast({ title: "Delete failed", description: String(error), variant: "destructive" });
@@ -1889,15 +1901,8 @@ Expiry Date: ${o.expiry_date || "-"}`;
       });
       setSelectedBoostedOffers(new Set());
       
-      // Add small delay to ensure database operations complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Reload all data
-      await Promise.all([
-        load(),
-        loadAllOffers(),
-        loadRecycleBin()
-      ]);
+      // Only reload recycle bin count - local state already updated by moveToRecycleBinLocal
+      await loadRecycleBin();
     } catch (error) {
       toast({ title: "Delete failed", description: String(error), variant: "destructive" });
     }
@@ -2171,12 +2176,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
                         variant="destructive"
                         onClick={async () => {
                           await moveToRecycleBinLocal(o.id, o);
-                          // Reload data after individual delete
-                          await Promise.all([
-                            load(),
-                            loadAllOffers(),
-                            loadRecycleBin()
-                          ]);
                         }}
                         disabled={deletingOffer === o.id}
                         title="Delete"
@@ -2406,12 +2405,6 @@ Expiry Date: ${o.expiry_date || "-"}`;
                         className="bg-red-500 hover:bg-red-600 text-white"
                         onClick={async () => {
                           await moveToRecycleBinLocal(o.id, o);
-                          // Reload data after individual delete
-                          await Promise.all([
-                            load(),
-                            loadAllOffers(),
-                            loadRecycleBin()
-                          ]);
                         }}
                         disabled={deletingOffer === o.id}
                         title="Delete"
@@ -2451,92 +2444,59 @@ Expiry Date: ${o.expiry_date || "-"}`;
         {/* All Offers Tab - NEW SECTION */}
         <TabsContent value="offers" className="space-y-6">
           <div className="flex items-center justify-between">
-            <div>
+           <div>
               <h1 className="text-2xl font-bold">All Offers Management</h1>
               <p className="text-sm text-muted-foreground">
                 Manage pending offers - Assign to Active, Inactive, or Boosted sections
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={openAdd} variant="default">
-                <Plus className="h-4 w-4 mr-2" /> Add Offer
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button onClick={openAdd} variant="default" size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Add Offer
               </Button>
               <Button 
                 onClick={() => exportToCsv(allOffersData, `all_offers_${new Date().toISOString().split('T')[0]}.csv`)} 
-                variant="outline"
+                variant="outline" size="sm"
               >
-                <Download className="h-4 w-4 mr-2" /> Export CSV
+                <Download className="h-4 w-4 mr-1" /> Export CSV
               </Button>
               <Button 
                 onClick={() => load()}
-                variant="outline"
-                className="bg-blue-50 hover:bg-blue-100 text-blue-600"
+                variant="outline" size="sm"
               >
-                <RefreshCw className="h-4 w-4 mr-2" /> Refresh Count
+                <RefreshCw className="h-4 w-4 mr-1" /> Refresh
               </Button>
-              <Button 
-                onClick={() => load()}
-                variant="outline"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" /> Refresh All Offers
-              </Button>
-              {selectedOffers.size > 0 && (
-                <>
-                  <Button 
-                    onClick={handleMakeActive} 
-                    variant="outline"
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" /> Make Active ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleMakeInactive} 
-                    variant="outline"
-                    className="bg-gray-500 hover:bg-gray-600 text-white"
-                  >
-                    <XCircle className="h-4 w-4 mr-2" /> Make Inactive ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleMakeBoosted} 
-                    variant="outline" 
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                  >
-                    <Zap className="h-4 w-4 mr-2" /> Make Boosted ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={generateBulkTrackingUrls} 
-                    variant="outline"
-                    disabled={generatingTrackingUrl}
-                  >
-                    {generatingTrackingUrl ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Link2 className="h-4 w-4 mr-2" />
-                    )}
-                    Generate URLs ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={copyMultipleOffersDetails} 
-                    variant="outline"
-                  >
-                    <Clipboard className="h-4 w-4 mr-2" /> Copy Details ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={() => setCopyDialogOpen(true)} 
-                    variant="outline"
-                  >
-                    <Copy className="h-4 w-4 mr-2" /> Duplicate ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleMultipleDelete} 
-                    variant="destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedOffers.size})
-                  </Button>
-                </>
-              )}
             </div>
           </div>
+          
+          {/* Bulk Actions Bar */}
+          {selectedOffers.size > 0 && (
+            <div className="flex flex-wrap gap-2 items-center p-3 bg-muted/50 rounded-lg border">
+              <span className="text-sm font-medium mr-2">{selectedOffers.size} selected:</span>
+              <Button onClick={handleMakeActive} size="sm" className="bg-green-500 hover:bg-green-600 text-white">
+                <CheckCircle className="h-3 w-3 mr-1" /> Active
+              </Button>
+              <Button onClick={handleMakeInactive} size="sm" className="bg-gray-500 hover:bg-gray-600 text-white">
+                <XCircle className="h-3 w-3 mr-1" /> Inactive
+              </Button>
+              <Button onClick={handleMakeBoosted} size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                <Zap className="h-3 w-3 mr-1" /> Boosted
+              </Button>
+              <Button onClick={generateBulkTrackingUrls} size="sm" variant="outline" disabled={generatingTrackingUrl}>
+                {generatingTrackingUrl ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Link2 className="h-3 w-3 mr-1" />}
+                URLs
+              </Button>
+              <Button onClick={copyMultipleOffersDetails} size="sm" variant="outline">
+                <Clipboard className="h-3 w-3 mr-1" /> Copy
+              </Button>
+              <Button onClick={() => setCopyDialogOpen(true)} size="sm" variant="outline">
+                <Copy className="h-3 w-3 mr-1" /> Duplicate
+              </Button>
+              <Button onClick={handleMultipleDelete} size="sm" variant="destructive">
+                <Trash2 className="h-3 w-3 mr-1" /> Delete
+              </Button>
+            </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2 items-center">
@@ -2638,25 +2598,20 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
         {/* Active Offers Tab */}
         <TabsContent value="active" className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h1 className="text-2xl font-bold">Active Offers Management</h1>
               <p className="text-sm text-muted-foreground">
                 Showing {paginatedActiveOffers.length} of {filteredActiveOffers.length} active offers
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={openAdd} variant="default">
-                <Plus className="h-4 w-4 mr-2" /> Add Offer
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button onClick={openAdd} variant="default" size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Add Offer
               </Button>
-              <Button 
-                onClick={exportActiveOffers} 
-                variant="outline"
-              >
-                <Download className="h-4 w-4 mr-2" /> Export CSV
+              <Button onClick={exportActiveOffers} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-1" /> Export CSV
               </Button>
-              
-              {/* Bulk Selection Dropdown */}
               <Select value={activeBulkSelect} onValueChange={setActiveBulkSelect}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="Select" />
@@ -2668,75 +2623,40 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   <SelectItem value="300">Select 300</SelectItem>
                 </SelectContent>
               </Select>
-              
-              {/* Bulk Status Management Buttons */}
-              {selectedActiveOffers.size > 0 && (
-                <>
-                  <Button 
-                    onClick={handleBulkMakeInactive} 
-                    variant="outline"
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    <Pause className="h-4 w-4 mr-2" /> Make Inactive ({selectedActiveOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleBulkBoost} 
-                    variant="outline" 
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                  >
-                    <Zap className="h-4 w-4 mr-2" /> Make Boosted ({selectedActiveOffers.size})
-                  </Button>
-                </>
-              )}
-              {selectedOffers.size > 0 && (
-                <>
-                  <Button 
-                    onClick={generateBulkTrackingUrls} 
-                    variant="outline"
-                    disabled={generatingTrackingUrl}
-                  >
-                    {generatingTrackingUrl ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Link2 className="h-4 w-4 mr-2" />
-                    )}
-                    Generate URLs ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={copyMultipleOffersDetails} 
-                    variant="outline"
-                  >
-                    <Clipboard className="h-4 w-4 mr-2" /> Copy Details ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={() => setCopyDialogOpen(true)} 
-                    variant="outline"
-                  >
-                    <Copy className="h-4 w-4 mr-2" /> Duplicate ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={viewMultipleOffersDetails} 
-                    variant="outline"
-                  >
-                    <Info className="h-4 w-4 mr-2" /> View ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={() => setShowBoostDialog(true)} 
-                    variant="outline" 
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                  >
-                    <Zap className="h-4 w-4 mr-2" /> Boost ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleMultipleDelete} 
-                    variant="destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedOffers.size})
-                  </Button>
-                </>
-              )}
             </div>
           </div>
+          
+          {/* Bulk Actions Bar for Active tab */}
+          {selectedActiveOffers.size > 0 && (
+            <div className="flex flex-wrap gap-2 items-center p-3 bg-muted/50 rounded-lg border">
+              <span className="text-sm font-medium mr-2">{selectedActiveOffers.size} selected:</span>
+              <Button onClick={handleBulkMakeInactive} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Pause className="h-3 w-3 mr-1" /> Make Inactive
+              </Button>
+              <Button onClick={handleBulkBoost} size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                <Zap className="h-3 w-3 mr-1" /> Make Boosted
+              </Button>
+              <Button 
+                onClick={async () => {
+                  if (selectedActiveOffers.size === 0) return;
+                  const offerMap = new Map<string, any>();
+                  selectedActiveOffers.forEach(id => {
+                    const offer = allOffersData.find(o => o.id === id);
+                    if (offer) offerMap.set(id, offer);
+                  });
+                  const result = await moveMultipleToRecycleBin(Array.from(selectedActiveOffers), offerMap);
+                  toast({ title: "Deleted", description: `Moved ${result.successful} offers to recycle bin` });
+                  setAllOffersData(prev => prev.filter(o => !selectedActiveOffers.has(o.id)));
+                  setItems(prev => prev.filter(o => !selectedActiveOffers.has(o.id)));
+                  setSelectedActiveOffers(new Set());
+                  await loadRecycleBin();
+                }} 
+                size="sm" variant="destructive"
+              >
+                <Trash2 className="h-3 w-3 mr-1" /> Delete
+              </Button>
+            </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2 items-center">
@@ -2841,19 +2761,17 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
         {/* Inactive Offers Tab */}
         <TabsContent value="inactive" className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h1 className="text-2xl font-bold">Inactive Offers Management</h1>
               <p className="text-sm text-muted-foreground">
                 Showing {paginatedInactiveOffers.length} of {filteredInactiveOffers.length} inactive offers
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={openAdd} variant="default">
-                <Plus className="h-4 w-4 mr-2" /> Add Offer
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button onClick={openAdd} variant="default" size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Add Offer
               </Button>
-              
-              {/* Bulk Selection Dropdown */}
               <Select value={inactiveBulkSelect} onValueChange={setInactiveBulkSelect}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="Select" />
@@ -2865,68 +2783,40 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   <SelectItem value="300">Select 300</SelectItem>
                 </SelectContent>
               </Select>
-              
-              {/* Bulk Status Management Buttons */}
-              {selectedInactiveOffers.size > 0 && (
-                <>
-                  <Button 
-                    onClick={handleBulkMakeActive} 
-                    variant="outline"
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    <Play className="h-4 w-4 mr-2" /> Make Active ({selectedInactiveOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleBulkBoost} 
-                    variant="outline" 
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                  >
-                    <Zap className="h-4 w-4 mr-2" /> Make Boosted ({selectedInactiveOffers.size})
-                  </Button>
-                </>
-              )}
-              {selectedOffers.size > 0 && (
-                <>
-                  <Button 
-                    onClick={generateBulkTrackingUrls} 
-                    variant="outline"
-                    disabled={generatingTrackingUrl}
-                  >
-                    {generatingTrackingUrl ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Link2 className="h-4 w-4 mr-2" />
-                    )}
-                    Generate URLs ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={copyMultipleOffersDetails} 
-                    variant="outline"
-                  >
-                    <Clipboard className="h-4 w-4 mr-2" /> Copy Details ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={() => setCopyDialogOpen(true)} 
-                    variant="outline"
-                  >
-                    <Copy className="h-4 w-4 mr-2" /> Duplicate ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={viewMultipleOffersDetails} 
-                    variant="outline"
-                  >
-                    <Info className="h-4 w-4 mr-2" /> View ({selectedOffers.size})
-                  </Button>
-                  <Button 
-                    onClick={handleMultipleDelete} 
-                    variant="destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" /> Delete ({selectedOffers.size})
-                  </Button>
-                </>
-              )}
             </div>
           </div>
+          
+          {/* Bulk Actions Bar for Inactive tab */}
+          {selectedInactiveOffers.size > 0 && (
+            <div className="flex flex-wrap gap-2 items-center p-3 bg-muted/50 rounded-lg border">
+              <span className="text-sm font-medium mr-2">{selectedInactiveOffers.size} selected:</span>
+              <Button onClick={handleBulkMakeActive} size="sm" className="bg-green-500 hover:bg-green-600 text-white">
+                <Play className="h-3 w-3 mr-1" /> Make Active
+              </Button>
+              <Button onClick={handleBulkBoost} size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                <Zap className="h-3 w-3 mr-1" /> Make Boosted
+              </Button>
+              <Button 
+                onClick={async () => {
+                  if (selectedInactiveOffers.size === 0) return;
+                  const offerMap = new Map<string, any>();
+                  selectedInactiveOffers.forEach(id => {
+                    const offer = allOffersData.find(o => o.id === id);
+                    if (offer) offerMap.set(id, offer);
+                  });
+                  const result = await moveMultipleToRecycleBin(Array.from(selectedInactiveOffers), offerMap);
+                  toast({ title: "Deleted", description: `Moved ${result.successful} offers to recycle bin` });
+                  setAllOffersData(prev => prev.filter(o => !selectedInactiveOffers.has(o.id)));
+                  setItems(prev => prev.filter(o => !selectedInactiveOffers.has(o.id)));
+                  setSelectedInactiveOffers(new Set());
+                  await loadRecycleBin();
+                }} 
+                size="sm" variant="destructive"
+              >
+                <Trash2 className="h-3 w-3 mr-1" /> Delete
+              </Button>
+            </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2 items-center">
@@ -3032,13 +2922,12 @@ Expiry Date: ${o.expiry_date || "-"}`;
         {/* Boosted Offers Tab */}
         <TabsContent value="boosted" className="space-y-6">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-2xl font-bold">Boosted Offers</h2>
                 <p className="text-sm text-muted-foreground">Manage offers with boost percentages</p>
               </div>
-              <div className="flex gap-2">
-                {/* Bulk Selection Dropdown */}
+              <div className="flex flex-wrap gap-2 items-center">
                 <Select value={boostedBulkSelect} onValueChange={setBoostedBulkSelect}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="Select" />
@@ -3050,66 +2939,66 @@ Expiry Date: ${o.expiry_date || "-"}`;
                     <SelectItem value="300">Select 300</SelectItem>
                   </SelectContent>
                 </Select>
-                
-                {/* Bulk Status Management Buttons */}
-                {selectedBoostedOffers.size > 0 && (
-                  <>
-                    <Button 
-                      onClick={handleBulkUnboost} 
-                      variant="outline"
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
-                    >
-                      <Pause className="h-4 w-4 mr-2" /> Make Active ({selectedBoostedOffers.size})
-                    </Button>
-                  </>  
-                )}
-                
-                {/* Filters for Boosted Offers */}
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Filter className="h-4 w-4 text-muted-foreground" />
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={deviceFilter} onValueChange={setDeviceFilter}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="Device" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Devices</SelectItem>
-                      {devices.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={countryFilter} onValueChange={setCountryFilter}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="Country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Countries</SelectItem>
-                      {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={networkFilter} onValueChange={setNetworkFilter}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue placeholder="Network" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Networks</SelectItem>
-                      {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      <X className="h-3 w-3 mr-1" /> Clear Filters
-                    </Button>
-                  )}
-                </div>
               </div>
+            </div>
+            
+            {/* Bulk Actions Bar for Boosted tab */}
+            {selectedBoostedOffers.size > 0 && (
+              <div className="flex flex-wrap gap-2 items-center p-3 bg-muted/50 rounded-lg border">
+                <span className="text-sm font-medium mr-2">{selectedBoostedOffers.size} selected:</span>
+                <Button onClick={handleBulkUnboost} size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">
+                  <Pause className="h-3 w-3 mr-1" /> Make Active
+                </Button>
+                <Button onClick={handleDeleteBoostedOffers} size="sm" variant="destructive">
+                  <Trash2 className="h-3 w-3 mr-1" /> Delete
+                </Button>
+              </div>
+            )}
+
+            {/* Filters for Boosted Offers */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={deviceFilter} onValueChange={setDeviceFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Device" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Devices</SelectItem>
+                  {devices.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Countries</SelectItem>
+                  {countries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={networkFilter} onValueChange={setNetworkFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Network" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Networks</SelectItem>
+                  {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="h-3 w-3 mr-1" /> Clear Filters
+                </Button>
+              )}
             </div>
 
             <Card>
