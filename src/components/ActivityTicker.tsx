@@ -335,6 +335,11 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       console.log('📊 Survey provider names in database:', surveyProviders?.map(sp => sp.name));
       console.log('📊 Survey provider images in database:', surveyProviders?.map(sp => ({ name: sp.name, image: sp.image_url })));
       
+      // Log each survey provider with its image URL
+      surveyProviders?.forEach((sp, index) => {
+        console.log(`🏢 Survey Provider ${index + 1}:`, sp.name, '→', sp.image_url, sp.image_url ? '✅' : '❌');
+      });
+      
       const profileMap = new Map(
         (profiles || []).map((p) => [p.id, { name: p.username || p.first_name || "Anonymous", avatar: p.avatar_url }])
       );
