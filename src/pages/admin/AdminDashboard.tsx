@@ -438,6 +438,22 @@ const AdminDashboard = () => {
                 />
               </div>
             ))}
+            
+            {/* Feed Generator Button */}
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Network className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Feed Generator</span>
+                </div>
+                <Button 
+                  onClick={() => window.location.href = '/admin/notifications'}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Open Feed Generator
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

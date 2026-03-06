@@ -11,12 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Bell, Gift, Settings2 } from "lucide-react";
+import { Plus, Trash2, Bell, Gift, Settings2, Play } from "lucide-react";
 
 const AdminNotifications = () => {
   const [items, setItems] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
+  const [surveyProviders, setSurveyProviders] = useState<any[]>([]);
 
   const [openNotif, setOpenNotif] = useState(false);
   const [notifForm, setNotifForm] = useState({
@@ -30,18 +31,238 @@ const AdminNotifications = () => {
     repeat: false, repeat_count: 1, time_gap: 0,
   });
 
+  // Feed Generator States
+  const [openFeedGenerator, setOpenFeedGenerator] = useState(false);
+  const [feedGeneratorEnabled, setFeedGeneratorEnabled] = useState(false);
+  const [feedGeneratorForm, setFeedGeneratorForm] = useState({
+    selectedUsers: [] as string[],
+    selectedOffers: [] as string[],
+    selectedSurveyProviders: [] as string[],
+    points: "50",
+    count: 5,
+    interval: 10,
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationLogs, setGenerationLogs] = useState<any[]>([]);
+  
+  // Search states
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [offerSearchTerm, setOfferSearchTerm] = useState("");
+  const [surveyProviderSearchTerm, setSurveyProviderSearchTerm] = useState("");
+
   const load = () => {
     Promise.all([
       supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(100),
       supabase.from("profiles").select("id, username, email"),
-      supabase.from("offers").select("id, title, payout, currency"),
-    ]).then(([notifRes, usersRes, offersRes]) => {
+      supabase.from("offers").select("*"), // Get all offers first to debug
+      supabase.from("survey_providers").select("*"), // Fetch survey providers
+    ]).then(([notifRes, usersRes, offersRes, surveyProvidersRes]) => {
       setItems(notifRes.data || []);
       setUsers(usersRes.data || []);
-      setOffers(offersRes.data || []);
+      
+      console.log('🔍 All offers from database:', offersRes.data);
+      console.log('🔍 Offers count:', offersRes.data?.length || 0);
+      
+      // Debug: Check what status values actually exist
+      const statusValues = offersRes.data?.map(o => `${o.title} - status: "${o.status}"`) || [];
+      console.log('📊 Status values found:', statusValues);
+      
+      // Count offers by status
+      const statusCounts = {};
+      offersRes.data?.forEach(offer => {
+        statusCounts[offer.status] = (statusCounts[offer.status] || 0) + 1;
+      });
+      console.log('📈 Status counts:', statusCounts);
+      
+      // Filter to only show active offers in Feed Generator
+      const activeOffers = (offersRes.data || []).filter(offer => {
+        console.log(`🔍 Checking offer: ${offer.title} - status: "${offer.status}" - is active: ${offer.status === "active"}`);
+        return offer.status === "active";
+      });
+      console.log('✅ Active offers filtered:', activeOffers);
+      console.log('✅ Active offers count:', activeOffers.length);
+      
+      setOffers(activeOffers);
+      
+      // Set survey providers
+      console.log('🔍 Survey providers from database:', surveyProvidersRes.data);
+      console.log('🔍 Survey providers count:', surveyProvidersRes.data?.length || 0);
+      setSurveyProviders(surveyProvidersRes.data || []);
     });
   };
   useEffect(() => { load(); }, []);
+
+  // Feed Generator Functions
+  const generateFeedActivity = async () => {
+    if (!feedGeneratorEnabled) {
+      toast({ title: "Feed Generator Disabled", description: "Enable Feed Generator to run", variant: "destructive" });
+      return;
+    }
+
+    if (feedGeneratorForm.selectedUsers.length === 0 && feedGeneratorForm.selectedOffers.length === 0 && feedGeneratorForm.selectedSurveyProviders.length === 0) {
+      toast({ title: "Selection Required", description: "Select a user, offer, or survey provider", variant: "destructive" });
+      return;
+    }
+
+    setIsGenerating(true);
+    const startTime = new Date();
+    let generatedCount = 0;
+
+    try {
+      for (let i = 0; i < feedGeneratorForm.count; i++) {
+        console.log(`🚀 Starting activity ${i + 1}/${feedGeneratorForm.count} at ${new Date().toLocaleTimeString()}`);
+        
+        // Select user and offer/survey provider (multiple selections from dropdowns)
+        const selectedUsers = feedGeneratorForm.selectedUsers;
+        const selectedOffers = feedGeneratorForm.selectedOffers;
+        const selectedSurveyProviders = feedGeneratorForm.selectedSurveyProviders;
+        
+        const randomUser = selectedUsers.length > 0 
+          ? users.find(u => selectedUsers.includes(u.id))
+          : users[Math.floor(Math.random() * users.length)];
+        
+        // Randomly choose between offer and survey provider
+        let selectedActivity = null;
+        let activityType = '';
+        
+        if (selectedOffers.length > 0 && selectedSurveyProviders.length > 0) {
+          // Both available, randomly choose
+          if (Math.random() > 0.5) {
+            selectedActivity = offers.find(o => selectedOffers.includes(o.id));
+            activityType = 'offer';
+          } else {
+            selectedActivity = surveyProviders.find(sp => selectedSurveyProviders.includes(sp.id));
+            activityType = 'survey_provider';
+          }
+        } else if (selectedOffers.length > 0) {
+          // Only offers available
+          selectedActivity = offers.find(o => selectedOffers.includes(o.id));
+          activityType = 'offer';
+        } else if (selectedSurveyProviders.length > 0) {
+          // Only survey providers available
+          selectedActivity = surveyProviders.find(sp => selectedSurveyProviders.includes(sp.id));
+          activityType = 'survey_provider';
+        } else {
+          // Random selection from all available
+          const allActivities = [...offers, ...surveyProviders];
+          selectedActivity = allActivities[Math.floor(Math.random() * allActivities.length)];
+          activityType = offers.some(o => o.id === selectedActivity.id) ? 'offer' : 'survey_provider';
+        }
+
+        if (randomUser && selectedActivity) {
+          let message = '';
+          let notificationType = '';
+          
+          if (activityType === 'offer') {
+            message = `${randomUser.username || randomUser.email} completed ${selectedActivity.title} and earned ${feedGeneratorForm.points} points`;
+            notificationType = "offer_completed";
+          } else if (activityType === 'survey_provider') {
+            message = `${randomUser.username || randomUser.email} completed survey from ${selectedActivity.name || selectedActivity.title} and earned ${feedGeneratorForm.points} points`;
+            notificationType = "survey_completed";
+          }
+          
+          console.log(`📝 Creating notification: ${message}`);
+          
+          const insertResult = await supabase.from("notifications").insert({
+            type: notificationType,
+            message: message,
+            is_global: true,
+            user_id: randomUser.id,
+          });
+
+          if (insertResult.error) {
+            console.error('❌ Error inserting notification:', insertResult.error);
+          } else {
+            console.log('✅ Notification inserted successfully:', insertResult.data);
+          }
+          
+          console.log(`✅ Notification inserted:`, insertResult);
+          generatedCount++;
+        }
+
+        // Wait for interval before next activity (except for last one)
+        if (i < feedGeneratorForm.count - 1) {
+          console.log(`⏰ Waiting ${feedGeneratorForm.interval} seconds before next activity...`);
+          await new Promise(resolve => setTimeout(resolve, feedGeneratorForm.interval * 1000));
+          console.log(`⏰ Wait completed, starting next activity at ${new Date().toLocaleTimeString()}`);
+        }
+      }
+
+      const endTime = new Date();
+      const duration = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+      
+      // Format dates properly
+      const formattedStartTime = startTime.toLocaleString("en-US", { 
+        month: "short", 
+        day: "numeric", 
+        year: "numeric", 
+        hour: "2-digit", 
+        minute: "2-digit", 
+        second: "2-digit",
+        hour12: true 
+      });
+      
+      const formattedEndTime = endTime.toLocaleString("en-US", { 
+        month: "short", 
+        day: "numeric", 
+        year: "numeric", 
+        hour: "2-digit", 
+        minute: "2-digit", 
+        second: "2-digit",
+        hour12: true 
+      });
+      
+      const logEntry = {
+        id: Date.now().toString(),
+        start: formattedStartTime,
+        end: formattedEndTime,
+        total: generatedCount,
+        users: feedGeneratorForm.selectedUsers.length || 1,
+        offers: feedGeneratorForm.selectedOffers.length || 1,
+        surveyProviders: feedGeneratorForm.selectedSurveyProviders.length || 1,
+        points: parseInt(feedGeneratorForm.points) * generatedCount,
+        interval: feedGeneratorForm.interval,
+        duration: duration,
+      };
+      
+      console.log('📊 Final log entry:', logEntry);
+      
+      // Add to generation logs
+      setGenerationLogs(prev => [logEntry, ...prev]);
+      
+      // Create admin notification for Feed Generator completion with proper formatting
+      const adminLogMessage = `Feed Generator completed: ${logEntry.total} activities generated in ${logEntry.duration}s. Users: ${logEntry.users}, Offers: ${logEntry.offers}, Survey Providers: ${logEntry.surveyProviders}, Points: ${logEntry.points}, Interval: ${logEntry.interval}s`;
+      
+      const adminLogResult = await supabase.from("notifications").insert({
+        type: "announcement",
+        message: adminLogMessage,
+        is_global: true,
+        user_id: null, // System notification
+      });
+      
+      if (adminLogResult.error) {
+        console.error('❌ Error inserting admin log notification:', adminLogResult.error);
+      } else {
+        console.log('✅ Admin log notification inserted successfully:', adminLogResult.data);
+      }
+
+      // Wait a moment for database operations to complete, then reload notifications
+      setTimeout(() => {
+        load();
+        console.log('🔄 Notifications reloaded after Feed Generator completion');
+      }, 1000);
+
+      toast({ 
+        title: "Feed Generated Successfully", 
+        description: `Generated ${generatedCount} activities in ${feedGeneratorForm.count * feedGeneratorForm.interval} seconds` 
+      });
+
+    } catch (error) {
+      toast({ title: "Generation Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const getUser = (id: string) => users.find(u => u.id === id);
 
@@ -142,10 +363,48 @@ const AdminNotifications = () => {
     load();
   };
 
+  // State for expanded notifications
+  const [expandedNotifications, setExpandedNotifications] = useState<Set<string>>(new Set());
+
+  const toggleNotificationExpansion = (id: string) => {
+    setExpandedNotifications(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Function to extract admin log details from message
+const extractAdminLogDetails = (message: string): { summary: string; details: string } => {
+  if (!message || !message.includes("Feed Generator completed")) {
+    return { summary: message, details: "" };
+  }
+  
+  // Extract the main summary (first part before details)
+  const summaryMatch = message.match(/^(.+?)(\d+ activities generated in \d+s)/);
+  const summary = summaryMatch ? `${summaryMatch[1]}${summaryMatch[2]}` : message.substring(0, 100) + "...";
+  
+  // Extract detailed information
+  const details = message
+    .replace(/^Feed Generator completed: \d+ activities generated in \d+s\.?\s*/, "")
+    .trim();
+  
+  return { summary, details };
+};
+
+  const truncateMessage = (message: string, maxLength: number = 60) => {
+    if (message.length <= maxLength) return message;
+    return message.substring(0, maxLength) + "...";
+  };
+
   const getTypeIcon = (type: string) => {
     const map: Record<string, string> = {
       signup: "🎉", offer_completed: "✅", promo_redeemed: "🎁", promo_added: "🔥",
-      offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢", login: "👋",
+      offer_added: "🆕", credits: "💰", payment_requested: "💸", payment_completed: "✅", announcement: "📢", login: "👋", survey_completed: "✅",
     };
     return map[type] || "📢";
   };
@@ -158,6 +417,9 @@ const AdminNotifications = () => {
           <p className="text-sm text-muted-foreground">Send notifications to users with scheduling</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setOpenFeedGenerator(true)}>
+            <Settings2 className="h-4 w-4 mr-2" /> Generate Activity Feed
+          </Button>
           <Button variant="outline" onClick={() => setOpenOffer(true)}>
             <Gift className="h-4 w-4 mr-2" /> Offer Notification
           </Button>
@@ -166,6 +428,31 @@ const AdminNotifications = () => {
           </Button>
         </div>
       </div>
+
+      {/* Activity Feed Controls */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <Settings2 className="h-4 w-4" /> Activity Feed Controls
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">Manage automated activity generation</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label htmlFor="feed-generator-toggle" className="text-sm">Feed Generator</Label>
+              <Switch 
+                id="feed-generator-toggle"
+                checked={feedGeneratorEnabled} 
+                onCheckedChange={setFeedGeneratorEnabled} 
+              />
+              <span className="text-xs text-muted-foreground">
+                {feedGeneratorEnabled ? "ON" : "OFF"}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Sent Notifications Table */}
       <Card>
@@ -194,7 +481,41 @@ const AdminNotifications = () => {
                 return (
                   <TableRow key={n.id}>
                     <TableCell className="max-w-xs">
-                      <span className="text-sm">{getTypeIcon(n.type)} {n.message?.slice(0, 60)}{n.message?.length > 60 ? "..." : ""}</span>
+                      <div className="space-y-1">
+                        <div className="text-sm">
+                          {getTypeIcon(n.type)} {expandedNotifications.has(n.id) ? 
+                            (n.type === "announcement" && n.message?.includes("Feed Generator completed") ? 
+                              "Feed Generator activity completed" : 
+                              n.message) : 
+                            (n.type === "announcement" && n.message?.includes("Feed Generator completed") ? 
+                              "Feed Generator activity completed" : 
+                              truncateMessage(n.message || "", 60))
+                          }
+                        </div>
+                        {(n.message?.length || 0) > 60 || (n.type === "announcement" && n.message?.includes("Feed Generator completed")) ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleNotificationExpansion(n.id)}
+                            className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
+                          >
+                            {expandedNotifications.has(n.id) ? "Show Less" : "View More"}
+                          </Button>
+                        ) : null}
+                        {expandedNotifications.has(n.id) && n.type === "announcement" && n.message?.includes("Feed Generator completed") && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-700 border border-gray-200">
+                            <div className="font-semibold mb-1">📊 Feed Generator Details:</div>
+                            <div className="space-y-1">
+                              {extractAdminLogDetails(n.message || "").details.split(', ').map((detail, index) => (
+                                <div key={index} className="flex items-center gap-1">
+                                  <span className="text-gray-500">•</span>
+                                  <span>{detail}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell><Badge variant="outline" className="text-xs">{n.type}</Badge></TableCell>
                     <TableCell className="text-xs text-muted-foreground">Once</TableCell>
@@ -351,6 +672,359 @@ const AdminNotifications = () => {
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setOpenOffer(false)}>Cancel</Button>
               <Button onClick={sendOfferNotification}>{offerForm.repeat ? "Schedule Offer Notification" : "Send Offer Notification"}</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Feed Generator Dialog */}
+      <Dialog open={openFeedGenerator} onOpenChange={setOpenFeedGenerator}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              Feed Generator
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* User Selection */}
+            <div>
+              <Label className="text-sm font-medium">User Selection</Label>
+              <div className="mt-2">
+                <Input
+                  placeholder="Search users..."
+                  value={userSearchTerm}
+                  onChange={(e) => setUserSearchTerm(e.target.value)}
+                  className="mb-2"
+                />
+                <div className="flex items-center justify-between mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const filteredUsers = users.filter(user => 
+                        (user.username || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                        (user.email || "").toLowerCase().includes(userSearchTerm.toLowerCase())
+                      );
+                      setFeedGeneratorForm({
+                        ...feedGeneratorForm,
+                        selectedUsers: filteredUsers.map(user => user.id)
+                      });
+                    }}
+                  >
+                    Select All ({users.filter(user => 
+                      (user.username || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                      (user.email || "").toLowerCase().includes(userSearchTerm.toLowerCase())
+                    ).length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFeedGeneratorForm({
+                      ...feedGeneratorForm,
+                      selectedUsers: []
+                    })}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+                <div className="border rounded-md p-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2">
+                    {users
+                      .filter(user => 
+                        (user.username || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                        (user.email || "").toLowerCase().includes(userSearchTerm.toLowerCase())
+                      )
+                      .map(user => (
+                      <div key={user.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`user-${user.id}`}
+                          checked={feedGeneratorForm.selectedUsers.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFeedGeneratorForm({
+                                ...feedGeneratorForm,
+                                selectedUsers: [...feedGeneratorForm.selectedUsers, user.id]
+                              });
+                            } else {
+                              setFeedGeneratorForm({
+                                ...feedGeneratorForm,
+                                selectedUsers: feedGeneratorForm.selectedUsers.filter(id => id !== user.id)
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <Label htmlFor={`user-${user.id}`} className="text-sm cursor-pointer">
+                          {user.username || user.email || user.id.slice(0, 8)}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Selected: {feedGeneratorForm.selectedUsers.length} users | Found: {users.filter(user => 
+                  (user.username || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                  (user.email || "").toLowerCase().includes(userSearchTerm.toLowerCase())
+                ).length} users
+              </p>
+            </div>
+
+            {/* Active Offers Dropdown */}
+            <div>
+              <Label className="text-sm font-medium">Active Offers</Label>
+              <div className="mt-2">
+                <Input
+                  placeholder="Search offers..."
+                  value={offerSearchTerm}
+                  onChange={(e) => setOfferSearchTerm(e.target.value)}
+                  className="mb-2"
+                />
+                <div className="flex items-center justify-between mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const filteredOffers = offers.filter(offer => 
+                        offer.title.toLowerCase().includes(offerSearchTerm.toLowerCase())
+                      );
+                      setFeedGeneratorForm({
+                        ...feedGeneratorForm,
+                        selectedOffers: filteredOffers.map(offer => offer.id)
+                      });
+                    }}
+                  >
+                    Select All ({offers.filter(offer => 
+                      offer.title.toLowerCase().includes(offerSearchTerm.toLowerCase())
+                    ).length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFeedGeneratorForm({
+                      ...feedGeneratorForm,
+                      selectedOffers: []
+                    })}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+                <div className="border rounded-md p-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2">
+                    {offers
+                      .filter(offer => 
+                        offer.title.toLowerCase().includes(offerSearchTerm.toLowerCase())
+                      )
+                      .map(offer => (
+                      <div key={offer.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`offer-${offer.id}`}
+                          checked={feedGeneratorForm.selectedOffers.includes(offer.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFeedGeneratorForm({
+                                ...feedGeneratorForm,
+                                selectedOffers: [...feedGeneratorForm.selectedOffers, offer.id]
+                              });
+                            } else {
+                              setFeedGeneratorForm({
+                                ...feedGeneratorForm,
+                                selectedOffers: feedGeneratorForm.selectedOffers.filter(id => id !== offer.id)
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <Label htmlFor={`offer-${offer.id}`} className="text-sm cursor-pointer">
+                          {offer.title} ({offer.currency || "$"} {offer.payout})
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Selected: {feedGeneratorForm.selectedOffers.length} offers | Found: {offers.filter(offer => 
+                  offer.title.toLowerCase().includes(offerSearchTerm.toLowerCase())
+                ).length} offers
+              </p>
+            </div>
+
+            {/* Survey Providers Dropdown */}
+            <div>
+              <Label className="text-sm font-medium">Survey Providers</Label>
+              <div className="mt-2">
+                <Input
+                  placeholder="Search survey providers..."
+                  value={surveyProviderSearchTerm}
+                  onChange={(e) => setSurveyProviderSearchTerm(e.target.value)}
+                  className="mb-2"
+                />
+                <div className="flex items-center justify-between mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const filteredSurveyProviders = surveyProviders.filter(sp => 
+                        (sp.name || sp.title || "").toLowerCase().includes(surveyProviderSearchTerm.toLowerCase())
+                      );
+                      setFeedGeneratorForm({
+                        ...feedGeneratorForm,
+                        selectedSurveyProviders: filteredSurveyProviders.map(sp => sp.id)
+                      });
+                    }}
+                  >
+                    Select All ({surveyProviders.filter(sp => 
+                      (sp.name || sp.title || "").toLowerCase().includes(surveyProviderSearchTerm.toLowerCase())
+                    ).length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFeedGeneratorForm({
+                      ...feedGeneratorForm,
+                      selectedSurveyProviders: []
+                    })}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+                <div className="border rounded-md p-2 max-h-48 overflow-y-auto">
+                  <div className="space-y-2">
+                    {surveyProviders
+                      .filter(sp => 
+                        (sp.name || sp.title || "").toLowerCase().includes(surveyProviderSearchTerm.toLowerCase())
+                      )
+                      .map(sp => (
+                      <div key={sp.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id={`sp-${sp.id}`}
+                          checked={feedGeneratorForm.selectedSurveyProviders.includes(sp.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFeedGeneratorForm({
+                                ...feedGeneratorForm,
+                                selectedSurveyProviders: [...feedGeneratorForm.selectedSurveyProviders, sp.id]
+                              });
+                            } else {
+                              setFeedGeneratorForm({
+                                ...feedGeneratorForm,
+                                selectedSurveyProviders: feedGeneratorForm.selectedSurveyProviders.filter(id => id !== sp.id)
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <Label htmlFor={`sp-${sp.id}`} className="text-sm cursor-pointer">
+                          {sp.name || sp.title || sp.id.slice(0, 8)}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Selected: {feedGeneratorForm.selectedSurveyProviders.length} providers | Found: {surveyProviders.filter(sp => 
+                  (sp.name || sp.title || "").toLowerCase().includes(surveyProviderSearchTerm.toLowerCase())
+                ).length} providers
+              </p>
+            </div>
+
+            {/* Points Input */}
+            <div>
+              <Label className="text-sm font-medium">Points</Label>
+              <Input
+                type="number"
+                value={feedGeneratorForm.points}
+                onChange={(e) => setFeedGeneratorForm({ ...feedGeneratorForm, points: e.target.value })}
+                placeholder="50"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Points to award for each completion</p>
+            </div>
+
+            {/* Count */}
+            <div>
+              <Label className="text-sm font-medium">Count</Label>
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                value={feedGeneratorForm.count}
+                onChange={(e) => setFeedGeneratorForm({ ...feedGeneratorForm, count: Number(e.target.value) })}
+                placeholder="5"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">How many activities to generate</p>
+            </div>
+
+            {/* Interval */}
+            <div>
+              <Label className="text-sm font-medium">Interval (Seconds)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={300}
+                value={feedGeneratorForm.interval}
+                onChange={(e) => setFeedGeneratorForm({ ...feedGeneratorForm, interval: Number(e.target.value) })}
+                placeholder="10"
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Delay between activities</p>
+            </div>
+
+            {/* Admin Logs */}
+            {generationLogs.length > 0 && (
+              <div>
+                <Label className="text-sm font-medium">Admin Logs</Label>
+                <div className="mt-2 border rounded-md p-3 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 text-xs">
+                    {generationLogs.map(log => (
+                      <div key={log.id} className="border-b pb-2">
+                        <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                          <span>Start: {new Date(log.startTime).toLocaleString()}</span>
+                          <span>End: {new Date(log.endTime).toLocaleString()}</span>
+                          <span>Total: {log.totalActivities} activities</span>
+                          <span>Users: {log.users || 'Random'}</span>
+                          <span>Offers: {log.offers || 'Random'}</span>
+                          <span>Points: {log.points}</span>
+                          <span>Interval: {log.interval}s</span>
+                          <span>Duration: {(log.totalActivities - 1) * log.interval}s</span>
+                          <span>Avg: {((new Date(log.endTime).getTime() - new Date(log.startTime).getTime()) / 1000).toFixed(1)}s</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Run Button */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setOpenFeedGenerator(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={generateFeedActivity}
+                disabled={!feedGeneratorEnabled || isGenerating}
+                className="min-w-[120px]"
+              >
+                {isGenerating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-r-2 border-white mr-2"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Run
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>

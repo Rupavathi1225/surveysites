@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 // Network configurations for tracking link generation
 const NETWORK_CONFIGS = {
   cpamerchant: {
@@ -869,7 +874,7 @@ serve(async (req: Request) => {
 
     // Import action
     const offersToImport = transformedOffers;
-    const importResult = await importOffersWithDetails(offersToImport, networkId, supabase);
+    const importResult = await importOffersWithDetails(offersToImport, networkId);
 
     console.log('Import result from function:', importResult);
 
@@ -893,10 +898,15 @@ serve(async (req: Request) => {
             countries: testOffer.countries,
             preview_url: testOffer.preview_url,
             image_url: testOffer.image_url,
+            tracking_url: testOffer.tracking_url, // Store tracking URL
+            platform: testOffer.platform || "", // Store platform
+            vertical: testOffer.vertical || "", // Store vertical
+            category: testOffer.category || "", // Store category
+            traffic_sources: testOffer.traffic_sources || "", // Store traffic sources
             status: "pending",
             source: "api",
             network_id: networkId,
-            device: (testOffer.devices || [])[0] || "",
+            device: testOffer.device || testOffer.devices || "",
             is_public: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -925,10 +935,40 @@ serve(async (req: Request) => {
   }
 });
 
+// Type for transformed offers (after mapOffer function)
+type TransformedOffer = {
+  offer_id: string;
+  title: string;
+  description: string;
+  payout: number;
+  currency: string;
+  url: string;
+  tracking_url: string;
+  preview_url: string;
+  countries: string;
+  allowed_countries: string;
+  vertical: string;
+  category: string;
+  platform: string;
+  device: string;
+  devices: string;
+  traffic_sources: string;
+  image_url: string;
+  status: string;
+  provider: string;
+  source: string;
+  network_id?: string;
+  is_public: boolean;
+  updated_at: string;
+  approval_status: string;
+  approved_date: string | null;
+  approved_by: string | null;
+  rejection_reason: string;
+};
+
 async function importOffersWithDetails(
-  offers: HasOffersOffer[],
-  networkId: string,
-  supabase: any
+  offers: TransformedOffer[],
+  networkId: string
 ): Promise<ImportResult> {
   const tracker = new ImportTracker();
   
@@ -980,14 +1020,14 @@ async function importOffersWithDetails(
         // Check if it's a true duplicate by comparing all fields
         const isExactDuplicate = 
           String(existing.offer_id) === String(offer.offer_id) &&
-          (existing.device || "") === ((offer.devices || [])[0] || "") &&
+          (existing.device || "") === (offer.device || offer.devices || "") &&
           (existing.countries || "") === (offer.countries || "") &&
           Number(existing.payout) === Number(offer.payout || 0);
 
         console.log(`Duplicate check for ${offer.offer_id}:`, {
           isExactDuplicate,
           existingDevice: existing.device,
-          newDevice: (offer.devices || [])[0] || "",
+          newDevice: offer.device || offer.devices || "",
           existingCountries: existing.countries,
           newCountries: offer.countries,
           existingPayout: existing.payout,
@@ -1023,10 +1063,15 @@ async function importOffersWithDetails(
           countries: offer.countries,
           preview_url: offer.preview_url,
           image_url: offer.image_url, // Store image_url if provided
+          tracking_url: offer.tracking_url, // Store tracking URL
+          platform: offer.platform || "", // Store platform
+          vertical: offer.vertical || "", // Store vertical
+          category: offer.category || "", // Store category
+          traffic_sources: offer.traffic_sources || "", // Store traffic sources
           status: "pending",
           source: "api",
           network_id: networkId,
-          device: (offer.devices || [])[0] || "",
+          device: offer.device || offer.devices || "",
           is_public: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -1065,6 +1110,13 @@ async function importOffersWithDetails(
           offer.title || "",
           "New offer imported successfully"
         );
+
+        // Send notification for successfully imported offer
+        await supabase.from("notifications").insert({
+          type: "offer_added",
+          message: `New offer added: ${offer.title} — ${offer.offer_id}`,
+          is_global: true,
+        });
       }
     } catch (error: any) {
       tracker.addFailed(

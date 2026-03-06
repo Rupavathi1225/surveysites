@@ -1027,7 +1027,16 @@ Expiry Date: ${o.expiry_date || "-"}`;
           };
           
           const { error } = await supabase.from("offers").insert(newOffer);
-          if (!error) successCount++;
+          if (!error) {
+            successCount++;
+            
+            // Send notification for copied offer
+            await supabase.from("notifications").insert({
+              type: "offer_added",
+              message: `New offer added: ${newTitle} — ${newOfferId}`,
+              is_global: true,
+            });
+          }
         }
       }
       
@@ -1157,6 +1166,13 @@ Expiry Date: ${o.expiry_date || "-"}`;
       if (error) {
         toast({ title: "Create failed", description: error.message, variant: "destructive" });
       } else {
+        // Send notification for new offer added
+        await supabase.from("notifications").insert({
+          type: "offer_added",
+          message: `New offer added: ${form.title} — ${form.offer_id}`,
+          is_global: true,
+        });
+        
         toast({ title: "Offer created!", description: `Offer ID: ${form.offer_id}` });
         setOpen(false); 
         load();
@@ -1567,6 +1583,13 @@ Expiry Date: ${o.expiry_date || "-"}`;
           console.log(`✅ SUCCESSFULLY INSERTED: ${offer.title}`);
           console.log(`🔍 INSERTED OFFER DATA:`, offerData);
           successCount++; 
+          
+          // Send notification for each successfully imported offer
+          await supabase.from("notifications").insert({
+            type: "offer_added",
+            message: `New offer added: ${offer.title} — ${offer.offer_id}`,
+            is_global: true,
+          });
           
           // CRITICAL DEBUG: Check if this offer appears in database immediately
           setTimeout(async () => {

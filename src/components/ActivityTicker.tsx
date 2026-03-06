@@ -7,8 +7,13 @@ interface TickerItem {
   username: string;
   source: string;
   amount: string;
-  icon: "earning" | "signup" | "login" | "promocode" | "offer" | "payment" | "notification";
+  icon: "earning" | "signup" | "login" | "promocode" | "offer" | "payment" | "notification" | "offer_added" | "offer_completed";
   avatarUrl?: string;
+  offerId?: string; // Add offerId for offer-related activities
+  imageUrl?: string; // Add imageUrl for offer images
+  notificationType?: string; // Add notification type for better handling
+  created_at?: string; // Add created_at for time display
+  offerwallName?: string; // Add offerwall name for logo display
 }
 
 const iconMap = {
@@ -19,6 +24,217 @@ const iconMap = {
   offer: CheckCircle,
   payment: CreditCard,
   notification: Bell,
+  offer_added: Plus,
+  offer_completed: CheckCircle,
+};
+
+// Activity logo mapping
+const activityLogos = {
+  earning: "https://img.icons8.com/color/48/money-bag.png", // Earnings/Offer Completed
+  signup: "https://img.icons8.com/color/48/user-registration.png", // Signup
+  login: "https://img.icons8.com/color/48/login.png", // Login
+  promocode: "https://img.icons8.com/color/48/gift.png", // Promo Redeemed
+  offer: null, // Will use offer image
+  payment: "https://img.icons8.com/color/48/money-transfer.png", // Payment Requested/Completed
+  notification: "https://img.icons8.com/color/48/announcement.png", // Announcement/System
+  offer_added: null, // Will use offer image
+  offer_completed: null, // Will use offer image
+};
+
+// Offerwall logo mapping
+const offerwallLogos = {
+  cpamerchant: "https://img.icons8.com/color/48/advertising.png", // CPAMerchant logo
+  chameleonads: "https://img.icons8.com/color/48/chameleon.png", // ChameleonAds logo
+  leadads: "https://img.icons8.com/color/48/lead-management.png", // LeadAds logo
+  // Add more offerwall logos as needed
+};
+
+// Gender-specific avatar URLs
+const genderAvatars = {
+  male: "https://img.icons8.com/color/48/user-male.png",
+  female: "https://img.icons8.com/color/48/user-female.png",
+};
+
+// Function to detect gender from name
+const detectGender = (name: string): 'male' | 'female' | 'unknown' => {
+  // Common female name indicators
+  const femaleIndicators = [
+    'a', 'e', 'i', 'o', 'u', // Common female endings in many languages
+    'mary', 'sarah', 'jessica', 'emily', 'sophia', 'olivia', 'ava', 'mia', 'isabella',
+    'elizabeth', 'charlotte', 'amelia', 'harper', 'evelyn', 'abigail', 'madison',
+    'sophie', 'daisy', 'rose', 'lily', 'grace', 'violet', 'zoe', 'luna',
+    'priya', 'anita', 'sunita', 'geeta', 'rani', 'pooja', 'kavita', 'meena',
+    'fatima', 'aisha', 'khadija', 'zara', 'amina', 'layla', 'hajar', 'nadia'
+  ];
+  
+  // Common male name indicators  
+  const maleIndicators = [
+    'k', 's', 'n', 'r', 't', 'd', 'v', // Common male endings
+    'john', 'michael', 'david', 'james', 'robert', 'william', 'joseph',
+    'richard', 'thomas', 'charles', 'christopher', 'daniel', 'matthew',
+    'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua',
+    'rahul', 'raj', 'amit', 'vijay', 'suresh', 'anand', 'deepak', 'arjun',
+    'mohammed', 'ahmed', 'ali', 'omar', 'hassan', 'khalid', 'yusuf'
+  ];
+  
+  const lowerName = name.toLowerCase().trim();
+  
+  // Check for female indicators
+  for (const indicator of femaleIndicators) {
+    if (lowerName.includes(indicator)) {
+      return 'female';
+    }
+  }
+  
+  // Check for male indicators
+  for (const indicator of maleIndicators) {
+    if (lowerName.includes(indicator)) {
+      return 'male';
+    }
+  }
+  
+  return 'unknown';
+};
+
+// Function to extract offerwall name from notification message
+const extractOfferwallName = (message: string): string | null => {
+  console.log('🏢 Extracting offerwall name from message:', message);
+  
+  // Try to extract offerwall name from common patterns
+  const patterns = [
+    /completed\s+([^"]+?)\s+offer/i,
+    /offer\s+from\s+([^"]+?)\s+and/i,
+    /([^"]+?)\s+offer\s+completed/i,
+    /completed\s+([^"]+?)\s+survey/i,
+    /survey\s+from\s+([^"]+?)\s+and/i,
+    /CPAMerchant|ChameleonAds|LeadAds/i, // Direct match for known offerwalls
+  ];
+  
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const offerwallName = match[1].trim().toLowerCase();
+      console.log('✅ Extracted offerwall name:', offerwallName, 'using pattern:', pattern);
+      return offerwallName;
+    }
+  }
+  
+  // Check for direct offerwall name matches
+  const directMatches = ['cpamerchant', 'chameleonads', 'leadads'];
+  for (const offerwall of directMatches) {
+    if (message.toLowerCase().includes(offerwall)) {
+      console.log('✅ Direct match found for offerwall:', offerwall);
+      return offerwall;
+    }
+  }
+  
+  console.log('❌ No offerwall name extracted from message');
+  return null;
+};
+
+// Function to extract offer name from notification message
+const extractOfferName = (message: string): string | null => {
+  console.log('🔍 Extracting offer name from message:', message);
+  
+  // Try to extract offer name from common patterns
+  const patterns = [
+    /New offer added:\s*([^—]+) —/i,
+    /completed\s+["']([^"']+)["']/i,
+    /completed\s+([^"]+?)\s+and\s+earned/i,  // For "completed OFFER_NAME and earned"
+    /Offer\s+Completed:\s*([^:—]+)/i,
+    /New\s+offer\s+added:\s*([^:—]+)/i,
+    /offer\s+["']([^"']+)["']/i,
+    /([^"]+?)\s+completed\s+and\s+earned/i,  // Alternative pattern
+  ];
+  
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const offerName = match[1].trim();
+      console.log('✅ Extracted offer name:', offerName, 'using pattern:', pattern);
+      return offerName;
+    }
+  }
+  
+  console.log('❌ No offer name extracted from message');
+  return null;
+};
+
+// Function to extract survey provider name from notification message
+const extractSurveyProviderName = (message: string): string | null => {
+  console.log('🔍 Extracting survey provider name from message:', message);
+  
+  // Check for direct offerwall name matches first - most reliable
+  const directMatches = [
+    { name: 'hello survey', patterns: ['hello survey', 'Hello Survey', 'HELLO SURVEY'] },
+    { name: 'cpamerchant', patterns: ['cpamerchant', 'CPAMerchant', 'CPAMERCHANT'] },
+    { name: 'chameleonads', patterns: ['chameleonads', 'ChameleonAds', 'CHAMELEONADS'] },
+    { name: 'leadads', patterns: ['leadads', 'LeadAds', 'LEADADS'] },
+    { name: 'lootably', patterns: ['lootably', 'Lootably', 'LOOTABLY'] },
+    { name: 'adsensedmedia', patterns: ['adsensedmedia', 'AdsensedMedia', 'ADSENSEDMEDIA'] }
+  ];
+  
+  for (const provider of directMatches) {
+    for (const pattern of provider.patterns) {
+      if (message.includes(pattern)) {
+        console.log('✅ Direct match found for survey provider:', provider.name, 'with pattern:', pattern);
+        return provider.name;
+      }
+    }
+  }
+  
+  // More aggressive pattern matching for survey provider names
+  const patterns = [
+    // Match "Lootably" in "completed Lootably survey and earned"
+    /completed\s+([A-Z][a-z]+\s+[A-Z][a-z]+)(?:\s+survey|\s+and\s+earned)/i,
+    // Match "Lootably" in "survey from Lootably and earned"
+    /survey\s+from\s+([A-Z][a-z]+\s+[A-Z][a-z]+)(?:\s+and\s+earned|\s+and|\s*$)/i,
+    // Match "Lootably" in "Lootably survey completed"
+    /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+survey\s+completed/i,
+    // Match "Lootably" in "Lootably survey and earned"
+    /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+survey\s+and\s+earned/i,
+    // Match "Lootably" in "Lootably survey"
+    /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+survey/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const providerName = match[1].trim();
+      console.log('✅ Extracted survey provider name:', providerName, 'using pattern:', pattern);
+      return providerName;
+    }
+  }
+  
+  // Fallback: try to find words before "survey" in message
+  const surveyIndex = message.toLowerCase().indexOf('survey');
+  if (surveyIndex > 0) {
+    // Get text before "survey" and extract the last 2 words
+    const beforeSurvey = message.substring(0, surveyIndex).trim();
+    const words = beforeSurvey.split(/\s+/);
+    console.log('🔍 Words before "survey":', words);
+    
+    // Check if any word is "Lootably" or similar
+    const lootablyVariations = ['Lootably', 'lootably', 'LOOTABLY'];
+    for (const word of words) {
+      if (lootablyVariations.includes(word)) {
+        console.log('✅ Found Lootably variation:', word);
+        return 'lootably';
+      }
+    }
+    
+    if (words.length >= 2) {
+      const providerName = words.slice(-2).join(' ');
+      console.log('✅ Fallback extraction - provider name:', providerName);
+      return providerName;
+    } else if (words.length === 1) {
+      console.log('✅ Single word fallback - provider name:', words[0]);
+      return words[0];
+    }
+  }
+  
+  console.log('❌ No survey provider name extracted from message');
+  return null;
 };
 
 const ActivityTicker = ({ userId }: { userId?: string }) => {
@@ -64,32 +280,112 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         .limit(5);
 
       // 6. Global notifications
-      const { data: notifications } = await supabase
+      const { data: globalNotifications } = await supabase
         .from("notifications")
         .select("id, message, type, created_at, user_id, is_global")
         .eq("is_global", true)
         .order("created_at", { ascending: false })
         .limit(5);
 
+      // 7. All notifications (including user-specific ones like offer completions)
+      const { data: allNotifications } = await supabase
+        .from("notifications")
+        .select("id, message, type, created_at, user_id, is_global")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
       // Collect all user IDs for profile lookup
       const allUserIds = new Set<string>();
-      earnings?.forEach(e => allUserIds.add(e.user_id));
+      const offerNames = new Set<string>();
+      earnings?.forEach(e => {
+        allUserIds.add(e.user_id);
+        if (e.offer_name) offerNames.add(e.offer_name);
+      });
       logins?.forEach(l => { if (l.user_id) allUserIds.add(l.user_id); });
       promoRedemptions?.forEach(p => allUserIds.add(p.user_id));
       withdrawals?.forEach(w => allUserIds.add(w.user_id));
+      
+      // Extract offer names from notifications
+      [...(globalNotifications || []), ...(allNotifications || [])].forEach(n => {
+        const offerName = extractOfferName(n.message || "");
+        if (offerName) offerNames.add(offerName);
+      });
 
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, username, first_name, avatar_url")
         .in("id", [...allUserIds]);
 
+      // Fetch offer images for earnings
+      const { data: offerImages } = await supabase
+        .from("offers")
+        .select("title, image_url")
+        .in("title", [...offerNames]);
+
+      console.log('🖼️ Offer images fetched:', offerImages);
+      console.log('🏷️ Offer names being searched:', [...offerNames]);
+
+      // Fetch survey providers for survey completed notifications
+      const { data: surveyProviders } = await supabase
+        .from("survey_providers")
+        .select("id, name, image_url")
+        .limit(50); // Get more survey providers
+
+      console.log('📊 Survey providers fetched:', surveyProviders);
+      console.log('📊 Survey provider names in database:', surveyProviders?.map(sp => sp.name));
+      console.log('📊 Survey provider images in database:', surveyProviders?.map(sp => ({ name: sp.name, image: sp.image_url })));
+      
       const profileMap = new Map(
         (profiles || []).map((p) => [p.id, { name: p.username || p.first_name || "Anonymous", avatar: p.avatar_url }])
       );
 
+      const offerImageMap = new Map(
+        (offerImages || []).map((o) => [o.title, o.image_url])
+      );
+
+      const surveyProviderImageMap = new Map(
+        (surveyProviders || []).map((sp) => [sp.name.toLowerCase(), sp.image_url])
+      );
+      
+      console.log('🗺️ Survey provider image map created (lowercase keys):', Array.from(surveyProviderImageMap.entries()));
+
       // Earnings
       earnings?.forEach((e) => {
         const prof = profileMap.get(e.user_id);
+        const offerImage = e.offer_name ? offerImageMap.get(e.offer_name) : undefined;
+        
+        // Check if this is a survey completion and try to get survey provider image
+        let surveyProviderImage = undefined;
+        if (e.description && e.description.toLowerCase().includes('survey')) {
+          console.log('🔍 Processing survey completion - Description:', e.description);
+          
+          // Try to find survey provider by matching name in description
+          const surveyProvider = surveyProviders?.find(sp => 
+            e.description?.toLowerCase().includes(sp.name.toLowerCase())
+          );
+          
+          if (surveyProvider?.image_url) {
+            surveyProviderImage = surveyProvider.image_url;
+            console.log('📸 Found exact survey provider image:', surveyProvider.name, '→', surveyProvider.image_url);
+          } else {
+            console.log('❌ No exact survey provider image found');
+            console.log('🔍 Available survey providers:', surveyProviders?.map(sp => ({ name: sp.name, image: sp.image_url })));
+            
+            // Try case-insensitive matching
+            const descriptionLower = e.description?.toLowerCase();
+            const foundProvider = surveyProviders?.find(sp => 
+              descriptionLower.includes(sp.name.toLowerCase()) || sp.name.toLowerCase().includes(descriptionLower)
+            );
+            
+            if (foundProvider?.image_url) {
+              surveyProviderImage = foundProvider.image_url;
+              console.log('📸 Found case-insensitive survey provider image:', foundProvider.name, '→', foundProvider.image_url);
+            } else {
+              console.log('❌ Still no survey provider image found after case-insensitive match');
+            }
+          }
+        }
+        
         allItems.push({
           id: `e-${e.id}`,
           username: prof?.name || "Anonymous",
@@ -97,6 +393,8 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           amount: `$ ${(e.amount || 0).toFixed(2)}`,
           icon: "earning",
           avatarUrl: prof?.avatar || undefined,
+          imageUrl: surveyProviderImage || offerImage, // Use survey provider image first, then offer image
+          created_at: e.created_at,
         });
       });
 
@@ -117,9 +415,10 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         allItems.push({
           id: `l-${l.id}`,
           username: prof?.name || "User",
-          source: `Logged in${l.location ? ` from ${l.location}` : ""}`,
+          source: "Logged in",
           amount: "✅",
           icon: "login",
+          created_at: l.created_at,
         });
       });
 
@@ -149,13 +448,217 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       });
 
       // Global notifications
-      notifications?.forEach((n) => {
+      globalNotifications?.forEach((n) => {
+        console.log('🌐 Processing global notification:', JSON.stringify(n, null, 2));
+        const offerName = extractOfferName(n.message || "");
+        const offerwallName = extractOfferwallName(n.message || "");
+        
+        // Try multiple approaches to find offer image
+        let offerImage = undefined;
+        let surveyProviderImage = undefined;
+        let offerwallLogo = undefined;
+        
+        // 1. Try exact match first for offers
+        if (offerName) {
+          offerImage = offerImageMap.get(offerName);
+          console.log('📸 Exact match - Offer name:', offerName, 'Image URL:', offerImage);
+        }
+        
+        // 2. Try exact match for survey providers
+        if (n.type === "survey_completed") {
+          const providerName = extractSurveyProviderName(n.message || "");
+          if (providerName) {
+            surveyProviderImage = surveyProviderImageMap.get(providerName);
+            console.log('📸 Survey provider match - Provider name:', providerName, 'Image URL:', surveyProviderImage);
+          }
+          
+          // If no direct match, try to find survey provider by partial matching
+          if (!surveyProviderImage) {
+            const messageLower = (n.message || "").toLowerCase();
+            const surveyProvider = surveyProviders?.find(sp => 
+              messageLower.includes(sp.name.toLowerCase())
+            );
+            if (surveyProvider?.image_url) {
+              surveyProviderImage = surveyProvider.image_url;
+              console.log('📸 Survey provider partial match - Provider:', surveyProvider.name, 'Image URL:', surveyProviderImage);
+            }
+          }
+        }
+        
+        // 3. Try to get offerwall logo
+        if (offerwallName) {
+          offerwallLogo = offerwallLogos[offerwallName as keyof typeof offerwallLogos];
+          console.log('🏢 Offerwall logo match - Offerwall:', offerwallName, 'Logo URL:', offerwallLogo);
+        }
+        
+        // 4. If no exact match, try partial match (case-insensitive)
+        if (!offerImage && offerName) {
+          const lowerOfferName = offerName.toLowerCase();
+          for (const [mapOfferName, imageUrl] of offerImageMap.entries()) {
+            if (mapOfferName.toLowerCase().includes(lowerOfferName) || 
+                lowerOfferName.includes(mapOfferName.toLowerCase())) {
+              offerImage = imageUrl;
+              console.log('🔍 Partial match found:', mapOfferName, 'for:', offerName);
+              break;
+            }
+          }
+        }
+        
+        // 5. If still no match, try to extract from message differently
+        if (!offerImage) {
+          console.log('🔍 Trying alternative extraction for:', n.message);
+          // Try to extract offer name from different patterns
+          const altPatterns = [
+            /([^"]+?)\s+completed/i,
+            /completed\s+([^"]+?)/i,
+            /([^"]+?)\s+and\s+earned/i,
+          ];
+          
+          for (const pattern of altPatterns) {
+            const match = n.message?.match(pattern);
+            if (match && match[1]) {
+              const altOfferName = match[1].trim();
+              offerImage = offerImageMap.get(altOfferName);
+              console.log('🔄 Alternative extraction:', altOfferName, 'Image:', offerImage);
+              if (offerImage) break;
+            }
+          }
+        }
+        
+        console.log('🗺️ Available offer images in map:', Array.from(offerImageMap.entries()));
+        console.log('🗺️ Available survey provider images in map:', Array.from(surveyProviderImageMap.entries()));
+        console.log('🏢 Available offerwall logos:', Object.keys(offerwallLogos));
+        console.log('🔍 Looking for exact match:', offerName, 'in map keys:', Array.from(offerImageMap.keys()));
+        console.log('📸 Final offer image:', offerImage);
+        console.log('📸 Final survey provider image:', surveyProviderImage);
+        console.log('🏢 Final offerwall logo:', offerwallLogo);
+        
+        // Determine icon based on notification type
+        let iconType: TickerItem['icon'] = "notification";
+        let amount = "📢";
+        
+        switch (n.type) {
+          case "offer_added":
+            iconType = "offer_added";
+            amount = "🆕";
+            break;
+          case "offer_completed":
+            iconType = "offer_completed";
+            amount = "✅";
+            break;
+          case "survey_completed":
+            iconType = "offer_completed";
+            amount = "✅";
+            break;
+          case "announcement":
+            iconType = "notification";
+            amount = "📢";
+            break;
+          case "credits":
+            iconType = "earning";
+            amount = "💰";
+            break;
+          case "signup":
+            iconType = "signup";
+            amount = "🎉";
+            break;
+          case "promo_redeemed":
+            iconType = "promocode";
+            amount = "🎁";
+            break;
+          case "payment_requested":
+            iconType = "payment";
+            amount = "💸";
+            break;
+          case "payment_completed":
+            iconType = "payment";
+            amount = "✅";
+            break;
+          default:
+            iconType = "notification";
+            amount = "📢";
+        }
+        
+        const finalItem = {
+          id: `n-${n.id}`,
+          username: "System",
+          source: n.message,
+          amount: amount,
+          icon: iconType,
+          notificationType: n.type,
+          created_at: n.created_at,
+          imageUrl: (n.type === "survey_completed") ? surveyProviderImage : 
+                   (n.type === "offer_added" || n.type === "offer_completed") ? offerImage : undefined,
+          offerwallName: offerwallName || undefined,
+        };
+        
+        console.log('🎯 Final item created:', JSON.stringify(finalItem, null, 2));
+        console.log('🖼️ Image URL in final item:', finalItem.imageUrl);
+        console.log('🏢 Offerwall name in final item:', finalItem.offerwallName);
+        allItems.push(finalItem);
+      });
+
+      // All notifications (including user-specific ones like offer completions)
+      allNotifications?.forEach((n) => {
+        console.log('📝 Processing notification:', n);
+        // Skip global notifications since they're already processed above
+        if (n.is_global) return;
+        
+        // Determine icon based on notification type
+        let iconType: TickerItem['icon'] = "notification";
+        let amount = "📢";
+        
+        switch (n.type) {
+          case "offer_added":
+            iconType = "offer_added";
+            amount = "🆕";
+            break;
+          case "offer_completed":
+            iconType = "offer_completed";
+            amount = "✅";
+            break;
+          case "announcement":
+            iconType = "notification";
+            amount = "📢";
+            break;
+          case "credits":
+            iconType = "earning";
+            amount = "💰";
+            break;
+          case "signup":
+            iconType = "signup";
+            amount = "🎉";
+            break;
+          case "promo_redeemed":
+            iconType = "promocode";
+            amount = "🎁";
+            break;
+          case "payment_requested":
+            iconType = "payment";
+            amount = "💸";
+            break;
+          case "payment_completed":
+            iconType = "payment";
+            amount = "✅";
+            break;
+          default:
+            iconType = "notification";
+            amount = "📢";
+        }
+        
+        const offerName = extractOfferName(n.message || "");
+        const offerImage = offerName ? offerImageMap.get(offerName) : undefined;
+        
+        console.log('📸 Notification - Offer name:', offerName, 'Image URL:', offerImage, 'Type:', n.type);
+        
         allItems.push({
           id: `n-${n.id}`,
           username: "System",
           source: n.message,
-          amount: "📢",
-          icon: "notification",
+          amount: amount,
+          icon: iconType,
+          notificationType: n.type,
+          imageUrl: (n.type === "offer_added" || n.type === "offer_completed") ? offerImage : undefined,
         });
       });
 
@@ -178,7 +681,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "login_logs" }, () => fetchAll())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "promocode_redemptions" }, () => fetchAll())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "withdrawals" }, () => fetchAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => fetchAll())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => fetchAll()) // Listen to ALL notifications
       .subscribe();
 
     return () => {
@@ -191,6 +694,135 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const tripled = [...items, ...items, ...items];
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
+
+// Function to get relative time
+const getRelativeTime = (created_at?: string): string => {
+  if (!created_at) return "";
+  
+  const now = new Date();
+  const created = new Date(created_at);
+  const diffMs = now.getTime() - created.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+};
+
+// Function to truncate text for 2 lines (more aggressive)
+const truncateTextTwoLines = (text: string, maxLength: number = 35): string => {
+  if (!text) return "";
+  
+  // Common phrases to shorten
+  const shortenings = {
+    "completed": "✓",
+    "and earned": "+",
+    "points": "pts",
+    "survey from": "survey:",
+    "offer from": "offer:",
+    "completed survey": "✓survey",
+    "completed offer": "✓offer",
+    "just joined": "joined",
+    "logged in": "login",
+    "redeemed a promocode": "promo",
+    "requested withdrawal": "withdraw",
+    "payment completed": "paid",
+  };
+  
+  let shortenedText = text;
+  
+  // Apply shortenings
+  Object.entries(shortenings).forEach(([long, short]) => {
+    shortenedText = shortenedText.replace(new RegExp(long, "gi"), short);
+  });
+  
+  // Remove extra words to make it more concise
+  shortenedText = shortenedText
+    .replace(/\b(the|a|an|and|or|but|in|on|at|to|for|of|with|by)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  
+  // Final length check
+  if (shortenedText.length <= maxLength) return shortenedText;
+  return shortenedText.substring(0, maxLength) + "...";
+};
+
+const getAvatarContent = (item: TickerItem) => {
+  console.log('🎭 Getting avatar content for item:', JSON.stringify(item, null, 2));
+  console.log('🖼️ Item imageUrl:', item.imageUrl);
+  console.log('🏢 Item offerwallName:', item.offerwallName);
+  
+  // For earnings and offer-related activities with offer images, show offer image
+  if ((item.icon === "earning" || item.icon === "offer_added" || item.icon === "offer_completed" || item.notificationType === "survey_completed") && item.imageUrl) {
+    console.log('🖼️ Showing custom image:', item.imageUrl);
+    return (
+      <img 
+        src={item.imageUrl} 
+        alt="Offer" 
+        className="w-8 h-8 object-cover rounded-full"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          const fallback = target.nextElementSibling as HTMLElement;
+          if (fallback) fallback.style.display = 'flex';
+        }}
+      />
+    );
+  }
+  
+  // For user activities (signup, login, etc.), show gender-specific avatars
+  if (["signup", "login"].includes(item.icon)) {
+    const gender = detectGender(item.username);
+    console.log('👤 Detected gender:', gender, 'for username:', item.username);
+    
+    if (gender !== 'unknown' && genderAvatars[gender]) {
+      console.log('👨‍🦱 Showing gender avatar:', genderAvatars[gender]);
+      return (
+        <img 
+          src={genderAvatars[gender]} 
+          alt={`${gender} avatar`}
+          className="w-full h-full object-cover rounded-full"
+          onError={(e) => {
+            // Fallback to initial if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const fallback = target.nextElementSibling as HTMLSpanElement;
+            if (fallback) fallback.style.display = 'flex';
+          }}
+        />
+      );
+    }
+  }
+  
+  // For other activities, show activity logos
+  const logoUrl = activityLogos[item.icon];
+  if (logoUrl) {
+    console.log('🎨 Showing activity logo:', logoUrl, 'for icon:', item.icon);
+    return (
+      <img 
+        src={logoUrl} 
+        alt={item.icon}
+        className="w-8 h-8 object-contain"
+        onError={(e) => {
+          // Fallback to initial if logo fails to load
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          const fallback = target.nextElementSibling as HTMLSpanElement;
+          if (fallback) fallback.style.display = 'flex';
+        }}
+      />
+    );
+  }
+  
+  // Fallback to initial
+  console.log('🔤 Showing fallback initial for:', item.username);
+  return <span className="text-base font-bold text-white">{getInitial(item.username)}</span>;
+};
 
   const gradients = [
     "from-purple-600 to-blue-600",
@@ -220,19 +852,69 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
             return (
               <div
                 key={`${item.id}-${i}`}
-                className={`inline-flex items-center gap-3 shrink-0 bg-gradient-to-r ${gradients[i % gradients.length]} rounded-xl px-4 py-3 min-w-[220px] shadow-lg`}
+                className={`inline-flex items-center gap-4 shrink-0 bg-gradient-to-r ${gradients[i % gradients.length]} rounded-2xl px-6 py-4 min-w-[300px] shadow-xl`}
               >
-                <div className="w-10 h-10 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-white">{getInitial(item.username)}</span>
+                <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center shrink-0 overflow-hidden">
+                  {getAvatarContent(item)}
+                  {/* Fallback initial (hidden by default) */}
+                  <span className="text-base font-bold text-white" style={{ display: 'none' }}>
+                    {getInitial(item.username)}
+                  </span>
                 </div>
                 <div className="flex flex-col min-w-0 flex-1">
-                  <span className="text-sm font-bold text-white truncate">{item.username}</span>
-                  <span className="text-xs text-white/70 truncate">{item.source}</span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base font-bold text-white truncate">{item.username}</span>
+                    <span className="text-base text-white/50">•</span>
+                    <span className="text-base text-white/60">{getRelativeTime(item.created_at)}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-base text-white/80 line-clamp-2 leading-snug h-12">{truncateTextTwoLines(item.source, 35)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className="text-lg font-bold text-white">{item.amount}</span>
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                    <Icon className="h-3.5 w-3.5 text-white" />
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                    {(item.icon === "earning" || item.icon === "offer_added" || item.icon === "offer_completed" || item.notificationType === "survey_completed") && item.imageUrl ? (
+                      <img 
+                        src={item.imageUrl} 
+                        alt="Offer" 
+                        className="w-8 h-8 object-cover rounded-full"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : item.offerwallName && offerwallLogos[item.offerwallName as keyof typeof offerwallLogos] ? (
+                      <img 
+                        src={offerwallLogos[item.offerwallName as keyof typeof offerwallLogos]} 
+                        alt={item.offerwallName}
+                        className="w-8 h-8 object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : activityLogos[item.icon] ? (
+                      <img 
+                        src={activityLogos[item.icon]} 
+                        alt={item.icon}
+                        className="w-8 h-8 object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : (
+                      <Icon className="h-6 w-6 text-white" />
+                    )}
+                    {/* Fallback icon (hidden by default) */}
+                    <Icon className="h-6 w-6 text-white" style={{ display: 'none' }} />
                   </div>
                 </div>
               </div>
