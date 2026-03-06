@@ -244,7 +244,7 @@
 
   0% { transform: translateX(0); }
 
-  100% { transform: translateX(-33.33%); }
+  100% { transform: translateX(-10%); }
 
 }
 
@@ -260,7 +260,7 @@
 
 .animate-scroll-slow {
 
-  animation: scroll-left-slow 40s linear infinite;
+  animation: scroll-left-slow 20s linear infinite;
 
 }
 

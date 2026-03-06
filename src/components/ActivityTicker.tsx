@@ -164,6 +164,16 @@ const extractOfferName = (message: string): string | null => {
 const extractSurveyProviderName = (message: string): string | null => {
   console.log('🔍 Extracting survey provider name from message:', message);
   
+  // Special check for Torox first
+  if (message.toLowerCase().includes('torox')) {
+    console.log('✅ Torox found in message - direct return');
+    console.log('🔍 Detailed logging for Torox:');
+    console.log('👉 Message:', message);
+    console.log('👉 Extracted provider name:', 'torox');
+    console.log('👉 Image URL:', 'https://example.com/torox-logo.png'); // Replace with actual image URL
+    return 'torox';
+  }
+  
   // Check for direct offerwall name matches first - most reliable
   const directMatches = [
     { name: 'hello survey', patterns: ['hello survey', 'Hello Survey', 'HELLO SURVEY'] },
@@ -171,6 +181,8 @@ const extractSurveyProviderName = (message: string): string | null => {
     { name: 'chameleonads', patterns: ['chameleonads', 'ChameleonAds', 'CHAMELEONADS'] },
     { name: 'leadads', patterns: ['leadads', 'LeadAds', 'LEADADS'] },
     { name: 'lootably', patterns: ['lootably', 'Lootably', 'LOOTABLY'] },
+    { name: 'moustache', patterns: ['moustache', 'Moustache', 'MOUSTACHE'] },
+    { name: 'torox', patterns: ['torox', 'Torox', 'TOROX'] },
     { name: 'adsensedmedia', patterns: ['adsensedmedia', 'AdsensedMedia', 'ADSENSEDMEDIA'] }
   ];
   
@@ -185,16 +197,14 @@ const extractSurveyProviderName = (message: string): string | null => {
   
   // More aggressive pattern matching for survey provider names
   const patterns = [
-    // Match "Lootably" in "completed Lootably survey and earned"
-    /completed\s+([A-Z][a-z]+\s+[A-Z][a-z]+)(?:\s+survey|\s+and\s+earned)/i,
-    // Match "Lootably" in "survey from Lootably and earned"
-    /survey\s+from\s+([A-Z][a-z]+\s+[A-Z][a-z]+)(?:\s+and\s+earned|\s+and|\s*$)/i,
-    // Match "Lootably" in "Lootably survey completed"
-    /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+survey\s+completed/i,
-    // Match "Lootably" in "Lootably survey and earned"
-    /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+survey\s+and\s+earned/i,
-    // Match "Lootably" in "Lootably survey"
-    /([A-Z][a-z]+\s+[A-Z][a-z]+)\s+survey/i,
+    // Match provider names at the start of message
+    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+survey/i,
+    // Match "completed ProviderName survey"
+    /completed\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+survey/i,
+    // Match "ProviderName survey completed"
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+survey\s+completed/i,
+    // Match "survey from ProviderName"
+    /survey\s+from\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
   ];
   
   for (const pattern of patterns) {
@@ -214,12 +224,14 @@ const extractSurveyProviderName = (message: string): string | null => {
     const words = beforeSurvey.split(/\s+/);
     console.log('🔍 Words before "survey":', words);
     
-    // Check if any word is "Lootably" or similar
-    const lootablyVariations = ['Lootably', 'lootably', 'LOOTABLY'];
+    // Check for known provider names in the words
+    const knownProviders = ['Lootably', 'Hello Survey', 'CPAMerchant', 'ChameleonAds', 'LeadAds', 'Moustache', 'AdsensedMedia', 'Torox'];
     for (const word of words) {
-      if (lootablyVariations.includes(word)) {
-        console.log('✅ Found Lootably variation:', word);
-        return 'lootably';
+      for (const provider of knownProviders) {
+        if (word.toLowerCase() === provider.toLowerCase()) {
+          console.log('✅ Found known provider:', provider);
+          return provider;
+        }
       }
     }
     
@@ -364,6 +376,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         if (e.description || e.offer_name) {
           const searchText = `${e.description || ''} ${e.offer_name || ''}`.toLowerCase();
           
+<<<<<<< HEAD
           // Try to find survey provider by matching name in description/offer_name
           const surveyProvider = surveyProviders?.find(sp => 
             searchText.includes(sp.name.toLowerCase())
@@ -371,6 +384,43 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           
           if (surveyProvider?.image_url) {
             surveyProviderImage = surveyProvider.image_url;
+=======
+          // Special handling for Torox - ensure it shows database logo
+          if (e.description.toLowerCase().includes('torox')) {
+            const toroxProvider = surveyProviders?.find(sp => sp.name.toLowerCase() === 'torox');
+            if (toroxProvider?.image_url) {
+              surveyProviderImage = toroxProvider.image_url;
+              console.log('🔴 Torox detected - using database logo:', toroxProvider.image_url);
+            } else {
+              console.log('❌ Torox provider not found in database');
+            }
+          } else {
+            // Try to find survey provider by matching name in description
+            const surveyProvider = surveyProviders?.find(sp => 
+              e.description?.toLowerCase().includes(sp.name.toLowerCase())
+            );
+            
+            if (surveyProvider?.image_url) {
+              surveyProviderImage = surveyProvider.image_url;
+              console.log('📸 Found exact survey provider image:', surveyProvider.name, '→', surveyProvider.image_url);
+            } else {
+              console.log('❌ No exact survey provider image found');
+              console.log('🔍 Available survey providers:', surveyProviders?.map(sp => ({ name: sp.name, image: sp.image_url })));
+              
+              // Try case-insensitive matching
+              const descriptionLower = e.description?.toLowerCase();
+              const foundProvider = surveyProviders?.find(sp => 
+                descriptionLower.includes(sp.name.toLowerCase()) || sp.name.toLowerCase().includes(descriptionLower)
+              );
+              
+              if (foundProvider?.image_url) {
+                surveyProviderImage = foundProvider.image_url;
+                console.log('📸 Found case-insensitive survey provider image:', foundProvider.name, '→', foundProvider.image_url);
+              } else {
+                console.log('❌ Still no survey provider image found after case-insensitive match');
+              }
+            }
+>>>>>>> e5a55ff (done)
           }
         }
         
@@ -392,7 +442,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           id: `s-${u.id}`,
           username: u.username || u.first_name || "New User",
           source: "Just joined the platform!",
-          amount: "🎉",
+          amount: "",
           icon: "signup",
         });
       });
@@ -404,7 +454,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           id: `l-${l.id}`,
           username: prof?.name || "User",
           source: "Logged in",
-          amount: "✅",
+          amount: "",
           icon: "login",
           created_at: l.created_at,
         });
@@ -417,7 +467,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           id: `p-${p.id}`,
           username: prof?.name || "User",
           source: "Redeemed a promocode",
-          amount: "🎁",
+          amount: "",
           icon: "promocode",
         });
       });
@@ -510,48 +560,48 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         
         // Determine icon based on notification type
         let iconType: TickerItem['icon'] = "notification";
-        let amount = "📢";
+        let amount = "";
         
         switch (n.type) {
           case "offer_added":
             iconType = "offer_added";
-            amount = "🆕";
+            amount = "";
             break;
           case "offer_completed":
             iconType = "offer_completed";
-            amount = "✅";
+            amount = "";
             break;
           case "survey_completed":
             iconType = "offer_completed";
-            amount = "✅";
+            amount = "";
             break;
           case "announcement":
             iconType = "notification";
-            amount = "📢";
+            amount = "";
             break;
           case "credits":
             iconType = "earning";
-            amount = "💰";
+            amount = "";
             break;
           case "signup":
             iconType = "signup";
-            amount = "🎉";
+            amount = "";
             break;
           case "promo_redeemed":
             iconType = "promocode";
-            amount = "🎁";
+            amount = "";
             break;
           case "payment_requested":
             iconType = "payment";
-            amount = "💸";
+            amount = "";
             break;
           case "payment_completed":
             iconType = "payment";
-            amount = "✅";
+            amount = "";
             break;
           default:
             iconType = "notification";
-            amount = "📢";
+            amount = "";
         }
         
         const finalItem = {
@@ -580,44 +630,44 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         
         // Determine icon based on notification type
         let iconType: TickerItem['icon'] = "notification";
-        let amount = "📢";
+        let amount = "";
         
         switch (n.type) {
           case "offer_added":
             iconType = "offer_added";
-            amount = "🆕";
+            amount = "";
             break;
           case "offer_completed":
             iconType = "offer_completed";
-            amount = "✅";
+            amount = "";
             break;
           case "announcement":
             iconType = "notification";
-            amount = "📢";
+            amount = "";
             break;
           case "credits":
             iconType = "earning";
-            amount = "💰";
+            amount = "";
             break;
           case "signup":
             iconType = "signup";
-            amount = "🎉";
+            amount = "";
             break;
           case "promo_redeemed":
             iconType = "promocode";
-            amount = "🎁";
+            amount = "";
             break;
           case "payment_requested":
             iconType = "payment";
-            amount = "💸";
+            amount = "";
             break;
           case "payment_completed":
             iconType = "payment";
-            amount = "✅";
+            amount = "";
             break;
           default:
             iconType = "notification";
-            amount = "📢";
+            amount = "";
         }
         
         const offerName = extractOfferName(n.message || "");
@@ -668,7 +718,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
   if (items.length === 0) return null;
 
-  const tripled = [...items, ...items, ...items];
+  const triplication = [...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items];
 
   const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
@@ -702,8 +752,8 @@ const truncateTextTwoLines = (text: string, maxLength: number = 35): string => {
     "points": "pts",
     "survey from": "survey:",
     "offer from": "offer:",
-    "completed survey": "✓survey",
-    "completed offer": "✓offer",
+    "completed survey": "survey",
+    "completed offer": "offer",
     "just joined": "joined",
     "logged in": "login",
     "redeemed a promocode": "promo",
@@ -734,14 +784,14 @@ const getAvatarContent = (item: TickerItem) => {
   console.log('🖼️ Item imageUrl:', item.imageUrl);
   console.log('🏢 Item offerwallName:', item.offerwallName);
   
-  // For earnings and offer-related activities with offer images, show offer image
-  if ((item.icon === "earning" || item.icon === "offer_added" || item.icon === "offer_completed" || item.notificationType === "survey_completed") && item.imageUrl) {
-    console.log('🖼️ Showing custom image:', item.imageUrl);
+  // Priority 1: Survey provider logos (highest priority)
+  if (item.imageUrl && (item.icon === "earning" || item.notificationType === "survey_completed")) {
+    console.log('🖼️ Showing survey provider image:', item.imageUrl);
     return (
       <img 
         src={item.imageUrl} 
-        alt="Offer" 
-        className="w-8 h-8 object-cover rounded-full"
+        alt="Survey Provider" 
+        className="w-full h-full object-contain rounded-lg"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
           target.style.display = 'none';
@@ -752,7 +802,25 @@ const getAvatarContent = (item: TickerItem) => {
     );
   }
   
-  // For user activities (signup, login, etc.), show gender-specific avatars
+  // Priority 2: Offer images
+  if (item.imageUrl && (item.icon === "offer_added" || item.icon === "offer_completed")) {
+    console.log('🖼️ Showing offer image:', item.imageUrl);
+    return (
+      <img 
+        src={item.imageUrl} 
+        alt="Offer" 
+        className="w-8 h-8 object-cover rounded-lg"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+          const fallback = target.nextElementSibling as HTMLElement;
+          if (fallback) fallback.style.display = 'flex';
+        }}
+      />
+    );
+  }
+  
+  // Priority 3: User activities (gender-specific avatars)
   if (["signup", "login"].includes(item.icon)) {
     const gender = detectGender(item.username);
     console.log('👤 Detected gender:', gender, 'for username:', item.username);
@@ -763,7 +831,7 @@ const getAvatarContent = (item: TickerItem) => {
         <img 
           src={genderAvatars[gender]} 
           alt={`${gender} avatar`}
-          className="w-full h-full object-cover rounded-full"
+          className="w-full h-full object-cover rounded-lg"
           onError={(e) => {
             // Fallback to initial if image fails to load
             const target = e.target as HTMLImageElement;
@@ -802,12 +870,12 @@ const getAvatarContent = (item: TickerItem) => {
 };
 
   const gradients = [
-    "from-purple-600 to-blue-600",
-    "from-blue-600 to-purple-600",
-    "from-violet-600 to-indigo-600",
-    "from-indigo-600 to-purple-600",
-    "from-purple-700 to-blue-500",
-    "from-blue-500 to-violet-600",
+    "from-purple-100 to-white",
+    "from-white to-purple-100",
+    "from-purple-200 to-white",
+    "from-white to-purple-200",
+    "from-purple-100 to-gray-50",
+    "from-gray-50 to-purple-100",
   ];
 
   return (
@@ -824,38 +892,31 @@ const getAvatarContent = (item: TickerItem) => {
 
       <div className="relative overflow-hidden">
         <div className="flex gap-4 animate-scroll-slow whitespace-nowrap" style={{ width: "max-content" }}>
-          {tripled.map((item, i) => {
+          {triplication.map((item, i) => {
             const Icon = iconMap[item.icon] || TrendingUp;
             return (
               <div
                 key={`${item.id}-${i}`}
                 className={`inline-flex items-center gap-4 shrink-0 bg-gradient-to-r ${gradients[i % gradients.length]} rounded-2xl px-6 py-4 min-w-[300px] shadow-xl`}
               >
-                <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center shrink-0 overflow-hidden">
-                  {getAvatarContent(item)}
-                  {/* Fallback initial (hidden by default) */}
-                  <span className="text-base font-bold text-white" style={{ display: 'none' }}>
-                    {getInitial(item.username)}
-                  </span>
-                </div>
                 <div className="flex flex-col min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-base font-bold text-white truncate">{item.username}</span>
-                    <span className="text-base text-white/50">•</span>
-                    <span className="text-base text-white/60">{getRelativeTime(item.created_at)}</span>
+                    <span className="text-base font-bold text-gray-900 truncate">{item.username}</span>
+                    <span className="text-base text-gray-500">•</span>
+                    <span className="text-base text-gray-600">{getRelativeTime(item.created_at)}</span>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-base text-white/80 line-clamp-2 leading-snug h-12">{truncateTextTwoLines(item.source, 35)}</span>
+                    <span className="text-base text-gray-700 line-clamp-2 leading-snug">{truncateTextTwoLines(item.source, 50)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-lg font-bold text-white">{item.amount}</span>
-                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
-                    {(item.icon === "earning" || item.icon === "offer_added" || item.icon === "offer_completed" || item.notificationType === "survey_completed") && item.imageUrl ? (
+                  <span className="text-lg font-bold text-gray-900">{item.amount}</span>
+                  {(item.icon === "earning" || item.icon === "offer_added" || item.icon === "offer_completed" || item.notificationType === "survey_completed") && item.imageUrl ? (
+                    <div className="w-24 h-24 flex items-center justify-center shrink-0">
                       <img 
                         src={item.imageUrl} 
-                        alt="Offer" 
-                        className="w-8 h-8 object-cover rounded-full"
+                        alt="Survey Provider" 
+                        className="w-full h-full object-contain"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
@@ -863,11 +924,13 @@ const getAvatarContent = (item: TickerItem) => {
                           if (fallback) fallback.style.display = 'flex';
                         }}
                       />
-                    ) : item.offerwallName && offerwallLogos[item.offerwallName as keyof typeof offerwallLogos] ? (
+                    </div>
+                  ) : item.offerwallName && offerwallLogos[item.offerwallName as keyof typeof offerwallLogos] ? (
+                    <div className="w-24 h-24 flex items-center justify-center shrink-0">
                       <img 
                         src={offerwallLogos[item.offerwallName as keyof typeof offerwallLogos]} 
                         alt={item.offerwallName}
-                        className="w-8 h-8 object-contain"
+                        className="w-full h-full object-contain"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
@@ -875,24 +938,25 @@ const getAvatarContent = (item: TickerItem) => {
                           if (fallback) fallback.style.display = 'flex';
                         }}
                       />
-                    ) : activityLogos[item.icon] ? (
+                    </div>
+                  ) : activityLogos[item.icon] ? (
+                    <div className="w-24 h-24 flex items-center justify-center shrink-0">
                       <img 
                         src={activityLogos[item.icon]} 
                         alt={item.icon}
-                        className="w-8 h-8 object-contain"
+                        className="w-full h-full object-contain"
                         onError={(e) => {
+                          // Fallback to initial if logo fails to load
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
-                          const fallback = target.nextElementSibling as HTMLElement;
+                          const fallback = target.nextElementSibling as HTMLSpanElement;
                           if (fallback) fallback.style.display = 'flex';
                         }}
                       />
-                    ) : (
-                      <Icon className="h-6 w-6 text-white" />
-                    )}
-                    {/* Fallback icon (hidden by default) */}
-                    <Icon className="h-6 w-6 text-white" style={{ display: 'none' }} />
-                  </div>
+                    </div>
+                  ) : (
+                    <Icon className="h-6 w-6 text-white" />
+                  )}
                 </div>
               </div>
             );
