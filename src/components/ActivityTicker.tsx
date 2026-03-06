@@ -359,41 +359,18 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         const prof = profileMap.get(e.user_id);
         const offerImage = e.offer_name ? offerImageMap.get(e.offer_name) : undefined;
         
-        // Check if this is a survey completion and try to get survey provider image
+        // Try to get survey provider image from description or offer_name
         let surveyProviderImage = undefined;
-        if (e.description && e.description.toLowerCase().includes('survey')) {
-          console.log('🔍 Processing survey completion - Description:', e.description);
+        if (e.description || e.offer_name) {
+          const searchText = `${e.description || ''} ${e.offer_name || ''}`.toLowerCase();
           
-          // Special case: Lootably should show gift symbol
-          if (e.description.toLowerCase().includes('lootably')) {
-            surveyProviderImage = "https://img.icons8.com/color/48/gift.png";
-            console.log('🎁 Lootably detected - using gift symbol logo');
-          } else {
-            // Try to find survey provider by matching name in description
-            const surveyProvider = surveyProviders?.find(sp => 
-              e.description?.toLowerCase().includes(sp.name.toLowerCase())
-            );
-            
-            if (surveyProvider?.image_url) {
-              surveyProviderImage = surveyProvider.image_url;
-              console.log('📸 Found exact survey provider image:', surveyProvider.name, '→', surveyProvider.image_url);
-            } else {
-              console.log('❌ No exact survey provider image found');
-              console.log('🔍 Available survey providers:', surveyProviders?.map(sp => ({ name: sp.name, image: sp.image_url })));
-              
-              // Try case-insensitive matching
-              const descriptionLower = e.description?.toLowerCase();
-              const foundProvider = surveyProviders?.find(sp => 
-                descriptionLower.includes(sp.name.toLowerCase()) || sp.name.toLowerCase().includes(descriptionLower)
-              );
-              
-              if (foundProvider?.image_url) {
-                surveyProviderImage = foundProvider.image_url;
-                console.log('📸 Found case-insensitive survey provider image:', foundProvider.name, '→', foundProvider.image_url);
-              } else {
-                console.log('❌ Still no survey provider image found after case-insensitive match');
-              }
-            }
+          // Try to find survey provider by matching name in description/offer_name
+          const surveyProvider = surveyProviders?.find(sp => 
+            searchText.includes(sp.name.toLowerCase())
+          );
+          
+          if (surveyProvider?.image_url) {
+            surveyProviderImage = surveyProvider.image_url;
           }
         }
         
@@ -469,31 +446,18 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         let surveyProviderImage = undefined;
         let offerwallLogo = undefined;
         
-        // 1. Try exact match first for offers
+        // 1. Try exact match for offers
         if (offerName) {
           offerImage = offerImageMap.get(offerName);
-          console.log('📸 Exact match - Offer name:', offerName, 'Image URL:', offerImage);
         }
         
-        // 2. Try exact match for survey providers
-        if (n.type === "survey_completed") {
-          const providerName = extractSurveyProviderName(n.message || "");
-          if (providerName) {
-            surveyProviderImage = surveyProviderImageMap.get(providerName);
-            console.log('📸 Survey provider match - Provider name:', providerName, 'Image URL:', surveyProviderImage);
-          }
-          
-          // If no direct match, try to find survey provider by partial matching
-          if (!surveyProviderImage) {
-            const messageLower = (n.message || "").toLowerCase();
-            const surveyProvider = surveyProviders?.find(sp => 
-              messageLower.includes(sp.name.toLowerCase())
-            );
-            if (surveyProvider?.image_url) {
-              surveyProviderImage = surveyProvider.image_url;
-              console.log('📸 Survey provider partial match - Provider:', surveyProvider.name, 'Image URL:', surveyProviderImage);
-            }
-          }
+        // 2. Try to match survey provider name from message for ANY notification type
+        const messageLower = (n.message || "").toLowerCase();
+        const matchedProvider = surveyProviders?.find(sp => 
+          messageLower.includes(sp.name.toLowerCase())
+        );
+        if (matchedProvider?.image_url) {
+          surveyProviderImage = matchedProvider.image_url;
         }
         
         // 3. Try to get offerwall logo
@@ -598,8 +562,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           icon: iconType,
           notificationType: n.type,
           created_at: n.created_at,
-          imageUrl: (n.type === "survey_completed") ? surveyProviderImage : 
-                   (n.type === "offer_added" || n.type === "offer_completed") ? offerImage : undefined,
+          imageUrl: surveyProviderImage || offerImage || undefined,
           offerwallName: offerwallName || undefined,
         };
         
@@ -660,7 +623,10 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         const offerName = extractOfferName(n.message || "");
         const offerImage = offerName ? offerImageMap.get(offerName) : undefined;
         
-        console.log('📸 Notification - Offer name:', offerName, 'Image URL:', offerImage, 'Type:', n.type);
+        // Match survey provider image from message
+        const msgLower = (n.message || "").toLowerCase();
+        const matchedSP = surveyProviders?.find(sp => msgLower.includes(sp.name.toLowerCase()));
+        const spImage = matchedSP?.image_url || undefined;
         
         allItems.push({
           id: `n-${n.id}`,
@@ -669,7 +635,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           amount: amount,
           icon: iconType,
           notificationType: n.type,
-          imageUrl: (n.type === "offer_added" || n.type === "offer_completed") ? offerImage : undefined,
+          imageUrl: spImage || offerImage || undefined,
         });
       });
 
