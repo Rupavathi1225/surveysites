@@ -364,29 +364,35 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         if (e.description && e.description.toLowerCase().includes('survey')) {
           console.log('🔍 Processing survey completion - Description:', e.description);
           
-          // Try to find survey provider by matching name in description
-          const surveyProvider = surveyProviders?.find(sp => 
-            e.description?.toLowerCase().includes(sp.name.toLowerCase())
-          );
-          
-          if (surveyProvider?.image_url) {
-            surveyProviderImage = surveyProvider.image_url;
-            console.log('📸 Found exact survey provider image:', surveyProvider.name, '→', surveyProvider.image_url);
+          // Special case: Lootably should show gift symbol
+          if (e.description.toLowerCase().includes('lootably')) {
+            surveyProviderImage = "https://img.icons8.com/color/48/gift.png";
+            console.log('🎁 Lootably detected - using gift symbol logo');
           } else {
-            console.log('❌ No exact survey provider image found');
-            console.log('🔍 Available survey providers:', surveyProviders?.map(sp => ({ name: sp.name, image: sp.image_url })));
-            
-            // Try case-insensitive matching
-            const descriptionLower = e.description?.toLowerCase();
-            const foundProvider = surveyProviders?.find(sp => 
-              descriptionLower.includes(sp.name.toLowerCase()) || sp.name.toLowerCase().includes(descriptionLower)
+            // Try to find survey provider by matching name in description
+            const surveyProvider = surveyProviders?.find(sp => 
+              e.description?.toLowerCase().includes(sp.name.toLowerCase())
             );
             
-            if (foundProvider?.image_url) {
-              surveyProviderImage = foundProvider.image_url;
-              console.log('📸 Found case-insensitive survey provider image:', foundProvider.name, '→', foundProvider.image_url);
+            if (surveyProvider?.image_url) {
+              surveyProviderImage = surveyProvider.image_url;
+              console.log('📸 Found exact survey provider image:', surveyProvider.name, '→', surveyProvider.image_url);
             } else {
-              console.log('❌ Still no survey provider image found after case-insensitive match');
+              console.log('❌ No exact survey provider image found');
+              console.log('🔍 Available survey providers:', surveyProviders?.map(sp => ({ name: sp.name, image: sp.image_url })));
+              
+              // Try case-insensitive matching
+              const descriptionLower = e.description?.toLowerCase();
+              const foundProvider = surveyProviders?.find(sp => 
+                descriptionLower.includes(sp.name.toLowerCase()) || sp.name.toLowerCase().includes(descriptionLower)
+              );
+              
+              if (foundProvider?.image_url) {
+                surveyProviderImage = foundProvider.image_url;
+                console.log('📸 Found case-insensitive survey provider image:', foundProvider.name, '→', foundProvider.image_url);
+              } else {
+                console.log('❌ Still no survey provider image found after case-insensitive match');
+              }
             }
           }
         }
