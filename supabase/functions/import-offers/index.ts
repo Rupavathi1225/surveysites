@@ -36,7 +36,7 @@ const NETWORK_CONFIGS = {
 
 // Tracking Link Generator for edge function
 function generateTrackingLink(networkId: string, offerId: string, affId?: string): string {
-  const config = NETWORK_CONFIGS[networkId.toLowerCase()];
+  const config = NETWORK_CONFIGS[networkId.toLowerCase() as keyof typeof NETWORK_CONFIGS];
   
   if (!config) {
     console.warn(`Unknown network: ${networkId}`);
@@ -105,7 +105,7 @@ class ImportTracker {
 type HasOffersRequest = {
   network_id: string;
   api_key: string;
-  action: Action;
+  action: string;
   provider?: string;
   limit?: number;
   page?: number;
