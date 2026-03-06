@@ -5,9 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Monitor, Smartphone, Tablet, Send, MessageCircle, X, Star, Network, ChevronRight, ExternalLink, RefreshCw, Clock, Zap, Settings2 } from "lucide-react";
+import { Monitor, Smartphone, Tablet, Send, MessageCircle, X, Star, Network, ChevronRight, ExternalLink, RefreshCw, Clock, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityTicker from "@/components/ActivityTicker";
@@ -24,14 +23,6 @@ const DashboardHome = () => {
   const [showAllWalls, setShowAllWalls] = useState(false);
   const [boostedOffersData, setBoostedOffersData] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState<Record<string, number>>({});
-  const [feedGeneratorEnabled, setFeedGeneratorEnabled] = useState(false);
-
-  // Load feed generator state from website_settings
-  useEffect(() => {
-    supabase.from("website_settings").select("value").eq("key", "feed_generator_enabled").single().then(({ data }) => {
-      setFeedGeneratorEnabled(data?.value === "true");
-    });
-  }, []);
 
   useEffect(() => {
     if (!profile) return;
@@ -146,24 +137,7 @@ const DashboardHome = () => {
   return (
     <div className="space-y-6 pb-20">
       {/* Activity Ticker */}
-      <div className="space-y-2">
-        <ActivityTicker userId={profile.id} />
-        {profile.role === "admin" && (
-          <div className="flex items-center gap-2 px-1">
-            <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Feed Generator</span>
-            <Switch
-              checked={feedGeneratorEnabled}
-              onCheckedChange={async (checked) => {
-                setFeedGeneratorEnabled(checked);
-                await supabase.from("website_settings").upsert({ key: "feed_generator_enabled", value: checked ? "true" : "false" }, { onConflict: "key" });
-                toast({ title: `Feed Generator ${checked ? "ON" : "OFF"}` });
-              }}
-            />
-            <span className="text-xs font-medium text-muted-foreground">{feedGeneratorEnabled ? "ON" : "OFF"}</span>
-          </div>
-        )}
-      </div>
+      <ActivityTicker userId={profile.id} />
 
       {/* Featured Offers - EarnLab Style */}
       <div>
