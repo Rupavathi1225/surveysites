@@ -376,15 +376,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         if (e.description || e.offer_name) {
           const searchText = `${e.description || ''} ${e.offer_name || ''}`.toLowerCase();
           
-<<<<<<< HEAD
-          // Try to find survey provider by matching name in description/offer_name
-          const surveyProvider = surveyProviders?.find(sp => 
-            searchText.includes(sp.name.toLowerCase())
-          );
-          
-          if (surveyProvider?.image_url) {
-            surveyProviderImage = surveyProvider.image_url;
-=======
           // Special handling for Torox - ensure it shows database logo
           if (e.description.toLowerCase().includes('torox')) {
             const toroxProvider = surveyProviders?.find(sp => sp.name.toLowerCase() === 'torox');
@@ -397,7 +388,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           } else {
             // Try to find survey provider by matching name in description
             const surveyProvider = surveyProviders?.find(sp => 
-              e.description?.toLowerCase().includes(sp.name.toLowerCase())
+              searchText.includes(sp.name.toLowerCase())
             );
             
             if (surveyProvider?.image_url) {
@@ -420,13 +411,12 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 console.log('❌ Still no survey provider image found after case-insensitive match');
               }
             }
->>>>>>> e5a55ff (done)
           }
         }
         
         allItems.push({
           id: `e-${e.id}`,
-          username: prof?.name || "Anonymous",
+          username: prof?.name || "User",
           source: e.offer_name || e.description || "Completed a task",
           amount: `$ ${(e.amount || 0).toFixed(2)}`,
           icon: "earning",
@@ -720,8 +710,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
   const triplication = [...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items, ...items];
 
-  const getInitial = (name: string) => name.charAt(0).toUpperCase();
-
 // Function to get relative time
 const getRelativeTime = (created_at?: string): string => {
   if (!created_at) return "";
@@ -739,6 +727,12 @@ const getRelativeTime = (created_at?: string): string => {
   
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
+};
+
+// Function to get initial from username
+const getInitial = (name: string): string => {
+  if (!name) return "?";
+  return name.charAt(0).toUpperCase();
 };
 
 // Function to truncate text for 2 lines (more aggressive)

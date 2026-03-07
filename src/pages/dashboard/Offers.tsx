@@ -167,6 +167,72 @@ const Offers = () => {
     }
   };
 
+  const trackProviderClick = async (provider: any) => {
+    console.log("🔍 trackProviderClick called for:", provider.name, provider.id);
+    if (!profile) {
+      console.log("❌ No profile found, skipping tracking");
+      return;
+    }
+    console.log("✅ Profile found, tracking click for:", profile.username);
+    
+    const ipInfo = await fetchIpInfo();
+    const utmParams: Record<string, string> = {};
+    const urlParams = new URLSearchParams(window.location.search);
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
+      const v = urlParams.get(k);
+      if (v) utmParams[k] = v;
+    });
+    if (Object.keys(utmParams).length === 0 && document.referrer) {
+      try {
+        const refUrl = new URL(document.referrer);
+        const refParams = new URLSearchParams(refUrl.search);
+        ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
+          const v = refParams.get(k);
+          if (v) utmParams[k] = v;
+        });
+        if (Object.keys(utmParams).length === 0) utmParams["referrer"] = refUrl.hostname;
+      } catch {}
+    }
+    utmParams["page"] = window.location.pathname;
+
+    const sessionStart = new Date().toISOString();
+    console.log("📝 Inserting click record for provider:", provider.id, provider.name);
+    
+    const { data: inserted, error } = await supabase.from("offer_clicks").insert({
+      user_id: profile.id, 
+      provider_id: provider.id,
+      session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
+      user_agent: navigator.userAgent,
+      device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
+      browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
+      os: navigator.platform || "Unknown",
+      source: document.referrer || window.location.href,
+      completion_status: "clicked",
+      ip_address: ipInfo.ip || null, country: ipInfo.country || null,
+      vpn_proxy_flag: ipInfo.proxy || false,
+      utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
+    }).select("id").single();
+
+    if (error) {
+      console.error("❌ Error inserting click record:", error);
+    } else if (inserted?.id) {
+      console.log("✅ Click record inserted successfully:", inserted.id);
+      const updateEnd = () => {
+        const endTime = new Date().toISOString();
+        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
+        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
+      };
+      window.addEventListener("beforeunload", updateEnd, { once: true });
+      setTimeout(async () => {
+        const endTime = new Date().toISOString();
+        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
+        await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
+      }, 30000);
+    } else {
+      console.log("❌ No data returned from insert");
+    }
+  };
+
   const openOfferModal = async (offer: any) => {
     setSelectedOffer(offer);
     setIsModalOpen(true);
@@ -1036,8 +1102,10 @@ const Offers = () => {
                   <div 
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
-                    onClick={() => {
-                      // open in new tab
+                    onClick={async () => {
+                      // Track the provider click first
+                      await trackProviderClick(p);
+                      // Then open in new tab
                       if (p.iframe_url || p.iframe_code) {
                         window.open(p.iframe_url || '#', '_blank');
                       } else if (p.url) {
@@ -1205,8 +1273,10 @@ const Offers = () => {
                   <div 
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
-                    onClick={() => {
-                      // open in new tab
+                    onClick={async () => {
+                      // Track the provider click first
+                      await trackProviderClick(p);
+                      // Then open in new tab
                       if (p.iframe_url || p.iframe_code) {
                         window.open(p.iframe_url || '#', '_blank');
                       } else if (p.url) {
