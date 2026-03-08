@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
     // Store the click
     const { data: click } = await supabase.from("offer_clicks").insert({
       user_id: profile?.id || null,
+      username: profile?.username || null,
       offer_id: offer_id || null,
       survey_link_id: survey_link_id || null,
       ip_address: clientIp,
