@@ -22,6 +22,11 @@ interface FeedSettings {
   feed_show_contests: boolean;
   feed_show_referrals: boolean;
   feed_show_promocodes: boolean;
+  feed_show_payment_completed: boolean;
+  feed_show_new_promocodes: boolean;
+  feed_show_new_offers: boolean;
+  feed_show_global_notifications: boolean;
+  feed_show_feed_generator: boolean;
   feed_scroll_speed: number;
   feed_box_color1: string;
   feed_box_color2: string;
@@ -34,6 +39,11 @@ interface FeedSettings {
   feed_count_contests: number;
   feed_count_referrals: number;
   feed_count_promocodes: number;
+  feed_count_payment_completed: number;
+  feed_count_new_promocodes: number;
+  feed_count_new_offers: number;
+  feed_count_global_notifications: number;
+  feed_count_feed_generator: number;
 }
 
 const DEFAULT_SETTINGS: FeedSettings = {
@@ -45,6 +55,11 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_show_contests: false,
   feed_show_referrals: false,
   feed_show_promocodes: false,
+  feed_show_payment_completed: false,
+  feed_show_new_promocodes: false,
+  feed_show_new_offers: false,
+  feed_show_global_notifications: false,
+  feed_show_feed_generator: false,
   feed_scroll_speed: 120,
   feed_box_color1: "#1e293b",
   feed_box_color2: "#334155",
@@ -57,29 +72,46 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_count_contests: 20,
   feed_count_referrals: 20,
   feed_count_promocodes: 20,
+  feed_count_payment_completed: 20,
+  feed_count_new_promocodes: 20,
+  feed_count_new_offers: 20,
+  feed_count_global_notifications: 20,
+  feed_count_feed_generator: 20,
 };
 
-const SETTING_KEYS = [
-  "feed_show_offers", "feed_show_surveys", "feed_show_signups",
-  "feed_show_withdrawals", "feed_show_logins", "feed_show_contests",
-  "feed_show_referrals", "feed_show_promocodes", "feed_scroll_speed",
-  "feed_box_color1", "feed_box_color2", "feed_total_count",
-  "feed_count_offers", "feed_count_surveys", "feed_count_signups",
-  "feed_count_withdrawals", "feed_count_logins", "feed_count_contests",
-  "feed_count_referrals", "feed_count_promocodes",
-];
+const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS);
 
 function classifyEarning(desc: string, offerName: string, type: string): string {
   const text = `${desc} ${offerName} ${type}`.toLowerCase();
   if (text.includes("referral") || text.includes("affiliate")) return "referral";
   if (text.includes("contest") || text.includes("rank")) return "contest";
-  if (text.includes("promo") || text.includes("code")) return "promocode";
+  if (text.includes("promo") && (text.includes("redeem") || text.includes("code"))) return "promocode";
+  if (text.includes("new promo")) return "new_promocodes";
+  if (text.includes("new offer")) return "new_offers";
+  if (text.includes("payment completed") || text.includes("paid")) return "payment_completed";
   if (text.includes("survey")) return "survey";
-  if (text.includes("withdraw")) return "withdrawal";
+  if (text.includes("withdraw") || text.includes("payment request")) return "withdrawal";
   if (text.includes("signup") || text.includes("sign up") || text.includes("welcome")) return "signup";
   if (text.includes("login") || text.includes("log in")) return "login";
+  if (text.includes("notification") || text.includes("announcement")) return "global_notifications";
   return "offer";
 }
+
+const TYPE_TO_SHOW_KEY: Record<string, keyof FeedSettings> = {
+  offer: "feed_show_offers",
+  survey: "feed_show_surveys",
+  signup: "feed_show_signups",
+  withdrawal: "feed_show_withdrawals",
+  login: "feed_show_logins",
+  contest: "feed_show_contests",
+  referral: "feed_show_referrals",
+  promocode: "feed_show_promocodes",
+  payment_completed: "feed_show_payment_completed",
+  new_promocodes: "feed_show_new_promocodes",
+  new_offers: "feed_show_new_offers",
+  global_notifications: "feed_show_global_notifications",
+  feed_generator: "feed_show_feed_generator",
+};
 
 const TYPE_TO_COUNT_KEY: Record<string, keyof FeedSettings> = {
   offer: "feed_count_offers",
@@ -90,6 +122,11 @@ const TYPE_TO_COUNT_KEY: Record<string, keyof FeedSettings> = {
   contest: "feed_count_contests",
   referral: "feed_count_referrals",
   promocode: "feed_count_promocodes",
+  payment_completed: "feed_count_payment_completed",
+  new_promocodes: "feed_count_new_promocodes",
+  new_offers: "feed_count_new_offers",
+  global_notifications: "feed_count_global_notifications",
+  feed_generator: "feed_count_feed_generator",
 };
 
 const ActivityTicker = ({ userId }: { userId?: string }) => {
@@ -104,28 +141,42 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         .in("key", SETTING_KEYS);
 
       if (data && data.length > 0) {
-        const map = new Map(data.map(s => [s.key, s.value]));
+        const m = new Map(data.map(s => [s.key, s.value]));
+        const getBool = (k: string, def: boolean) => m.has(k) ? m.get(k) === "true" : def;
+        const getNum = (k: string, def: number) => parseInt(m.get(k) || String(def)) || def;
+        const getStr = (k: string, def: string) => m.get(k) || def;
+
         setSettings({
-          feed_show_offers: map.get("feed_show_offers") !== "false",
-          feed_show_surveys: map.get("feed_show_surveys") !== "false",
-          feed_show_signups: map.get("feed_show_signups") === "true",
-          feed_show_withdrawals: map.get("feed_show_withdrawals") === "true",
-          feed_show_logins: map.get("feed_show_logins") === "true",
-          feed_show_contests: map.get("feed_show_contests") === "true",
-          feed_show_referrals: map.get("feed_show_referrals") === "true",
-          feed_show_promocodes: map.get("feed_show_promocodes") === "true",
-          feed_scroll_speed: parseInt(map.get("feed_scroll_speed") || "120") || 120,
-          feed_box_color1: map.get("feed_box_color1") || DEFAULT_SETTINGS.feed_box_color1,
-          feed_box_color2: map.get("feed_box_color2") || DEFAULT_SETTINGS.feed_box_color2,
-          feed_total_count: parseInt(map.get("feed_total_count") || "20") || 20,
-          feed_count_offers: parseInt(map.get("feed_count_offers") || "20") || 20,
-          feed_count_surveys: parseInt(map.get("feed_count_surveys") || "20") || 20,
-          feed_count_signups: parseInt(map.get("feed_count_signups") || "20") || 20,
-          feed_count_withdrawals: parseInt(map.get("feed_count_withdrawals") || "20") || 20,
-          feed_count_logins: parseInt(map.get("feed_count_logins") || "20") || 20,
-          feed_count_contests: parseInt(map.get("feed_count_contests") || "20") || 20,
-          feed_count_referrals: parseInt(map.get("feed_count_referrals") || "20") || 20,
-          feed_count_promocodes: parseInt(map.get("feed_count_promocodes") || "20") || 20,
+          feed_show_offers: getBool("feed_show_offers", true),
+          feed_show_surveys: getBool("feed_show_surveys", true),
+          feed_show_signups: getBool("feed_show_signups", false),
+          feed_show_withdrawals: getBool("feed_show_withdrawals", false),
+          feed_show_logins: getBool("feed_show_logins", false),
+          feed_show_contests: getBool("feed_show_contests", false),
+          feed_show_referrals: getBool("feed_show_referrals", false),
+          feed_show_promocodes: getBool("feed_show_promocodes", false),
+          feed_show_payment_completed: getBool("feed_show_payment_completed", false),
+          feed_show_new_promocodes: getBool("feed_show_new_promocodes", false),
+          feed_show_new_offers: getBool("feed_show_new_offers", false),
+          feed_show_global_notifications: getBool("feed_show_global_notifications", false),
+          feed_show_feed_generator: getBool("feed_show_feed_generator", false),
+          feed_scroll_speed: getNum("feed_scroll_speed", 120),
+          feed_box_color1: getStr("feed_box_color1", DEFAULT_SETTINGS.feed_box_color1),
+          feed_box_color2: getStr("feed_box_color2", DEFAULT_SETTINGS.feed_box_color2),
+          feed_total_count: getNum("feed_total_count", 20),
+          feed_count_offers: getNum("feed_count_offers", 20),
+          feed_count_surveys: getNum("feed_count_surveys", 20),
+          feed_count_signups: getNum("feed_count_signups", 20),
+          feed_count_withdrawals: getNum("feed_count_withdrawals", 20),
+          feed_count_logins: getNum("feed_count_logins", 20),
+          feed_count_contests: getNum("feed_count_contests", 20),
+          feed_count_referrals: getNum("feed_count_referrals", 20),
+          feed_count_promocodes: getNum("feed_count_promocodes", 20),
+          feed_count_payment_completed: getNum("feed_count_payment_completed", 20),
+          feed_count_new_promocodes: getNum("feed_count_new_promocodes", 20),
+          feed_count_new_offers: getNum("feed_count_new_offers", 20),
+          feed_count_global_notifications: getNum("feed_count_global_notifications", 20),
+          feed_count_feed_generator: getNum("feed_count_feed_generator", 20),
         });
       }
     };
@@ -178,19 +229,9 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       // Apply per-type visibility filter & per-type count limits
       const typeCounts: Record<string, number> = {};
       const filtered = tickerItems.filter(item => {
-        // Check if type is enabled
-        const showKey = `feed_show_${item.type}s` as keyof FeedSettings;
-        if (showKey === "feed_show_offers" ? !settings.feed_show_offers :
-            showKey === "feed_show_surveys" ? !settings.feed_show_surveys :
-            showKey === "feed_show_signups" ? !settings.feed_show_signups :
-            showKey === "feed_show_withdrawals" ? !settings.feed_show_withdrawals :
-            showKey === "feed_show_logins" ? !settings.feed_show_logins :
-            showKey === "feed_show_contests" ? !settings.feed_show_contests :
-            showKey === "feed_show_referrals" ? !settings.feed_show_referrals :
-            showKey === "feed_show_promocodes" ? !settings.feed_show_promocodes :
-            !settings.feed_show_offers) {
-          return false;
-        }
+        // Check if type is enabled using the map
+        const showKey = TYPE_TO_SHOW_KEY[item.type];
+        if (!showKey || !settings[showKey]) return false;
 
         // Check per-type count limit
         const countKey = TYPE_TO_COUNT_KEY[item.type];
