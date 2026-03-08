@@ -96,12 +96,8 @@ const DailySurveys = () => {
 
   const handleOpenProvider = async (provider: any) => {
     console.log("[HandleOpenProvider] Called for:", provider.name, "id:", provider.id, "profile:", profile?.id || "NULL");
-    try {
-      await trackClick(provider, "provider", provider.id);
-      console.log("[HandleOpenProvider] trackClick completed for:", provider.name);
-    } catch (err) {
-      console.error("[HandleOpenProvider] trackClick failed:", err);
-    }
+    // Track click in background (don't await - prevents blocking)
+    trackClick(provider, "provider", provider.id).catch(err => console.error("[HandleOpenProvider] trackClick failed:", err));
     const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
     if (provider.iframe_url || provider.iframe_code) {
       setSelectedProvider(provider);
