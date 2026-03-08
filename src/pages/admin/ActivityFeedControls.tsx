@@ -33,6 +33,7 @@ const SIZE_OPTIONS = [
   { value: "small", label: "Small" },
   { value: "medium", label: "Medium" },
   { value: "large", label: "Large" },
+  { value: "custom", label: "Custom" },
 ];
 
 const SPEED_KEY = "feed_scroll_speed";
