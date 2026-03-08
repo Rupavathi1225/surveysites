@@ -269,24 +269,31 @@ const AdminClickTracking = () => {
     }
   };
 
-  // User behavior aggregation (with postback data)
+  // User behavior aggregation - includes ALL users with clicks, postbacks, logins, or earnings
   const userBehavior = useMemo(() => {
     const allClicks = [...clicks, ...providerClicks];
     const map = new Map<string, any>();
+
+    const ensureUser = (userId: string, username?: string, email?: string) => {
+      if (!userId || map.has(userId)) return;
+      const prof = profiles.find(p => p.id === userId);
+      map.set(userId, {
+        user_id: userId, username: prof?.username || username || "—", email: prof?.email || email || "—",
+        totalClicks: 0, offerClicks: 0, surveyClicks: 0, providerClicks: 0,
+        completed: 0, reversed: 0, clicked: 0, vpnFlags: 0, riskSum: 0,
+        countries: new Set(), devices: new Set(), timeSum: 0, timeCount: 0,
+        lastClick: null, lastLogin: null, postbackSuccess: 0, postbackFailed: 0, postbackReversed: 0,
+        totalEarned: 0, totalReversedPayout: 0, loginCount: 0, pageViews: 0
+      });
+    };
     
-    // Build from clicks
+    // Build from ALL profiles first so every user appears
+    profiles.forEach(p => ensureUser(p.id, p.username, p.email));
+
+    // Add click data
     allClicks.forEach(c => {
       if (!c.user_id) return;
-      if (!map.has(c.user_id)) {
-        map.set(c.user_id, {
-          user_id: c.user_id, username: c.profiles?.username || "—", email: c.profiles?.email || "—",
-          totalClicks: 0, offerClicks: 0, surveyClicks: 0, providerClicks: 0,
-          completed: 0, reversed: 0, clicked: 0, vpnFlags: 0, riskSum: 0,
-          countries: new Set(), devices: new Set(), timeSum: 0, timeCount: 0,
-          lastClick: c.created_at, postbackSuccess: 0, postbackFailed: 0, postbackReversed: 0,
-          totalEarned: 0, totalReversedPayout: 0, loginCount: 0
-        });
-      }
+      ensureUser(c.user_id, c.profiles?.username, c.profiles?.email);
       const u = map.get(c.user_id);
       u.totalClicks++;
       if (c.offer_id) u.offerClicks++;
@@ -300,33 +307,32 @@ const AdminClickTracking = () => {
       if (c.country) u.countries.add(c.country);
       if (c.device_type) u.devices.add(c.device_type);
       if (c.time_spent > 0) { u.timeSum += c.time_spent; u.timeCount++; }
-      if (c.created_at > u.lastClick) u.lastClick = c.created_at;
+      if (!u.lastClick || c.created_at > u.lastClick) u.lastClick = c.created_at;
     });
 
     // Enrich with postback data
     postbackLogs.forEach(pb => {
       if (!pb.user_id) return;
-      if (!map.has(pb.user_id)) {
-        const prof = profiles.find(p => p.id === pb.user_id);
-        map.set(pb.user_id, {
-          user_id: pb.user_id, username: prof?.username || pb.username || "—", email: prof?.email || "—",
-          totalClicks: 0, offerClicks: 0, surveyClicks: 0, providerClicks: 0,
-          completed: 0, reversed: 0, clicked: 0, vpnFlags: 0, riskSum: 0,
-          countries: new Set(), devices: new Set(), timeSum: 0, timeCount: 0,
-          lastClick: pb.created_at, postbackSuccess: 0, postbackFailed: 0, postbackReversed: 0,
-          totalEarned: 0, totalReversedPayout: 0, loginCount: 0
-        });
-      }
+      ensureUser(pb.user_id, pb.username);
       const u = map.get(pb.user_id);
       if (pb.status === "success") { u.postbackSuccess++; u.totalEarned += (Number(pb.payout) || 0); }
       else if (pb.status === "failed") u.postbackFailed++;
       else if (["reversed","reversal","chargeback"].includes(pb.status)) { u.postbackReversed++; u.totalReversedPayout += (Number(pb.payout) || 0); }
     });
 
-    // Enrich with login count
+    // Enrich with login count for ALL users
     loginLogs.forEach(l => {
-      if (!l.user_id || !map.has(l.user_id)) return;
-      map.get(l.user_id).loginCount++;
+      if (!l.user_id) return;
+      ensureUser(l.user_id);
+      const u = map.get(l.user_id);
+      u.loginCount++;
+      if (!u.lastLogin || l.created_at > u.lastLogin) u.lastLogin = l.created_at;
+    });
+
+    // Enrich with page views
+    pageVisits.forEach(v => {
+      if (!v.user_id) return;
+      if (map.has(v.user_id)) map.get(v.user_id).pageViews++;
     });
 
     return [...map.values()].map(u => ({
@@ -335,8 +341,15 @@ const AdminClickTracking = () => {
       avgTime: u.timeCount ? Math.round(u.timeSum / u.timeCount) : 0,
       completionRate: u.totalClicks ? Math.round((u.completed / u.totalClicks) * 100) : 0,
       countries: [...u.countries].join(", "), devices: [...u.devices].join(", "),
-    })).sort((a, b) => b.totalClicks - a.totalClicks);
-  }, [clicks, providerClicks, postbackLogs, loginLogs, profiles]);
+      lastActivity: u.lastClick || u.lastLogin || null,
+    })).sort((a, b) => {
+      // Sort by last activity, then by login count
+      if (b.lastActivity && a.lastActivity) return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
+      if (b.lastActivity) return 1;
+      if (a.lastActivity) return -1;
+      return b.loginCount - a.loginCount;
+    });
+  }, [clicks, providerClicks, postbackLogs, loginLogs, pageVisits, profiles]);
 
   // Filtered user behavior
   const filteredUserBehavior = useMemo(() => {
