@@ -83,7 +83,7 @@ const Offerwalls = () => {
     }
     
     const slug = getSlug(provider.name);
-    navigate(`/dashboard/offerwall/${slug}`, { state: { provider } });
+    navigate(`/dashboard/offerwall/${slug}`, { state: { provider, clickTracked: true } });
   };
 
   if (loading) {
