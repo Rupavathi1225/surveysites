@@ -41,7 +41,7 @@ const AdminClickTracking = () => {
     let all: any[] = [];
     let from = 0;
     while (true) {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from(table)
         .select(select)
         .order(orderCol, { ascending })
