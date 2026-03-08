@@ -714,7 +714,7 @@ function summarizeDataShape(data: any) {
   return { type: typeof data };
 }
 
-function mapOffer(offer: HasOffersOffer, idx: number, provider: string, networkId?: string) {
+async function mapOffer(offer: HasOffersOffer, idx: number, provider: string, networkId?: string) {
   const offerCore = offer.Offer || offer?.AffiliateOffer?.Offer || undefined;
   const offerId = offer.offer_id ?? offerCore?.id ?? offer.id ?? `offer-${idx}`;
   
