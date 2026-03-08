@@ -431,6 +431,12 @@ const AdminClickTracking = () => {
             <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </button>
         </div>
+      </div>
+
+      <Tabs defaultValue="last24h">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="last24h">Last 24 Hours</TabsTrigger>
+          <TabsTrigger value="activity">Click Activity</TabsTrigger>
           <TabsTrigger value="users">User Behavior</TabsTrigger>
           <TabsTrigger value="offers">Offer Performance</TabsTrigger>
           <TabsTrigger value="providers">Offerwall Analytics</TabsTrigger>
