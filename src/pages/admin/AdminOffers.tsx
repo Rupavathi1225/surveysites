@@ -1551,6 +1551,9 @@ Expiry Date: ${o.expiry_date || "-"}`;
           continue; 
         }
 
+        // Auto-set approval_status based on tracking_url
+        const hasTrackingUrl = !!(offer.tracking_url && offer.tracking_url.trim());
+        
         const offerData = {
           offer_id: offer.offer_id,
           title: offer.title, 
@@ -1572,6 +1575,10 @@ Expiry Date: ${o.expiry_date || "-"}`;
           non_access_url: offer.non_access_url || null, 
           percent: offer.percent || 0, 
           status: status,
+          tracking_url: offer.tracking_url || null,
+          network_id: offer.network_id || null,
+          approval_status: hasTrackingUrl ? "approved" : "pending",
+          approved_date: hasTrackingUrl ? new Date().toISOString() : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
