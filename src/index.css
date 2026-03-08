@@ -266,12 +266,6 @@
 
 
 
-.animate-scroll:hover,
-.animate-scroll-slow:hover,
-.animate-ticker:hover {
-  animation-play-state: paused;
-}
-
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-25%); }
@@ -279,5 +273,16 @@
 
 .animate-ticker {
   animation: ticker-scroll 120s linear infinite;
+}
+
+.ticker-scroll {
+  animation: ticker-scroll linear infinite;
+}
+
+.animate-scroll:hover,
+.animate-scroll-slow:hover,
+.animate-ticker:hover,
+.ticker-scroll:hover {
+  animation-play-state: paused;
 }
 

@@ -46,6 +46,7 @@ import AdminClickTracking from "./pages/admin/AdminClickTracking";
 import DownwardPartners from "./pages/admin/DownwardPartners";
 import PostbackLogs from "./pages/admin/PostbackLogs";
 import TestPostback from "./pages/admin/TestPostback";
+import ActivityFeedControls from "./pages/admin/ActivityFeedControls";
 import NotFound from "./pages/NotFound";
 import Terms from "./pages/Terms";
 
@@ -125,6 +126,7 @@ const App = () => (
           <Route path="/admin/postback-logs" element={<AdminPage><PostbackLogs /></AdminPage>} />
           <Route path="/admin/test-postback" element={<AdminPage><TestPostback /></AdminPage>} />
           <Route path="/admin/user-generation" element={<AdminPage><UserGeneration /></AdminPage>} />
+          <Route path="/admin/activity-feed" element={<AdminPage><ActivityFeedControls /></AdminPage>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

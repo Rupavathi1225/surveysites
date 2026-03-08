@@ -10,20 +10,91 @@ interface TickerItem {
   offerwallName: string;
   offerwallLogo: string;
   created_at: string;
+  type: string; // "offer" | "survey" | "signup" | "withdrawal" | "contest" | "referral" | "promocode" | "login"
+}
+
+interface FeedSettings {
+  feed_show_offers: boolean;
+  feed_show_surveys: boolean;
+  feed_show_signups: boolean;
+  feed_show_withdrawals: boolean;
+  feed_show_logins: boolean;
+  feed_show_contests: boolean;
+  feed_show_referrals: boolean;
+  feed_show_promocodes: boolean;
+  feed_scroll_speed: number;
+}
+
+const DEFAULT_SETTINGS: FeedSettings = {
+  feed_show_offers: true,
+  feed_show_surveys: true,
+  feed_show_signups: false,
+  feed_show_withdrawals: false,
+  feed_show_logins: false,
+  feed_show_contests: false,
+  feed_show_referrals: false,
+  feed_show_promocodes: false,
+  feed_scroll_speed: 120,
+};
+
+const SETTING_KEYS = [
+  "feed_show_offers", "feed_show_surveys", "feed_show_signups",
+  "feed_show_withdrawals", "feed_show_logins", "feed_show_contests",
+  "feed_show_referrals", "feed_show_promocodes", "feed_scroll_speed",
+];
+
+function classifyEarning(desc: string, offerName: string, type: string): string {
+  const text = `${desc} ${offerName} ${type}`.toLowerCase();
+  if (text.includes("referral") || text.includes("affiliate")) return "referral";
+  if (text.includes("contest") || text.includes("rank")) return "contest";
+  if (text.includes("promo") || text.includes("code")) return "promocode";
+  if (text.includes("survey")) return "survey";
+  if (text.includes("withdraw")) return "withdrawal";
+  if (text.includes("signup") || text.includes("sign up") || text.includes("welcome")) return "signup";
+  if (text.includes("login") || text.includes("log in")) return "login";
+  return "offer"; // default: offer completion
 }
 
 const ActivityTicker = ({ userId }: { userId?: string }) => {
   const [items, setItems] = useState<TickerItem[]>([]);
+  const [settings, setSettings] = useState<FeedSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    // Load feed settings
+    const loadSettings = async () => {
+      const { data } = await supabase
+        .from("website_settings")
+        .select("key, value")
+        .in("key", SETTING_KEYS);
+
+      if (data && data.length > 0) {
+        const map = new Map(data.map(s => [s.key, s.value]));
+        setSettings({
+          feed_show_offers: map.get("feed_show_offers") !== "false",
+          feed_show_surveys: map.get("feed_show_surveys") !== "false",
+          feed_show_signups: map.get("feed_show_signups") === "true",
+          feed_show_withdrawals: map.get("feed_show_withdrawals") === "true",
+          feed_show_logins: map.get("feed_show_logins") === "true",
+          feed_show_contests: map.get("feed_show_contests") === "true",
+          feed_show_referrals: map.get("feed_show_referrals") === "true",
+          feed_show_promocodes: map.get("feed_show_promocodes") === "true",
+          feed_scroll_speed: parseInt(map.get("feed_scroll_speed") || "120") || 120,
+        });
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     const fetchAll = async () => {
       // Fetch earning history (completed offers/surveys only)
       const { data: earnings } = await supabase
         .from("earning_history")
-        .select("id, amount, offer_name, user_id, description, created_at, status")
+        .select("id, amount, offer_name, user_id, description, created_at, status, type")
         .eq("status", "approved")
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(40);
 
       if (!earnings?.length) return;
 
@@ -44,9 +115,8 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       const tickerItems: TickerItem[] = earnings.map(e => {
         const prof = profileMap.get(e.user_id);
         const searchText = `${e.description || ""} ${e.offer_name || ""}`.toLowerCase();
-
-        // Find matching survey provider
         const matchedProvider = providerList.find(sp => searchText.includes(sp.name.toLowerCase()));
+        const itemType = classifyEarning(e.description || "", e.offer_name || "", e.type || "");
 
         return {
           id: e.id,
@@ -56,10 +126,26 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           offerwallName: matchedProvider?.name || e.offer_name || "",
           offerwallLogo: matchedProvider?.image_url || "",
           created_at: e.created_at || "",
+          type: itemType,
         };
       });
 
-      setItems(tickerItems);
+      // Filter based on settings
+      const filtered = tickerItems.filter(item => {
+        switch (item.type) {
+          case "offer": return settings.feed_show_offers;
+          case "survey": return settings.feed_show_surveys;
+          case "signup": return settings.feed_show_signups;
+          case "withdrawal": return settings.feed_show_withdrawals;
+          case "login": return settings.feed_show_logins;
+          case "contest": return settings.feed_show_contests;
+          case "referral": return settings.feed_show_referrals;
+          case "promocode": return settings.feed_show_promocodes;
+          default: return settings.feed_show_offers; // default to offer toggle
+        }
+      });
+
+      setItems(filtered.slice(0, 20));
     };
 
     fetchAll();
@@ -70,7 +156,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
-  }, [userId]);
+  }, [userId, settings]);
 
   if (items.length === 0) return null;
 
@@ -104,6 +190,8 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
     return countryFlags[country.toLowerCase()] || "🌍";
   };
 
+  const scrollDuration = `${settings.feed_scroll_speed}s`;
+
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
       {/* Header */}
@@ -119,7 +207,13 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
       {/* Scrolling ticker */}
       <div className="relative overflow-hidden">
-        <div className="flex gap-3 animate-ticker whitespace-nowrap" style={{ width: "max-content" }}>
+        <div
+          className="flex gap-3 whitespace-nowrap ticker-scroll"
+          style={{
+            width: "max-content",
+            animationDuration: scrollDuration,
+          }}
+        >
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
