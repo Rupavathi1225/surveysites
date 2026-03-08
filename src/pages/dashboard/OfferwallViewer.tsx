@@ -28,18 +28,20 @@ const OfferwallViewer = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get username
+      // Get username and profile id
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username")
+        .select("id, username")
         .eq("user_id", user.id)
         .single();
 
       const uname = profile?.username || "anonymous";
       setUsername(uname);
 
+      let currentProvider = provider;
+
       // If no provider from navigation state, fetch by slug
-      if (!provider && slug) {
+      if (!currentProvider && slug) {
         const { data: providers } = await supabase
           .from("survey_providers")
           .select("*")
@@ -49,7 +51,25 @@ const OfferwallViewer = () => {
           (p) => p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") === slug
         );
 
-        if (match) setProvider(match);
+        if (match) {
+          setProvider(match);
+          currentProvider = match;
+        }
+      }
+
+      // Fallback click tracking - track if not already tracked
+      if (currentProvider && profile && !clickTrackedRef.current) {
+        clickTrackedRef.current = true;
+        console.log("[OfferwallViewer] Tracking click for provider:", currentProvider.name, currentProvider.id);
+        trackClickRobust({
+          user_id: profile.id,
+          username: profile.username,
+          provider_id: currentProvider.id,
+        }).then(clickId => {
+          console.log("[OfferwallViewer] Click tracked:", clickId);
+        }).catch(err => {
+          console.error("[OfferwallViewer] Click tracking failed:", err);
+        });
       }
 
       setLoading(false);
