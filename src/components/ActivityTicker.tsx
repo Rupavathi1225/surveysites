@@ -123,7 +123,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center gap-1.5 shrink-0 bg-purple-500/20 rounded-md px-2 py-1.5 min-w-[160px] max-w-[170px] border border-purple-500/10"
+              className="inline-flex items-center gap-1.5 shrink-0 bg-white/90 dark:bg-white/10 rounded-md px-2 py-1.5 min-w-[160px] max-w-[170px] border border-border/30 shadow-sm"
             >
               {/* Offerwall logo */}
               <div className="w-6 h-6 rounded shrink-0 bg-muted/50 flex items-center justify-center overflow-hidden">
