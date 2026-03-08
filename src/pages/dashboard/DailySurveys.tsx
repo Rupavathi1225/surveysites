@@ -80,11 +80,12 @@ const DailySurveys = () => {
 
   const handleOpenProvider = async (provider: any) => {
     await trackClick(provider, "provider", provider.id);
+    const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
     if (provider.iframe_url || provider.iframe_code) {
       setSelectedProvider(provider);
     } else {
       const url = provider.external_url || provider.url;
-      if (url) window.open(url, "_blank");
+      if (url) window.open(ru(url), "_blank");
     }
   };
 
