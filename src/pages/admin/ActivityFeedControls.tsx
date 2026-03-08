@@ -44,6 +44,7 @@ const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
 const DEFAULT_TOTAL_COUNT = "20";
 const DEFAULT_PER_TYPE_COUNT = "20";
+const DEFAULT_BOX_SIZE = "medium";
 
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
