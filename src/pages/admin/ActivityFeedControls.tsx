@@ -233,8 +233,8 @@ const ActivityFeedControls = () => {
               className="rounded-xl px-4 py-3 border border-foreground/5 flex items-center gap-3"
               style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}
             >
-              <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-                <span className="text-sm font-bold text-foreground/70">P</span>
+              <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-white/70">P</span>
               </div>
               <div className="flex flex-col gap-0.5 flex-1">
                 <span className="text-sm font-semibold text-white">SampleUser</span>
@@ -242,6 +242,23 @@ const ActivityFeedControls = () => {
               </div>
               <span className="text-lg font-bold text-white">150 pts</span>
             </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button
+              size="sm"
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                await upsertSettings([
+                  { key: COLOR1_KEY, value: color1 },
+                  { key: COLOR2_KEY, value: color2 },
+                ]);
+                setSaving(false);
+                toast.success("Ticker box colors applied!");
+              }}
+            >
+              <Palette className="h-4 w-4 mr-1" /> Apply Colors
+            </Button>
           </div>
         </CardContent>
       </Card>
