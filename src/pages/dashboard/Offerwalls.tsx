@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Lock, Shield } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
+import { trackClickRobust } from "@/lib/clickTrackingHelper";
 
 interface Provider {
   id: string;
@@ -69,8 +70,18 @@ const Offerwalls = () => {
     return null;
   };
 
-  const handleClick = (provider: Provider) => {
+  const handleClick = async (provider: Provider) => {
     if (isLocked(provider)) return;
+    
+    // Track the click
+    if (profile) {
+      trackClickRobust({
+        user_id: profile.id,
+        username: profile.username,
+        provider_id: provider.id,
+      });
+    }
+    
     const slug = getSlug(provider.name);
     navigate(`/dashboard/offerwall/${slug}`, { state: { provider } });
   };
