@@ -747,20 +747,39 @@ const AdminClickTracking = () => {
         {/* ==================== USER BEHAVIOR ==================== */}
         <TabsContent value="users" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">User Behavior Analysis</h2>
+            <div>
+              <h2 className="text-lg font-semibold">User Behavior Analysis</h2>
+              <p className="text-xs text-muted-foreground">All {userBehavior.length} users — click a username for full activity timeline</p>
+            </div>
             <div className="relative w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search user..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Click a username to see their full activity timeline</p>
+
+          {/* Summary stats */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <StatCard icon={Users} value={userBehavior.length} label="Total Users" />
+            <StatCard icon={UserCheck} value={userBehavior.filter(u => u.loginCount > 0).length} label="Users with Logins" color="text-green-500" />
+            <StatCard icon={MousePointerClick} value={userBehavior.filter(u => u.totalClicks > 0).length} label="Users with Clicks" color="text-blue-500" />
+            <StatCard icon={Activity} value={loginLogs.length} label="Total Login Sessions" />
+            <StatCard icon={Eye} value={pageVisits.length} label="Total Page Views" />
+          </div>
+
           <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">User Activity Table</CardTitle>
+                <Badge variant="outline" className="text-xs">{filteredUserBehavior.length} users shown</Badge>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[600px]">
-                <div className="min-w-[1800px]">
+              <ScrollArea className="w-full" style={{ maxHeight: "700px" }}>
+                <div className="min-w-[2000px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>#</TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Clicks</TableHead>
@@ -776,17 +795,19 @@ const AdminClickTracking = () => {
                         <TableHead>Earned</TableHead>
                         <TableHead>Rev. Payout</TableHead>
                         <TableHead>Logins</TableHead>
+                        <TableHead>Page Views</TableHead>
                         <TableHead>VPN</TableHead>
                         <TableHead>Avg Risk</TableHead>
                         <TableHead>Countries</TableHead>
-                        <TableHead>Last Click</TableHead>
+                        <TableHead>Last Activity</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredUserBehavior.length === 0 ? (
-                        <TableRow><TableCell colSpan={19} className="text-center text-muted-foreground py-8">No user data</TableCell></TableRow>
-                      ) : filteredUserBehavior.map(u => (
+                        <TableRow><TableCell colSpan={21} className="text-center text-muted-foreground py-8">No user data</TableCell></TableRow>
+                      ) : filteredUserBehavior.map((u, idx) => (
                         <TableRow key={u.user_id} className="cursor-pointer hover:bg-muted/50" onClick={() => openUserDetail(u.user_id)}>
+                          <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
                           <TableCell className="font-medium text-sm text-primary hover:underline">{u.username}</TableCell>
                           <TableCell className="text-xs">{u.email}</TableCell>
                           <TableCell className="font-bold">{u.totalClicks}</TableCell>
@@ -801,11 +822,12 @@ const AdminClickTracking = () => {
                           <TableCell className="text-orange-500">{u.postbackReversed}</TableCell>
                           <TableCell className="font-medium">{u.totalEarned.toFixed(0)}</TableCell>
                           <TableCell className="text-red-500">{u.totalReversedPayout.toFixed(0)}</TableCell>
-                          <TableCell>{u.loginCount}</TableCell>
+                          <TableCell className="font-medium">{u.loginCount}</TableCell>
+                          <TableCell>{u.pageViews}</TableCell>
                           <TableCell>{u.vpnFlags > 0 ? <span className="text-orange-500">⚠️ {u.vpnFlags}</span> : "0"}</TableCell>
                           <TableCell><Badge variant={u.avgRisk > 50 ? "destructive" : "secondary"} className="text-xs">{u.avgRisk}</Badge></TableCell>
                           <TableCell className="text-xs max-w-[100px] truncate">{u.countries || "—"}</TableCell>
-                          <TableCell className="text-xs">{fmtDate(u.lastClick)}</TableCell>
+                          <TableCell className="text-xs">{u.lastActivity ? fmtDate(u.lastActivity) : "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
