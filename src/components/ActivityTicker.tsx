@@ -10,7 +10,7 @@ interface TickerItem {
   offerwallName: string;
   offerwallLogo: string;
   created_at: string;
-  type: string; // "offer" | "survey" | "signup" | "withdrawal" | "contest" | "referral" | "promocode" | "login"
+  type: string;
 }
 
 interface FeedSettings {
@@ -23,6 +23,8 @@ interface FeedSettings {
   feed_show_referrals: boolean;
   feed_show_promocodes: boolean;
   feed_scroll_speed: number;
+  feed_box_color1: string;
+  feed_box_color2: string;
 }
 
 const DEFAULT_SETTINGS: FeedSettings = {
@@ -35,12 +37,15 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_show_referrals: false,
   feed_show_promocodes: false,
   feed_scroll_speed: 120,
+  feed_box_color1: "#1e293b",
+  feed_box_color2: "#334155",
 };
 
 const SETTING_KEYS = [
   "feed_show_offers", "feed_show_surveys", "feed_show_signups",
   "feed_show_withdrawals", "feed_show_logins", "feed_show_contests",
   "feed_show_referrals", "feed_show_promocodes", "feed_scroll_speed",
+  "feed_box_color1", "feed_box_color2",
 ];
 
 function classifyEarning(desc: string, offerName: string, type: string): string {
@@ -52,7 +57,7 @@ function classifyEarning(desc: string, offerName: string, type: string): string 
   if (text.includes("withdraw")) return "withdrawal";
   if (text.includes("signup") || text.includes("sign up") || text.includes("welcome")) return "signup";
   if (text.includes("login") || text.includes("log in")) return "login";
-  return "offer"; // default: offer completion
+  return "offer";
 }
 
 const ActivityTicker = ({ userId }: { userId?: string }) => {
@@ -60,7 +65,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const [settings, setSettings] = useState<FeedSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    // Load feed settings
     const loadSettings = async () => {
       const { data } = await supabase
         .from("website_settings")
@@ -79,16 +83,16 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_show_referrals: map.get("feed_show_referrals") === "true",
           feed_show_promocodes: map.get("feed_show_promocodes") === "true",
           feed_scroll_speed: parseInt(map.get("feed_scroll_speed") || "120") || 120,
+          feed_box_color1: map.get("feed_box_color1") || DEFAULT_SETTINGS.feed_box_color1,
+          feed_box_color2: map.get("feed_box_color2") || DEFAULT_SETTINGS.feed_box_color2,
         });
       }
     };
-
     loadSettings();
   }, []);
 
   useEffect(() => {
     const fetchAll = async () => {
-      // Fetch earning history (completed offers/surveys only)
       const { data: earnings } = await supabase
         .from("earning_history")
         .select("id, amount, offer_name, user_id, description, created_at, status, type")
@@ -98,10 +102,8 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
       if (!earnings?.length) return;
 
-      // Collect user IDs
       const userIds = [...new Set(earnings.map(e => e.user_id))];
 
-      // Fetch profiles and survey providers in parallel
       const [profilesRes, providersRes] = await Promise.all([
         supabase.from("profiles").select("id, username, country").in("id", userIds),
         supabase.from("survey_providers").select("id, name, image_url"),
@@ -130,7 +132,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         };
       });
 
-      // Filter based on settings
       const filtered = tickerItems.filter(item => {
         switch (item.type) {
           case "offer": return settings.feed_show_offers;
@@ -141,7 +142,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           case "contest": return settings.feed_show_contests;
           case "referral": return settings.feed_show_referrals;
           case "promocode": return settings.feed_show_promocodes;
-          default: return settings.feed_show_offers; // default to offer toggle
+          default: return settings.feed_show_offers;
         }
       });
 
@@ -160,7 +161,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
   if (items.length === 0) return null;
 
-  // Duplicate items for seamless loop
   const looped = [...items, ...items, ...items, ...items];
 
   const getRelativeTime = (d: string) => {
@@ -191,10 +191,10 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   };
 
   const scrollDuration = `${settings.feed_scroll_speed}s`;
+  const boxGradient = `linear-gradient(135deg, ${settings.feed_box_color1}, ${settings.feed_box_color2})`;
 
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
-      {/* Header */}
       <div className="flex items-center gap-1.5 mb-2">
         <Activity className="h-3.5 w-3.5 text-primary" />
         <span className="text-xs font-semibold text-foreground">Live Activity Feed</span>
@@ -205,43 +205,35 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         </div>
       </div>
 
-      {/* Scrolling ticker */}
       <div className="relative overflow-hidden">
         <div
           className="flex gap-3 whitespace-nowrap ticker-scroll"
-          style={{
-            width: "max-content",
-            animationDuration: scrollDuration,
-          }}
+          style={{ width: "max-content", animationDuration: scrollDuration }}
         >
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center shrink-0 bg-foreground/10 rounded-xl px-4 py-3 min-w-[240px] border border-foreground/5"
+              className="inline-flex items-center shrink-0 rounded-xl px-4 py-3 min-w-[240px] border border-foreground/5"
+              style={{ background: boxGradient }}
             >
-              {/* Left: Logo */}
-              <div className="w-12 h-12 rounded-lg shrink-0 bg-primary/20 flex items-center justify-center overflow-hidden mr-3">
+              <div className="w-12 h-12 rounded-lg shrink-0 bg-white/10 flex items-center justify-center overflow-hidden mr-3">
                 {item.offerwallLogo ? (
                   <img src={item.offerwallLogo} alt={item.offerwallName} className="w-full h-full object-contain" />
                 ) : (
-                  <span className="text-sm font-bold text-foreground/70">{item.offerwallName?.charAt(0) || "?"}</span>
+                  <span className="text-sm font-bold text-white/70">{item.offerwallName?.charAt(0) || "?"}</span>
                 )}
               </div>
-
-              {/* Middle: User info */}
               <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-foreground truncate">{item.username}</span>
-                  <span className="text-[10px] text-foreground/50">• {getRelativeTime(item.created_at)}</span>
+                  <span className="text-sm font-semibold text-white truncate">{item.username}</span>
+                  <span className="text-[10px] text-white/50">• {getRelativeTime(item.created_at)}</span>
                 </div>
-                <span className="text-xs text-foreground/60 truncate">{item.offerwallName}</span>
+                <span className="text-xs text-white/60 truncate">{item.offerwallName}</span>
               </div>
-
-              {/* Right: Amount */}
               <div className="shrink-0 text-right">
-                <span className="text-lg font-bold text-foreground whitespace-nowrap">{item.amount}</span>
+                <span className="text-lg font-bold text-white whitespace-nowrap">{item.amount}</span>
                 {item.country && (
-                  <div className="text-xs text-foreground/50">{getCountryFlag(item.country)} {item.country}</div>
+                  <div className="text-xs text-white/50">{getCountryFlag(item.country)} {item.country}</div>
                 )}
               </div>
             </div>
