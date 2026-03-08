@@ -43,9 +43,8 @@ const DailySurveys = () => {
     await trackClickRobust(payload);
   };
 
-  const handleStart = (item: any, type: "survey" | "offer") => {
-    // Track in background - don't await to prevent popup blocker
-    trackClick(item, type).catch(err => console.error("[handleStart] trackClick failed:", err));
+  const handleStart = async (item: any, type: "survey" | "offer") => {
+    await trackClick(item, type);
     const url = type === "offer" ? item.url : item.link;
     if (url) window.open(url, "_blank");
   };
