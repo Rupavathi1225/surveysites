@@ -100,11 +100,11 @@ const Offers = () => {
       console.warn("[trackClick] No profile, skipping");
       return;
     }
-    trackClickRobust({
+    await trackClickRobust({
       user_id: profile.id,
       username: profile.username || null,
       offer_id: offer.id,
-    }).catch(err => console.error("[trackClick] error:", err));
+    });
   };
   // API image integration function
   const getImageUrl = (title: string, existingUrl?: string) => {
@@ -120,11 +120,11 @@ const Offers = () => {
       return;
     }
     console.log("[trackProviderClick] Tracking:", provider.name, provider.id);
-    trackClickRobust({
+    await trackClickRobust({
       user_id: profile.id,
       username: profile.username || null,
       provider_id: provider.id,
-    }).catch(err => console.error("[trackProviderClick] error:", err));
+    });
   };
 
   const openOfferModal = (offer: any) => {
@@ -996,9 +996,8 @@ const Offers = () => {
                   <div 
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
-                    onClick={() => {
-                      // Track click in background (don't await - prevents popup blocker)
-                      trackProviderClick(p).catch(err => console.error("Track error:", err));
+                    onClick={async () => {
+                      await trackProviderClick(p);
                       const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                       if (p.iframe_url || p.iframe_code) {
                         const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';
@@ -1168,9 +1167,8 @@ const Offers = () => {
                   <div 
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
-                    onClick={() => {
-                      // Track click in background (don't await - prevents popup blocker)
-                      trackProviderClick(p).catch(err => console.error("Track error:", err));
+                    onClick={async () => {
+                      await trackProviderClick(p);
                       const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                       if (p.iframe_url || p.iframe_code) {
                         const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';

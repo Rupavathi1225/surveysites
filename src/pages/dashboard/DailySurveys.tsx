@@ -40,20 +40,18 @@ const DailySurveys = () => {
     else if (type === "provider") payload.provider_id = providerId;
 
     console.log("[TrackClick] Tracking:", type, providerId || item.id);
-    trackClickRobust(payload).catch(err => console.error("[TrackClick] error:", err));
+    await trackClickRobust(payload);
   };
 
-  const handleStart = (item: any, type: "survey" | "offer") => {
-    // Track in background - don't await to prevent popup blocker
-    trackClick(item, type).catch(err => console.error("[handleStart] trackClick failed:", err));
+  const handleStart = async (item: any, type: "survey" | "offer") => {
+    await trackClick(item, type);
     const url = type === "offer" ? item.url : item.link;
     if (url) window.open(url, "_blank");
   };
 
   const handleOpenProvider = async (provider: any) => {
     console.log("[HandleOpenProvider] Called for:", provider.name, "id:", provider.id, "profile:", profile?.id || "NULL");
-    // Track click in background (don't await - prevents blocking)
-    trackClick(provider, "provider", provider.id).catch(err => console.error("[HandleOpenProvider] trackClick failed:", err));
+    await trackClick(provider, "provider", provider.id);
     const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
     if (provider.iframe_url || provider.iframe_code) {
       setSelectedProvider(provider);
