@@ -443,7 +443,7 @@ const DashboardHome = () => {
                       <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
                     </div>
                     {/* Name below card */}
-                    <span className="text-sm font-medium text-foreground text-center truncate w-[180px]">{p.name}</span>
+                    <span className="text-sm font-medium text-foreground text-center truncate w-full">{p.name}</span>
                   </div>
                 );
               })}
