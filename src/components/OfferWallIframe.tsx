@@ -32,6 +32,7 @@ export const OfferWallIframe: React.FC<OfferWallIframeProps> = ({
   onClose,
   onframeLoad,
   onFrameError,
+  username,
 }) => {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [iframeError, setIframeError] = useState(false);
