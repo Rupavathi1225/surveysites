@@ -582,7 +582,7 @@ const AdminClickTracking = () => {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Conversion Performance by Offerwall</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[500px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1000px]">
                   <Table>
                     <TableHeader>
@@ -627,7 +627,7 @@ const AdminClickTracking = () => {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Recent Postback Activity</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[400px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1200px]">
                   <Table>
                     <TableHeader>
@@ -695,7 +695,7 @@ const AdminClickTracking = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full" style={{ maxHeight: "700px" }}>
+              <ScrollArea className="w-full">
                 <div className="min-w-[1400px]">
                   <Table>
                     <TableHeader>
@@ -788,7 +788,7 @@ const AdminClickTracking = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full" style={{ maxHeight: "700px" }}>
+              <ScrollArea className="w-full">
                 <div className="min-w-[2000px]">
                   <Table>
                     <TableHeader>
@@ -857,7 +857,7 @@ const AdminClickTracking = () => {
           <h2 className="text-lg font-semibold">Offer & Survey Performance</h2>
           <Card>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[600px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1200px]">
                   <Table>
                     <TableHeader>
@@ -912,7 +912,7 @@ const AdminClickTracking = () => {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Offerwall Performance (Clicks + Conversions + Reversals)</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[800px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1400px]">
                   <Table>
                     <TableHeader>
@@ -967,7 +967,7 @@ const AdminClickTracking = () => {
           <h2 className="text-lg font-semibold">Postback Logs (Raw)</h2>
           <Card>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[600px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1600px]">
                   <Table>
                     <TableHeader>
