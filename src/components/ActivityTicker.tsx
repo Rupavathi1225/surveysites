@@ -141,28 +141,43 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         .in("key", SETTING_KEYS);
 
       if (data && data.length > 0) {
-        const map = new Map(data.map(s => [s.key, s.value]));
+        const m = new Map(data.map(s => [s.key, s.value]));
+        const getBool = (k: string, def: boolean) => m.has(k) ? m.get(k) === "true" : def;
+        const getNum = (k: string, def: number) => parseInt(m.get(k) || String(def)) || def;
+        const getStr = (k: string, def: string) => m.get(k) || def;
+
         setSettings({
-          feed_show_offers: map.get("feed_show_offers") !== "false",
-          feed_show_surveys: map.get("feed_show_surveys") !== "false",
-          feed_show_signups: map.get("feed_show_signups") === "true",
-          feed_show_withdrawals: map.get("feed_show_withdrawals") === "true",
-          feed_show_logins: map.get("feed_show_logins") === "true",
-          feed_show_contests: map.get("feed_show_contests") === "true",
-          feed_show_referrals: map.get("feed_show_referrals") === "true",
-          feed_show_promocodes: map.get("feed_show_promocodes") === "true",
-          feed_scroll_speed: parseInt(map.get("feed_scroll_speed") || "120") || 120,
-          feed_box_color1: map.get("feed_box_color1") || DEFAULT_SETTINGS.feed_box_color1,
-          feed_box_color2: map.get("feed_box_color2") || DEFAULT_SETTINGS.feed_box_color2,
-          feed_total_count: parseInt(map.get("feed_total_count") || "20") || 20,
-          feed_count_offers: parseInt(map.get("feed_count_offers") || "20") || 20,
-          feed_count_surveys: parseInt(map.get("feed_count_surveys") || "20") || 20,
-          feed_count_signups: parseInt(map.get("feed_count_signups") || "20") || 20,
-          feed_count_withdrawals: parseInt(map.get("feed_count_withdrawals") || "20") || 20,
-          feed_count_logins: parseInt(map.get("feed_count_logins") || "20") || 20,
-          feed_count_contests: parseInt(map.get("feed_count_contests") || "20") || 20,
-          feed_count_referrals: parseInt(map.get("feed_count_referrals") || "20") || 20,
-          feed_count_promocodes: parseInt(map.get("feed_count_promocodes") || "20") || 20,
+          feed_show_offers: getBool("feed_show_offers", true),
+          feed_show_surveys: getBool("feed_show_surveys", true),
+          feed_show_signups: getBool("feed_show_signups", false),
+          feed_show_withdrawals: getBool("feed_show_withdrawals", false),
+          feed_show_logins: getBool("feed_show_logins", false),
+          feed_show_contests: getBool("feed_show_contests", false),
+          feed_show_referrals: getBool("feed_show_referrals", false),
+          feed_show_promocodes: getBool("feed_show_promocodes", false),
+          feed_show_payment_completed: getBool("feed_show_payment_completed", false),
+          feed_show_new_promocodes: getBool("feed_show_new_promocodes", false),
+          feed_show_new_offers: getBool("feed_show_new_offers", false),
+          feed_show_global_notifications: getBool("feed_show_global_notifications", false),
+          feed_show_feed_generator: getBool("feed_show_feed_generator", false),
+          feed_scroll_speed: getNum("feed_scroll_speed", 120),
+          feed_box_color1: getStr("feed_box_color1", DEFAULT_SETTINGS.feed_box_color1),
+          feed_box_color2: getStr("feed_box_color2", DEFAULT_SETTINGS.feed_box_color2),
+          feed_total_count: getNum("feed_total_count", 20),
+          feed_count_offers: getNum("feed_count_offers", 20),
+          feed_count_surveys: getNum("feed_count_surveys", 20),
+          feed_count_signups: getNum("feed_count_signups", 20),
+          feed_count_withdrawals: getNum("feed_count_withdrawals", 20),
+          feed_count_logins: getNum("feed_count_logins", 20),
+          feed_count_contests: getNum("feed_count_contests", 20),
+          feed_count_referrals: getNum("feed_count_referrals", 20),
+          feed_count_promocodes: getNum("feed_count_promocodes", 20),
+          feed_count_payment_completed: getNum("feed_count_payment_completed", 20),
+          feed_count_new_promocodes: getNum("feed_count_new_promocodes", 20),
+          feed_count_new_offers: getNum("feed_count_new_offers", 20),
+          feed_count_global_notifications: getNum("feed_count_global_notifications", 20),
+          feed_count_feed_generator: getNum("feed_count_feed_generator", 20),
+        });
         });
       }
     };
