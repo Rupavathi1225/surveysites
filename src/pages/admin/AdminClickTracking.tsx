@@ -916,6 +916,39 @@ const AdminClickTracking = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Detail Modal */}
+      <Dialog open={!!detailModal} onOpenChange={() => setDetailModal(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{detailModal?.title}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            {detailModal && detailModal.data.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No data for this period</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {detailModal?.columns.map(col => (
+                      <TableHead key={col.key}>{col.label}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detailModal?.data.map((row, i) => (
+                    <TableRow key={i}>
+                      {detailModal.columns.map(col => (
+                        <TableCell key={col.key} className="text-sm">{String(row[col.key] ?? "—")}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
