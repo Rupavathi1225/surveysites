@@ -120,11 +120,11 @@ const Offers = () => {
       return;
     }
     console.log("[trackProviderClick] Tracking:", provider.name, provider.id);
-    trackClickRobust({
+    await trackClickRobust({
       user_id: profile.id,
       username: profile.username || null,
       provider_id: provider.id,
-    }).catch(err => console.error("[trackProviderClick] error:", err));
+    });
   };
 
   const openOfferModal = (offer: any) => {
