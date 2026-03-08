@@ -64,6 +64,7 @@ const ActivityFeedControls = () => {
     const keys = [
       ...FEED_TOGGLES.map(t => t.key),
       ...FEED_TOGGLES.map(t => t.countKey),
+      ...FEED_TOGGLES.map(t => t.sizeKey),
       SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
