@@ -229,19 +229,9 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       // Apply per-type visibility filter & per-type count limits
       const typeCounts: Record<string, number> = {};
       const filtered = tickerItems.filter(item => {
-        // Check if type is enabled
-        const showKey = `feed_show_${item.type}s` as keyof FeedSettings;
-        if (showKey === "feed_show_offers" ? !settings.feed_show_offers :
-            showKey === "feed_show_surveys" ? !settings.feed_show_surveys :
-            showKey === "feed_show_signups" ? !settings.feed_show_signups :
-            showKey === "feed_show_withdrawals" ? !settings.feed_show_withdrawals :
-            showKey === "feed_show_logins" ? !settings.feed_show_logins :
-            showKey === "feed_show_contests" ? !settings.feed_show_contests :
-            showKey === "feed_show_referrals" ? !settings.feed_show_referrals :
-            showKey === "feed_show_promocodes" ? !settings.feed_show_promocodes :
-            !settings.feed_show_offers) {
-          return false;
-        }
+        // Check if type is enabled using the map
+        const showKey = TYPE_TO_SHOW_KEY[item.type];
+        if (!showKey || !settings[showKey]) return false;
 
         // Check per-type count limit
         const countKey = TYPE_TO_COUNT_KEY[item.type];
