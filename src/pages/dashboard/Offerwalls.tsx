@@ -73,9 +73,9 @@ const Offerwalls = () => {
   const handleClick = async (provider: Provider) => {
     if (isLocked(provider)) return;
     
-    // Track the click
+    // Track the click - await to ensure it completes before navigation
     if (profile) {
-      trackClickRobust({
+      await trackClickRobust({
         user_id: profile.id,
         username: profile.username,
         provider_id: provider.id,

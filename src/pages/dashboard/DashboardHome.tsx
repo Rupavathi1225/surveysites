@@ -10,6 +10,7 @@ import { Monitor, Smartphone, Tablet, Send, MessageCircle, X, Star, Network, Che
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityTicker from "@/components/ActivityTicker";
+import { trackClickRobust } from "@/lib/clickTrackingHelper";
 
 const DashboardHome = () => {
   const { profile, user } = useAuth();
@@ -406,7 +407,15 @@ const DashboardHome = () => {
                   <div key={p.id} className="flex flex-col items-center gap-2">
                     <div 
                       className="relative w-full aspect-[4/3] bg-card border border-border/50 rounded-xl p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:border-primary/30"
-                      onClick={() => {
+                      onClick={async () => {
+                        // Track the click
+                        if (profile) {
+                          await trackClickRobust({
+                            user_id: profile.id,
+                            username: profile.username,
+                            provider_id: p.id,
+                          });
+                        }
                         const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                         if (p.iframe_url || p.iframe_code) {
                           const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';
