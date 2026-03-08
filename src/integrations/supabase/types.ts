@@ -547,6 +547,7 @@ export type Database = {
           time_spent: number | null
           user_agent: string | null
           user_id: string | null
+          username: string | null
           utm_params: Json | null
           vpn_proxy_flag: boolean | null
         }
@@ -571,6 +572,7 @@ export type Database = {
           time_spent?: number | null
           user_agent?: string | null
           user_id?: string | null
+          username?: string | null
           utm_params?: Json | null
           vpn_proxy_flag?: boolean | null
         }
@@ -595,6 +597,7 @@ export type Database = {
           time_spent?: number | null
           user_agent?: string | null
           user_id?: string | null
+          username?: string | null
           utm_params?: Json | null
           vpn_proxy_flag?: boolean | null
         }

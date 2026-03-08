@@ -1,0 +1,1 @@
+ALTER TABLE public.offer_clicks ADD COLUMN IF NOT EXISTS username text;
