@@ -152,6 +152,7 @@ const AdminOffers = () => {
   const [countryFilter, setCountryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [networkFilter, setNetworkFilter] = useState("all");
+  const [approvalFilter, setApprovalFilter] = useState("all");
   const [networks, setNetworks] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOffers, setTotalOffers] = useState(0);
@@ -471,12 +472,12 @@ const idsToRestore = Array.from(selectedRecycleBin);
   // Filter offers based on selected filters
   const filterOffers = (offers: any[]) => {
     return offers.filter(o => {
-      // Status filter - apply to main offers list
       if (statusFilter !== "all" && o.status !== statusFilter) return false;
       if (categoryFilter !== "all" && o.category !== categoryFilter) return false;
       if (deviceFilter !== "all" && o.device !== deviceFilter && o.devices !== deviceFilter) return false;
       if (countryFilter !== "all" && o.countries && !o.countries.toLowerCase().includes(countryFilter.toLowerCase())) return false;
       if (networkFilter !== "all" && o.network_id !== networkFilter) return false;
+      if (approvalFilter !== "all" && o.approval_status !== approvalFilter) return false;
       return true;
     });
   };
@@ -802,6 +803,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
     setCountryFilter("all");
     setNetworkFilter("all");
     setStatusFilter("all");
+    setApprovalFilter("all");
   };
 
   // Bulk select function
@@ -1415,24 +1417,63 @@ Expiry Date: ${o.expiry_date || "-"}`;
     if (!file) return;
 
     setProcessingBulkImport(true);
+    setUploadSummary(null);
     try {
       const csvData = await parseCSV(file);
 
+      // Validate required fields
+      const requiredFields = ['offer_id', 'title', 'countries'];
+      const missingFieldOffers: string[] = [];
+      
       let processedData = csvData.map((offer, index) => {
-        // Ensure each offer has a unique offer_id
         const offerId = offer.offer_id || `CSV_${Date.now()}_${index}`;
+        const title = offer.title || offer.name || "";
+        
+        // Check required fields
+        const missing = requiredFields.filter(field => {
+          if (field === 'offer_id') return !offer.offer_id;
+          if (field === 'title') return !title;
+          if (field === 'countries') return !offer.countries && !offer.country;
+          return false;
+        });
+        
+        if (missing.length > 0) {
+          missingFieldOffers.push(`Row ${index + 1} (${title || offerId}): missing ${missing.join(', ')}`);
+        }
         
         const withDefaults = {
           ...offer,
           offer_id: offerId,
+          title: title,
+          countries: offer.countries || offer.country || "",
           payout: offer.payout ? Number(offer.payout) : 0,
           currency: offer.currency || "USD",
           payout_model: offer.payout_model || "CPA",
           status: "pending",
+          network_id: offer.network_id || offer.network || null,
+          tracking_url: offer.tracking_url || null,
+          approval_status: offer.tracking_url ? "approved" : (offer.approval_status || "pending"),
           is_public: offer.is_public !== "false" && offer.is_public !== "0",
         };
         return autoFillOfferData(withDefaults);
       });
+
+      if (missingFieldOffers.length > 0 && missingFieldOffers.length === processedData.length) {
+        toast({ 
+          title: "Required Fields Missing", 
+          description: `All offers are missing required fields (offer_id, title, country). Please check your CSV.`,
+          variant: "destructive" 
+        });
+        setProcessingBulkImport(false);
+        return;
+      }
+
+      if (missingFieldOffers.length > 0) {
+        toast({ 
+          title: "Some Offers Missing Fields", 
+          description: `${missingFieldOffers.length} offers have missing required fields and will still be imported with defaults.`,
+        });
+      }
 
       const duplicates = await checkBatchDuplicates(processedData);
       setDuplicateMatches(duplicates);
@@ -1454,7 +1495,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
       setBulkImportPreview(previewData);
       setShowBulkPreview(true);
-      toast({ title: "CSV Parsed Successfully", description: `Found ${processedData.length} offers with unique IDs. ${duplicates.size} duplicates detected.` });
+      toast({ title: "CSV Parsed Successfully", description: `Found ${processedData.length} offers. ${duplicates.size} duplicates detected.` });
     } catch (error) {
       console.error("Error parsing CSV:", error);
       toast({ title: "CSV Parse Error", description: String(error), variant: "destructive" });
@@ -1549,6 +1590,9 @@ Expiry Date: ${o.expiry_date || "-"}`;
           continue; 
         }
 
+        // Auto-set approval_status based on tracking_url
+        const hasTrackingUrl = !!(offer.tracking_url && offer.tracking_url.trim());
+        
         const offerData = {
           offer_id: offer.offer_id,
           title: offer.title, 
@@ -1570,6 +1614,10 @@ Expiry Date: ${o.expiry_date || "-"}`;
           non_access_url: offer.non_access_url || null, 
           percent: offer.percent || 0, 
           status: status,
+          tracking_url: offer.tracking_url || null,
+          network_id: offer.network_id || null,
+          approval_status: hasTrackingUrl ? "approved" : "pending",
+          approved_date: hasTrackingUrl ? new Date().toISOString() : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -2561,7 +2609,19 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
-            {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
+            <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Approval" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="required">Required Approval</SelectItem>
+                <SelectItem value="public">Public</SelectItem>
+              </SelectContent>
+            </Select>
+            {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all" || approvalFilter !== "all") && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-3 w-3 mr-1" /> Clear Filters
               </Button>
@@ -2721,7 +2781,19 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
-            {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
+            <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Approval" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="required">Required Approval</SelectItem>
+                <SelectItem value="public">Public</SelectItem>
+              </SelectContent>
+            </Select>
+            {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all" || approvalFilter !== "all") && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-3 w-3 mr-1" /> Clear Filters
               </Button>
@@ -2881,7 +2953,19 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
-            {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
+            <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Approval" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Approval</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="required">Required Approval</SelectItem>
+                <SelectItem value="public">Public</SelectItem>
+              </SelectContent>
+            </Select>
+            {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all" || approvalFilter !== "all") && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-3 w-3 mr-1" /> Clear Filters
               </Button>
@@ -3018,7 +3102,19 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
+              <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Approval" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Approval</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="required">Required Approval</SelectItem>
+                  <SelectItem value="public">Public</SelectItem>
+                </SelectContent>
+              </Select>
+              {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all" || approvalFilter !== "all") && (
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
                   <X className="h-3 w-3 mr-1" /> Clear Filters
                 </Button>
