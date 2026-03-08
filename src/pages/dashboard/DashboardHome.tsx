@@ -451,7 +451,7 @@ const DashboardHome = () => {
               {/* Show More Button */}
               <div
                 onClick={() => setShowAllWalls(true)}
-                className="relative w-[180px] h-[140px] bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30 flex flex-col items-center justify-center"
+                className="flex flex-col items-center justify-center aspect-[4/3] bg-card border border-border/50 rounded-xl p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:border-primary/30"
               >
                 <ChevronRight className="h-8 w-8 text-gray-300 mb-2" />
                 <span className="text-white font-semibold text-[16px] text-center">View All</span>
