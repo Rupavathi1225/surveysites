@@ -362,7 +362,10 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 <div className="shrink-0 text-right">
                   <span className="font-bold text-white whitespace-nowrap" style={{ fontSize: `${amountFs}px` }}>{item.amount}</span>
                   {item.country && (
-                    <div className="text-white/50 whitespace-nowrap" style={{ fontSize: `${Math.max(subFs - 1, 8)}px` }}>{getCountryFlag(item.country)} {item.country}</div>
+                    <div className="flex items-center justify-end gap-1 text-white/50 whitespace-nowrap" style={{ fontSize: `${Math.max(subFs - 1, 8)}px` }}>
+                      <span style={{ fontSize: `${Math.max(subFs + 2, 12)}px`, lineHeight: 1 }}>{getCountryFlag(item.country)}</span>
+                      <span>{item.country}</span>
+                    </div>
                   )}
                 </div>
               </div>
