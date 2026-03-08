@@ -35,14 +35,34 @@ const AdminClickTracking = () => {
 
   const now24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), []);
 
+  // Batch fetch ALL rows from a table (bypasses 1000-row default limit)
+  const fetchAll = async (table: string, select = "*", orderCol = "created_at", ascending = false) => {
+    const PAGE = 1000;
+    let all: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(select)
+        .order(orderCol, { ascending })
+        .range(from, from + PAGE - 1);
+      if (error) { console.error(`[fetchAll] ${table}:`, error.message); break; }
+      if (!data || data.length === 0) break;
+      all = all.concat(data);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    return all;
+  };
+
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     
-    const [offersRes, surveysRes, providersRes, profilesRes] = await Promise.all([
+    const [offersRes, surveysRes, providersRes, profilesAll] = await Promise.all([
       supabase.from("offers").select("id, title"),
       supabase.from("survey_links").select("id, name"),
       supabase.from("survey_providers").select("id, name, code, image_url"),
-      supabase.from("profiles").select("id, username, email, created_at, country, points"),
+      fetchAll("profiles", "id, username, email, created_at, country, points"),
     ]);
     
     setOffers(offersRes.data || []);
@@ -52,21 +72,16 @@ const AdminClickTracking = () => {
     const offerMap = new Map((offersRes.data || []).map(o => [o.id, o]));
     const surveyMap = new Map((surveysRes.data || []).map(s => [s.id, s]));
     const providerMap = new Map((providersRes.data || []).map(p => [p.id, p]));
-    const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
+    const profileMap = new Map(profilesAll.map(p => [p.id, p]));
 
-    // Fetch ALL clicks in one query - no filters that might miss records
-    const [allClicksRes, loginsRes, visitsRes, earningsRes, promoRes, postbackRes] = await Promise.all([
-      supabase.from("offer_clicks").select("*")
-        .order("created_at", { ascending: false }).limit(1000),
-      supabase.from("login_logs").select("*")
-        .order("created_at", { ascending: false }).limit(500),
-      supabase.from("page_visits").select("*").order("visited_at", { ascending: false }).limit(1000),
-      supabase.from("earning_history").select("*")
-        .order("created_at", { ascending: false }).limit(500),
-      supabase.from("promocode_redemptions").select("*, promocodes(code)")
-        .order("created_at", { ascending: false }).limit(200),
-      supabase.from("postback_logs").select("*")
-        .order("created_at", { ascending: false }).limit(1000),
+    // Fetch ALL records with pagination - no limits
+    const [allClicksData, loginsData, visitsData, earningsData, promoRes, postbackData] = await Promise.all([
+      fetchAll("offer_clicks"),
+      fetchAll("login_logs"),
+      fetchAll("page_visits", "*", "visited_at"),
+      fetchAll("earning_history"),
+      supabase.from("promocode_redemptions").select("*, promocodes(code)").order("created_at", { ascending: false }),
+      fetchAll("postback_logs"),
     ]);
     
     console.log("[AdminClickTracking] All clicks fetched:", allClicksRes.data?.length, "error:", allClicksRes.error?.message);
