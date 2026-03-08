@@ -644,7 +644,7 @@ const AdminClickTracking = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {postbackLogs.slice(0, 100).map(pb => (
+                      {postbackLogs.map(pb => (
                         <TableRow key={pb.id}>
                           <TableCell>
                             <Badge variant={pb.status === "success" ? "default" : pb.status === "failed" ? "destructive" : "secondary"} className={`text-xs ${pb.status === "success" ? "bg-green-500" : ["reversed","reversal","chargeback"].includes(pb.status) ? "bg-orange-500" : ""}`}>
