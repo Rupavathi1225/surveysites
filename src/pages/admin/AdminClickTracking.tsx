@@ -35,14 +35,34 @@ const AdminClickTracking = () => {
 
   const now24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), []);
 
+  // Batch fetch ALL rows from a table (bypasses 1000-row default limit)
+  const fetchAll = async (table: string, select = "*", orderCol = "created_at", ascending = false) => {
+    const PAGE = 1000;
+    let all: any[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await (supabase as any)
+        .from(table)
+        .select(select)
+        .order(orderCol, { ascending })
+        .range(from, from + PAGE - 1);
+      if (error) { console.error(`[fetchAll] ${table}:`, error.message); break; }
+      if (!data || data.length === 0) break;
+      all = all.concat(data);
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    return all;
+  };
+
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     
-    const [offersRes, surveysRes, providersRes, profilesRes] = await Promise.all([
+    const [offersRes, surveysRes, providersRes, profilesAll] = await Promise.all([
       supabase.from("offers").select("id, title"),
       supabase.from("survey_links").select("id, name"),
       supabase.from("survey_providers").select("id, name, code, image_url"),
-      supabase.from("profiles").select("id, username, email, created_at, country, points"),
+      fetchAll("profiles", "id, username, email, created_at, country, points"),
     ]);
     
     setOffers(offersRes.data || []);
@@ -52,26 +72,20 @@ const AdminClickTracking = () => {
     const offerMap = new Map((offersRes.data || []).map(o => [o.id, o]));
     const surveyMap = new Map((surveysRes.data || []).map(s => [s.id, s]));
     const providerMap = new Map((providersRes.data || []).map(p => [p.id, p]));
-    const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
+    const profileMap = new Map(profilesAll.map(p => [p.id, p]));
 
-    // Fetch ALL clicks in one query - no filters that might miss records
-    const [allClicksRes, loginsRes, visitsRes, earningsRes, promoRes, postbackRes] = await Promise.all([
-      supabase.from("offer_clicks").select("*")
-        .order("created_at", { ascending: false }).limit(1000),
-      supabase.from("login_logs").select("*")
-        .order("created_at", { ascending: false }).limit(500),
-      supabase.from("page_visits").select("*").order("visited_at", { ascending: false }).limit(1000),
-      supabase.from("earning_history").select("*")
-        .order("created_at", { ascending: false }).limit(500),
-      supabase.from("promocode_redemptions").select("*, promocodes(code)")
-        .order("created_at", { ascending: false }).limit(200),
-      supabase.from("postback_logs").select("*")
-        .order("created_at", { ascending: false }).limit(1000),
+    // Fetch ALL records with pagination - no limits
+    const [allClicksData, loginsData, visitsData, earningsData, promoRes, postbackData] = await Promise.all([
+      fetchAll("offer_clicks"),
+      fetchAll("login_logs"),
+      fetchAll("page_visits", "*", "visited_at"),
+      fetchAll("earning_history"),
+      supabase.from("promocode_redemptions").select("*, promocodes(code)").order("created_at", { ascending: false }),
+      fetchAll("postback_logs"),
     ]);
     
-    console.log("[AdminClickTracking] All clicks fetched:", allClicksRes.data?.length, "error:", allClicksRes.error?.message);
+    console.log("[AdminClickTracking] All clicks fetched:", allClicksData.length);
     
-    const allClicksData = allClicksRes.data || [];
     // Split into offer/survey clicks and provider clicks from the same dataset
     const clicksData = allClicksData.filter(c => c.offer_id || c.survey_link_id);
     const providerClicksData = allClicksData.filter(c => c.provider_id && !c.offer_id && !c.survey_link_id);
@@ -89,22 +103,22 @@ const AdminClickTracking = () => {
       survey_providers: click.provider_id ? providerMap.get(click.provider_id) : null
     }));
 
-    const enhancedLogins = (loginsRes.data || []).map(log => ({
+    const enhancedLogins = loginsData.map((log: any) => ({
       ...log,
       profiles: profileMap.get(log.user_id) || null
     }));
 
-    const enhancedEarnings = (earningsRes.data || []).map(earn => ({
+    const enhancedEarnings = earningsData.map((earn: any) => ({
       ...earn,
       profiles: profileMap.get(earn.user_id) || null
     }));
 
-    const enhancedPromo = (promoRes.data || []).map(promo => ({
+    const enhancedPromo = (promoRes.data || []).map((promo: any) => ({
       ...promo,
       profiles: profileMap.get(promo.user_id) || null,
     }));
 
-    const enhancedPostbacks = (postbackRes.data || []).map(pb => ({
+    const enhancedPostbacks = postbackData.map((pb: any) => ({
       ...pb,
       profiles: profileMap.get(pb.user_id) || null,
       survey_providers: pb.provider_id ? providerMap.get(pb.provider_id) : null,
@@ -113,11 +127,11 @@ const AdminClickTracking = () => {
     setClicks(enhancedClicks);
     setProviderClicks(enhancedProviderClicks);
     setLoginLogs(enhancedLogins);
-    setPageVisits(visitsRes.data || []);
+    setPageVisits(visitsData);
     setEarnings(enhancedEarnings);
     setPromoRedemptions(enhancedPromo);
     setPostbackLogs(enhancedPostbacks);
-    setProfiles(profilesRes.data || []);
+    setProfiles(profilesAll);
     setLoading(false);
     setLastRefresh(new Date());
   };
@@ -630,7 +644,7 @@ const AdminClickTracking = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {postbackLogs.slice(0, 100).map(pb => (
+                      {postbackLogs.map(pb => (
                         <TableRow key={pb.id}>
                           <TableCell>
                             <Badge variant={pb.status === "success" ? "default" : pb.status === "failed" ? "destructive" : "secondary"} className={`text-xs ${pb.status === "success" ? "bg-green-500" : ["reversed","reversal","chargeback"].includes(pb.status) ? "bg-orange-500" : ""}`}>
@@ -1076,7 +1090,7 @@ const AdminClickTracking = () => {
                 <Table>
                   <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Item</TableHead><TableHead>Status</TableHead><TableHead>IP</TableHead><TableHead>Device</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {userDetailModal.clicks.slice(0, 50).map((c: any) => (
+                    {userDetailModal.clicks.map((c: any) => (
                       <TableRow key={c.id}>
                         <TableCell><Badge variant="secondary" className="text-xs">{getItemType(c)}</Badge></TableCell>
                         <TableCell className="text-sm">{getItemName(c)}</TableCell>
@@ -1096,7 +1110,7 @@ const AdminClickTracking = () => {
                     <Table>
                       <TableHeader><TableRow><TableHead>Status</TableHead><TableHead>Provider</TableHead><TableHead>Payout</TableHead><TableHead>Txn</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {userDetailModal.postbacks.slice(0, 50).map((pb: any) => (
+                        {userDetailModal.postbacks.map((pb: any) => (
                           <TableRow key={pb.id}>
                             <TableCell><Badge variant={pb.status === "success" ? "default" : pb.status === "failed" ? "destructive" : "secondary"} className={`text-xs ${pb.status === "success" ? "bg-green-500" : ["reversed","reversal","chargeback"].includes(pb.status) ? "bg-orange-500" : ""}`}>{pb.status}</Badge></TableCell>
                             <TableCell className="text-sm">{pb.provider_name || "—"}</TableCell>
@@ -1117,7 +1131,7 @@ const AdminClickTracking = () => {
                     <Table>
                       <TableHeader><TableRow><TableHead>Amount</TableHead><TableHead>Type</TableHead><TableHead>Offer</TableHead><TableHead>Status</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {userDetailModal.earnings.slice(0, 30).map((e: any) => (
+                        {userDetailModal.earnings.map((e: any) => (
                           <TableRow key={e.id}>
                             <TableCell className="font-medium">{e.amount}</TableCell>
                             <TableCell className="text-xs">{e.type || "—"}</TableCell>
@@ -1138,7 +1152,7 @@ const AdminClickTracking = () => {
                     <Table>
                       <TableHeader><TableRow><TableHead>IP</TableHead><TableHead>Device</TableHead><TableHead>Browser</TableHead><TableHead>OS</TableHead><TableHead>New Device</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {userDetailModal.logins.slice(0, 20).map((l: any) => (
+                        {userDetailModal.logins.map((l: any) => (
                           <TableRow key={l.id}>
                             <TableCell className="text-xs">{l.ip_address || "—"}</TableCell>
                             <TableCell className="text-xs">{l.device || "—"}</TableCell>
@@ -1158,7 +1172,7 @@ const AdminClickTracking = () => {
                   <>
                     <h3 className="text-sm font-semibold">Page Visits ({userDetailModal.visits.length})</h3>
                     <div className="flex flex-wrap gap-1">
-                      {userDetailModal.visits.slice(0, 30).map((v: any, i: number) => (
+                      {userDetailModal.visits.map((v: any, i: number) => (
                         <Badge key={i} variant="outline" className="text-xs">{v.page_path}</Badge>
                       ))}
                     </div>
