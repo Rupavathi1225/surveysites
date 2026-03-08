@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Lock, Shield } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
+import { trackClickRobust } from "@/lib/clickTrackingHelper";
 
 interface Provider {
   id: string;
