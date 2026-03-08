@@ -57,10 +57,11 @@ const OfferwallViewer = () => {
         }
       }
 
-      // Fallback click tracking - track if not already tracked
-      if (currentProvider && profile && !clickTrackedRef.current) {
+      // Fallback click tracking - only if not already tracked from Offerwalls page
+      const alreadyTracked = location.state?.clickTracked === true;
+      if (currentProvider && profile && !clickTrackedRef.current && !alreadyTracked) {
         clickTrackedRef.current = true;
-        console.log("[OfferwallViewer] Tracking click for provider:", currentProvider.name, currentProvider.id);
+        console.log("[OfferwallViewer] Fallback click tracking for:", currentProvider.name, currentProvider.id);
         trackClickRobust({
           user_id: profile.id,
           username: profile.username,
@@ -70,6 +71,8 @@ const OfferwallViewer = () => {
         }).catch(err => {
           console.error("[OfferwallViewer] Click tracking failed:", err);
         });
+      } else if (alreadyTracked) {
+        clickTrackedRef.current = true;
       }
 
       setLoading(false);
