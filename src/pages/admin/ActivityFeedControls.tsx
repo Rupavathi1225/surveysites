@@ -81,6 +81,7 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => t.key),
       ...FEED_TOGGLES.map(t => t.countKey),
       SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY, BOX_SIZE_KEY,
+      BOX_WIDTH_KEY, BOX_HEIGHT_KEY, BOX_PADDING_KEY, BOX_FONT_SIZE_KEY, BOX_BORDER_RADIUS_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
     const m = new Map((data || []).map(s => [s.key, s.value]));
@@ -95,6 +96,11 @@ const ActivityFeedControls = () => {
     setToggles(newToggles);
     setCounts(newCounts);
     setBoxSize(m.get(BOX_SIZE_KEY) || DEFAULT_BOX_SIZE);
+    setBoxWidth(m.get(BOX_WIDTH_KEY) || DEFAULT_BOX_WIDTH);
+    setBoxHeight(m.get(BOX_HEIGHT_KEY) || DEFAULT_BOX_HEIGHT);
+    setBoxPadding(m.get(BOX_PADDING_KEY) || DEFAULT_BOX_PADDING);
+    setBoxFontSize(m.get(BOX_FONT_SIZE_KEY) || DEFAULT_BOX_FONT_SIZE);
+    setBoxBorderRadius(m.get(BOX_BORDER_RADIUS_KEY) || DEFAULT_BOX_BORDER_RADIUS);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
