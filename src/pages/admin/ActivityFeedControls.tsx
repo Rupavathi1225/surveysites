@@ -12,19 +12,19 @@ import { Activity, Save, RotateCcw, Gauge, Palette, Hash } from "lucide-react";
 import { toast } from "sonner";
 
 const FEED_TOGGLES = [
-  { key: "feed_show_offers", countKey: "feed_count_offers", sizeKey: "feed_size_offers", label: "Offer/Survey Completed", desc: "Show when users complete offers" },
-  { key: "feed_show_surveys", countKey: "feed_count_surveys", sizeKey: "feed_size_surveys", label: "Survey Completions", desc: "Show when users complete surveys" },
-  { key: "feed_show_signups", countKey: "feed_count_signups", sizeKey: "feed_size_signups", label: "New User Signups", desc: "Show when new users register" },
-  { key: "feed_show_logins", countKey: "feed_count_logins", sizeKey: "feed_size_logins", label: "User Logins", desc: "Show when users log in" },
-  { key: "feed_show_withdrawals", countKey: "feed_count_withdrawals", sizeKey: "feed_size_withdrawals", label: "Payment Requested", desc: "Show when users request withdrawals" },
-  { key: "feed_show_payment_completed", countKey: "feed_count_payment_completed", sizeKey: "feed_size_payment_completed", label: "Payment Completed", desc: "Show when payments are completed" },
-  { key: "feed_show_contests", countKey: "feed_count_contests", sizeKey: "feed_size_contests", label: "Contest Wins", desc: "Show contest winner announcements" },
-  { key: "feed_show_referrals", countKey: "feed_count_referrals", sizeKey: "feed_size_referrals", label: "Referrals", desc: "Show referral earnings" },
-  { key: "feed_show_promocodes", countKey: "feed_count_promocodes", sizeKey: "feed_size_promocodes", label: "Promocode Redeemed", desc: "Show promo code redemptions" },
-  { key: "feed_show_new_promocodes", countKey: "feed_count_new_promocodes", sizeKey: "feed_size_new_promocodes", label: "New Promocode Added", desc: "Show when new promo codes are added" },
-  { key: "feed_show_new_offers", countKey: "feed_count_new_offers", sizeKey: "feed_size_new_offers", label: "New Offers Added", desc: "Show when new offers are added" },
-  { key: "feed_show_global_notifications", countKey: "feed_count_global_notifications", sizeKey: "feed_size_global_notifications", label: "Global Notifications", desc: "Show global notification announcements" },
-  { key: "feed_show_feed_generator", countKey: "feed_count_feed_generator", sizeKey: "feed_size_feed_generator", label: "Feed Generator", desc: "Auto-generate simulated activity items" },
+  { key: "feed_show_offers", countKey: "feed_count_offers", label: "Offer/Survey Completed", desc: "Show when users complete offers" },
+  { key: "feed_show_surveys", countKey: "feed_count_surveys", label: "Survey Completions", desc: "Show when users complete surveys" },
+  { key: "feed_show_signups", countKey: "feed_count_signups", label: "New User Signups", desc: "Show when new users register" },
+  { key: "feed_show_logins", countKey: "feed_count_logins", label: "User Logins", desc: "Show when users log in" },
+  { key: "feed_show_withdrawals", countKey: "feed_count_withdrawals", label: "Payment Requested", desc: "Show when users request withdrawals" },
+  { key: "feed_show_payment_completed", countKey: "feed_count_payment_completed", label: "Payment Completed", desc: "Show when payments are completed" },
+  { key: "feed_show_contests", countKey: "feed_count_contests", label: "Contest Wins", desc: "Show contest winner announcements" },
+  { key: "feed_show_referrals", countKey: "feed_count_referrals", label: "Referrals", desc: "Show referral earnings" },
+  { key: "feed_show_promocodes", countKey: "feed_count_promocodes", label: "Promocode Redeemed", desc: "Show promo code redemptions" },
+  { key: "feed_show_new_promocodes", countKey: "feed_count_new_promocodes", label: "New Promocode Added", desc: "Show when new promo codes are added" },
+  { key: "feed_show_new_offers", countKey: "feed_count_new_offers", label: "New Offers Added", desc: "Show when new offers are added" },
+  { key: "feed_show_global_notifications", countKey: "feed_count_global_notifications", label: "Global Notifications", desc: "Show global notification announcements" },
+  { key: "feed_show_feed_generator", countKey: "feed_count_feed_generator", label: "Feed Generator", desc: "Auto-generate simulated activity items" },
 ];
 
 const COUNT_OPTIONS = ["10", "20", "30", "40", "50"];
@@ -39,6 +39,7 @@ const SPEED_KEY = "feed_scroll_speed";
 const COLOR1_KEY = "feed_box_color1";
 const COLOR2_KEY = "feed_box_color2";
 const TOTAL_COUNT_KEY = "feed_total_count";
+const BOX_SIZE_KEY = "feed_box_size";
 const DEFAULT_SPEED = 120;
 const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
