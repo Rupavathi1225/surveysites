@@ -468,6 +468,19 @@ const AdminClickTracking = () => {
     return [...clicks, ...providerClicks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [clicks, providerClicks]);
 
+  const filteredAllClicks = useMemo(() => {
+    if (!activitySearch) return allClicks;
+    const q = activitySearch.toLowerCase();
+    return allClicks.filter(c => 
+      (c.profiles?.username || c.username || "").toLowerCase().includes(q) ||
+      (c.offers?.title || "").toLowerCase().includes(q) ||
+      (c.survey_links?.name || "").toLowerCase().includes(q) ||
+      (c.survey_providers?.name || "").toLowerCase().includes(q) ||
+      (c.ip_address || "").toLowerCase().includes(q) ||
+      (c.country || "").toLowerCase().includes(q)
+    );
+  }, [allClicks, activitySearch]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
