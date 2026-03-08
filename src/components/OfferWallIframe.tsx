@@ -9,6 +9,7 @@ interface OfferWallIframeProps {
   onClose: () => void;
   onframeLoad?: () => void;
   onFrameError?: () => void;
+  username?: string;
 }
 
 /**
