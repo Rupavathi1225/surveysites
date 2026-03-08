@@ -62,6 +62,7 @@ const dropdownGroups: DropdownGroup[] = [
     label: "Settings",
     icon: Settings,
     items: [
+      { to: "/admin/activity-feed", icon: Activity, label: "Activity Feed" },
       { to: "/admin/change-password", icon: Lock, label: "Change Password" },
       { to: "/admin/update-profile", icon: UserCog, label: "Update Profile" },
       { to: "/admin/settings", icon: Settings, label: "Website Settings" },
