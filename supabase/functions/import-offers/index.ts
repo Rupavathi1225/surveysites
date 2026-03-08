@@ -812,8 +812,8 @@ async function mapOffer(offer: HasOffersOffer, idx: number, provider: string, ne
   // Generate traffic sources
   const trafficSources = generateTrafficSources(vertical);
   
-  // Get image URL with fallback
-  const imageUrl = getImageUrl(offer, vertical);
+  // Get image URL with AI fallback (async)
+  const imageUrl = await getImageUrl(offer, vertical, category);
 
   return {
     offer_id: offerId.toString(),
