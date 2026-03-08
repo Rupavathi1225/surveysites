@@ -105,45 +105,45 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   };
 
   return (
-    <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-1 px-2">
+    <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
       {/* Header */}
-      <div className="flex items-center gap-1.5 mb-1">
-        <Activity className="h-3 w-3 text-primary" />
-        <span className="text-[10px] font-semibold text-foreground">Live Activity Feed</span>
-        <span className="text-[8px] text-muted-foreground hidden sm:block">Real-time activity from our community</span>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Activity className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-semibold text-foreground">Live Activity Feed</span>
+        <span className="text-[9px] text-foreground/60 hidden sm:block">Real-time activity from our community</span>
         <div className="ml-auto flex items-center gap-1">
           <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-[8px] text-emerald-400 font-medium">LIVE</span>
+          <span className="text-[9px] text-emerald-400 font-medium">LIVE</span>
         </div>
       </div>
 
       {/* Scrolling ticker */}
       <div className="relative overflow-hidden">
-        <div className="flex gap-1.5 animate-ticker whitespace-nowrap" style={{ width: "max-content" }}>
+        <div className="flex gap-3 animate-ticker whitespace-nowrap" style={{ width: "max-content" }}>
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1"
+              className="inline-flex items-center gap-3 shrink-0 bg-primary/15 rounded-lg px-4 py-3 min-w-[220px] max-w-[260px] border border-primary/10"
             >
               {/* Offerwall logo */}
-              <div className="w-5 h-5 rounded shrink-0 bg-muted/30 flex items-center justify-center overflow-hidden">
+              <div className="w-10 h-10 rounded-md shrink-0 bg-primary/10 flex items-center justify-center overflow-hidden">
                 {item.offerwallLogo ? (
                   <img src={item.offerwallLogo} alt={item.offerwallName} className="w-full h-full object-contain" />
                 ) : (
-                  <span className="text-[8px] font-bold text-muted-foreground">{item.offerwallName?.charAt(0) || "?"}</span>
+                  <span className="text-xs font-bold text-foreground/70">{item.offerwallName?.charAt(0) || "?"}</span>
                 )}
               </div>
 
               {/* Info */}
-              <div className="flex flex-col min-w-0 flex-1 gap-0">
-                <div className="flex items-center gap-1">
-                  <span className="text-[9px] font-semibold text-foreground truncate">{item.username}</span>
-                  <span className="text-[7px] text-foreground/70">{getRelativeTime(item.created_at)}</span>
+              <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-foreground truncate">{item.username}</span>
+                  <span className="text-[9px] text-foreground/50">• {getRelativeTime(item.created_at)}</span>
                 </div>
-                <span className="text-[8px] text-primary font-bold">{item.amount}</span>
-                <div className="flex items-center gap-0.5">
-                  {item.country && <span className="text-[8px]">{getCountryFlag(item.country)}</span>}
-                  <span className="text-[7px] text-foreground/60 truncate">{item.offerwallName}</span>
+                <span className="text-sm text-foreground font-bold">{item.amount}</span>
+                <div className="flex items-center gap-1">
+                  {item.country && <span className="text-xs">{getCountryFlag(item.country)}</span>}
+                  <span className="text-[10px] text-foreground/60 truncate">{item.offerwallName}</span>
                 </div>
               </div>
             </div>
