@@ -109,48 +109,15 @@ const Offers = () => {
 
   const trackProviderClick = async (provider: any) => {
     if (!profile) {
-      console.log("❌ No profile, skipping tracking");
+      console.warn("[trackProviderClick] No profile, skipping");
       return;
     }
-    const clickId = crypto.randomUUID();
-    const sessionStart = new Date().toISOString();
-    const utmParams: Record<string, string> = { page: window.location.pathname };
-
-    console.log("📝 trackProviderClick:", provider.name, provider.id);
-
-    // INSERT IMMEDIATELY - don't wait for IP info
-    const { error } = await supabase.from("offer_clicks").insert({
-      id: clickId,
+    console.log("[trackProviderClick] Tracking:", provider.name, provider.id);
+    trackClickRobust({
       user_id: profile.id,
       username: profile.username || null,
       provider_id: provider.id,
-      session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
-      user_agent: navigator.userAgent,
-      device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
-      browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
-      os: navigator.platform || "Unknown",
-      source: document.referrer || window.location.href,
-      completion_status: "clicked",
-      utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
-    });
-
-    if (error) {
-      console.error("❌ Insert error:", error);
-    } else {
-      console.log("✅ Click recorded:", clickId, provider.name);
-      // Update with IP info asynchronously
-      fetchIpInfo().then(ipInfo => {
-        if (ipInfo.ip) {
-          supabase.from("offer_clicks").update({
-            ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
-          }).eq("id", clickId).then(() => {});
-        }
-      }).catch(() => {});
-      setTimeout(() => {
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: new Date().toISOString(), time_spent: timeSpent }).eq("id", clickId).then(() => {});
-      }, 30000);
-    }
+    }).catch(err => console.error("[trackProviderClick] error:", err));
   };
 
   const openOfferModal = (offer: any) => {
