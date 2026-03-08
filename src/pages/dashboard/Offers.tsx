@@ -1106,11 +1106,12 @@ const Offers = () => {
                     onClick={async () => {
                       // Track the provider click first
                       await trackProviderClick(p);
-                      // Then open in new tab
+                      const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_blank');
+                        const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';
+                        window.open(ru(src), '_blank');
                       } else if (p.url) {
-                        window.open(p.url, '_blank');
+                        window.open(ru(p.url), '_blank');
                       }
                     }}
                   >
