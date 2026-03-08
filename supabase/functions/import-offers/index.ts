@@ -933,7 +933,7 @@ serve(async (req: Request) => {
       });
     }
 
-    const transformedOffers = offers.map((offer, idx) => mapOffer(offer, idx, provider, networkId));
+    const transformedOffers = await Promise.all(offers.map((offer, idx) => mapOffer(offer, idx, provider, networkId)));
 
     if (action === "preview") {
       return json(headers, 200, {
