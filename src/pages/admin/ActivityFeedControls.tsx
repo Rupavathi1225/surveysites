@@ -72,13 +72,16 @@ const ActivityFeedControls = () => {
 
     const newToggles: Record<string, boolean> = {};
     const newCounts: Record<string, string> = {};
+    const newSizes: Record<string, string> = {};
     FEED_TOGGLES.forEach(t => {
       const val = m.get(t.key);
       newToggles[t.key] = val !== undefined ? val === "true" : (t.key === "feed_show_offers" || t.key === "feed_show_surveys");
       newCounts[t.countKey] = m.get(t.countKey) || DEFAULT_PER_TYPE_COUNT;
+      newSizes[t.sizeKey] = m.get(t.sizeKey) || DEFAULT_BOX_SIZE;
     });
     setToggles(newToggles);
     setCounts(newCounts);
+    setSizes(newSizes);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
