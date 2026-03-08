@@ -3063,7 +3063,19 @@ Expiry Date: ${o.expiry_date || "-"}`;
                   {networks.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all") && (
+              <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Approval" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Approval</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="required">Required Approval</SelectItem>
+                  <SelectItem value="public">Public</SelectItem>
+                </SelectContent>
+              </Select>
+              {(categoryFilter !== "all" || deviceFilter !== "all" || countryFilter !== "all" || networkFilter !== "all" || approvalFilter !== "all") && (
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
                   <X className="h-3 w-3 mr-1" /> Clear Filters
                 </Button>
