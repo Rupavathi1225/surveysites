@@ -53,13 +53,10 @@ const AdminClickTracking = () => {
     const providerMap = new Map((providersRes.data || []).map(p => [p.id, p]));
     const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
 
-    const [clicksRes, providerClicksRes, loginsRes, visitsRes, earningsRes, promoRes, postbackRes] = await Promise.all([
+    // Fetch ALL clicks in one query - no filters that might miss records
+    const [allClicksRes, loginsRes, visitsRes, earningsRes, promoRes, postbackRes] = await Promise.all([
       supabase.from("offer_clicks").select("*")
-        .or("offer_id.not.is.null,survey_link_id.not.is.null")
         .order("created_at", { ascending: false }).limit(1000),
-      supabase.from("offer_clicks").select("*")
-        .not("provider_id", "is", null)
-        .order("created_at", { ascending: false }),
       supabase.from("login_logs").select("*")
         .order("created_at", { ascending: false }).limit(500),
       supabase.from("page_visits").select("*").order("visited_at", { ascending: false }).limit(1000),
@@ -70,6 +67,13 @@ const AdminClickTracking = () => {
       supabase.from("postback_logs").select("*")
         .order("created_at", { ascending: false }).limit(1000),
     ]);
+    
+    console.log("[AdminClickTracking] All clicks fetched:", allClicksRes.data?.length, "error:", allClicksRes.error?.message);
+    
+    const allClicksData = allClicksRes.data || [];
+    // Split into offer/survey clicks and provider clicks from the same dataset
+    const clicksData = allClicksData.filter(c => c.offer_id || c.survey_link_id);
+    const providerClicksData = allClicksData.filter(c => c.provider_id && !c.offer_id && !c.survey_link_id);
     
     const enhancedClicks = (clicksRes.data || []).map(click => ({
       ...click,
