@@ -31,6 +31,7 @@ const AdminClickTracking = () => {
   const [detailModal, setDetailModal] = useState<{ title: string; data: any[]; columns: { key: string; label: string }[] } | null>(null);
   const [userDetailModal, setUserDetailModal] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activitySearch, setActivitySearch] = useState("");
 
   const now24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), []);
 
