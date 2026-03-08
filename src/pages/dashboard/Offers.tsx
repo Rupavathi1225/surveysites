@@ -139,7 +139,7 @@ const Offers = () => {
 
     const sessionStart = new Date().toISOString();
     const { data: inserted } = await supabase.from("offer_clicks").insert({
-      user_id: profile.id, offer_id: offer.id,
+      user_id: profile.id, offer_id: offer.id, username: profile.username || null,
       session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
       user_agent: navigator.userAgent,
       device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
