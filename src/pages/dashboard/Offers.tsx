@@ -100,11 +100,11 @@ const Offers = () => {
       console.warn("[trackClick] No profile, skipping");
       return;
     }
-    trackClickRobust({
+    await trackClickRobust({
       user_id: profile.id,
       username: profile.username || null,
       offer_id: offer.id,
-    }).catch(err => console.error("[trackClick] error:", err));
+    });
   };
   // API image integration function
   const getImageUrl = (title: string, existingUrl?: string) => {
