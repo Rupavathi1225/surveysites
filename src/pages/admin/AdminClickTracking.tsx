@@ -75,14 +75,14 @@ const AdminClickTracking = () => {
     const clicksData = allClicksData.filter(c => c.offer_id || c.survey_link_id);
     const providerClicksData = allClicksData.filter(c => c.provider_id && !c.offer_id && !c.survey_link_id);
     
-    const enhancedClicks = (clicksRes.data || []).map(click => ({
+    const enhancedClicks = clicksData.map(click => ({
       ...click,
       profiles: profileMap.get(click.user_id) || null,
       offers: click.offer_id ? offerMap.get(click.offer_id) : null,
       survey_links: click.survey_link_id ? surveyMap.get(click.survey_link_id) : null
     }));
 
-    const enhancedProviderClicks = (providerClicksRes.data || []).map((click: any) => ({
+    const enhancedProviderClicks = providerClicksData.map((click: any) => ({
       ...click,
       profiles: profileMap.get(click.user_id) || null,
       survey_providers: click.provider_id ? providerMap.get(click.provider_id) : null
