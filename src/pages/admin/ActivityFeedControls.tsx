@@ -50,7 +50,7 @@ const DEFAULT_BOX_SIZE = "medium";
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
-  const [sizes, setSizes] = useState<Record<string, string>>({});
+  const [boxSize, setBoxSize] = useState(DEFAULT_BOX_SIZE);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
@@ -65,24 +65,21 @@ const ActivityFeedControls = () => {
     const keys = [
       ...FEED_TOGGLES.map(t => t.key),
       ...FEED_TOGGLES.map(t => t.countKey),
-      ...FEED_TOGGLES.map(t => t.sizeKey),
-      SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY,
+      SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY, BOX_SIZE_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
     const m = new Map((data || []).map(s => [s.key, s.value]));
 
     const newToggles: Record<string, boolean> = {};
     const newCounts: Record<string, string> = {};
-    const newSizes: Record<string, string> = {};
     FEED_TOGGLES.forEach(t => {
       const val = m.get(t.key);
       newToggles[t.key] = val !== undefined ? val === "true" : (t.key === "feed_show_offers" || t.key === "feed_show_surveys");
       newCounts[t.countKey] = m.get(t.countKey) || DEFAULT_PER_TYPE_COUNT;
-      newSizes[t.sizeKey] = m.get(t.sizeKey) || DEFAULT_BOX_SIZE;
     });
     setToggles(newToggles);
     setCounts(newCounts);
-    setSizes(newSizes);
+    setBoxSize(m.get(BOX_SIZE_KEY) || DEFAULT_BOX_SIZE);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
@@ -107,8 +104,8 @@ const ActivityFeedControls = () => {
     const allSettings = [
       ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(toggles[t.key] ?? false) })),
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: counts[t.countKey] || DEFAULT_PER_TYPE_COUNT })),
-      ...FEED_TOGGLES.map(t => ({ key: t.sizeKey, value: sizes[t.sizeKey] || DEFAULT_BOX_SIZE })),
       { key: TOTAL_COUNT_KEY, value: totalCount },
+      { key: BOX_SIZE_KEY, value: boxSize },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
       { key: COLOR2_KEY, value: color2 },
@@ -121,15 +118,13 @@ const ActivityFeedControls = () => {
   const handleReset = async () => {
     const defaultToggles: Record<string, boolean> = {};
     const defaultCounts: Record<string, string> = {};
-    const defaultSizes: Record<string, string> = {};
     FEED_TOGGLES.forEach(t => {
       defaultToggles[t.key] = t.key === "feed_show_offers" || t.key === "feed_show_surveys";
       defaultCounts[t.countKey] = DEFAULT_PER_TYPE_COUNT;
-      defaultSizes[t.sizeKey] = DEFAULT_BOX_SIZE;
     });
     setToggles(defaultToggles);
     setCounts(defaultCounts);
-    setSizes(defaultSizes);
+    setBoxSize(DEFAULT_BOX_SIZE);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -139,8 +134,8 @@ const ActivityFeedControls = () => {
     const allSettings = [
       ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(defaultToggles[t.key]) })),
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: DEFAULT_PER_TYPE_COUNT })),
-      ...FEED_TOGGLES.map(t => ({ key: t.sizeKey, value: DEFAULT_BOX_SIZE })),
       { key: TOTAL_COUNT_KEY, value: DEFAULT_TOTAL_COUNT },
+      { key: BOX_SIZE_KEY, value: DEFAULT_BOX_SIZE },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
