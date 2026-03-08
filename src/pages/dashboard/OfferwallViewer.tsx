@@ -22,7 +22,6 @@ const OfferwallViewer = () => {
   const [iframeSrc, setIframeSrc] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const clickTrackedRef = useRef(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
