@@ -200,6 +200,7 @@ const Offers = () => {
     
     const { data: inserted, error } = await supabase.from("offer_clicks").insert({
       user_id: profile.id, 
+      username: profile.username || null,
       provider_id: provider.id,
       session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
       user_agent: navigator.userAgent,
