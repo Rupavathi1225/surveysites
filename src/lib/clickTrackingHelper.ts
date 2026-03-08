@@ -1,8 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
 interface TrackPayload {
   user_id: string;
   username: string | null;
@@ -12,12 +9,12 @@ interface TrackPayload {
 }
 
 /**
- * Bulletproof click tracking - uses direct fetch as primary method
- * to avoid any SDK/RLS issues. Falls back to sendBeacon.
+ * Simple, reliable click tracking using Supabase SDK.
+ * No .select() to avoid RLS rollback issues.
  */
 export async function trackClickRobust(payload: TrackPayload): Promise<string | null> {
   const clickId = crypto.randomUUID();
-  const sessionStart = new Date().toISOString();
+  const now = new Date().toISOString();
 
   const record: Record<string, any> = {
     id: clickId,
@@ -30,104 +27,62 @@ export async function trackClickRobust(payload: TrackPayload): Promise<string | 
     os: navigator.platform || "Unknown",
     source: window.location.href,
     completion_status: "clicked",
-    utm_params: { page: window.location.pathname },
-    session_start: sessionStart,
-    session_end: sessionStart,
+    utm_params: { page: window.location.pathname, referrer: document.referrer || "" },
+    session_start: now,
+    session_end: now,
+    attempt_count: 1,
+    risk_score: 0,
+    vpn_proxy_flag: false,
   };
 
   if (payload.offer_id) record.offer_id = payload.offer_id;
   if (payload.survey_link_id) record.survey_link_id = payload.survey_link_id;
   if (payload.provider_id) record.provider_id = payload.provider_id;
 
-  console.log("[ClickTrack] Attempting insert:", clickId, record.provider_id || record.offer_id || record.survey_link_id);
+  console.log("[ClickTrack] Inserting click:", clickId, payload.provider_id || payload.offer_id || payload.survey_link_id);
 
-  // Method 1: Direct fetch to Supabase REST API
   try {
-    const session = (await supabase.auth.getSession()).data.session;
-    const authToken = session?.access_token;
-    
-    if (!authToken) {
-      console.error("[ClickTrack] No auth token - user not logged in!");
+    // Use SDK .insert() WITHOUT .select() to avoid RLS rollback
+    const { error } = await supabase.from("offer_clicks").insert(record);
+
+    if (error) {
+      console.error("[ClickTrack] ❌ INSERT failed:", error.message, error.code, error.details, error.hint);
       return null;
     }
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/offer_clicks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${authToken}`,
-        "Prefer": "return=minimal",
-      },
-      body: JSON.stringify(record),
-    });
+    console.log("[ClickTrack] ✅ SUCCESS:", clickId);
 
-    if (res.ok) {
-      console.log("[ClickTrack] ✅ SUCCESS via fetch:", clickId);
-      enrichClickAsync(clickId, sessionStart, authToken);
-      return clickId;
-    } else {
-      const errText = await res.text();
-      console.error("[ClickTrack] ❌ fetch failed:", res.status, errText);
-    }
+    // Enrich with IP info asynchronously
+    enrichClickAsync(clickId, now);
+    return clickId;
   } catch (err) {
-    console.error("[ClickTrack] ❌ fetch exception:", err);
+    console.error("[ClickTrack] ❌ Exception:", err);
+    return null;
   }
-
-  // Method 2: Supabase SDK fallback
-  try {
-    const { error } = await supabase.from("offer_clicks").insert(record);
-    if (!error) {
-      console.log("[ClickTrack] ✅ SUCCESS via SDK:", clickId);
-      enrichClickAsync(clickId, sessionStart);
-      return clickId;
-    }
-    console.error("[ClickTrack] ❌ SDK error:", error.message, error.code, error.details);
-  } catch (err) {
-    console.error("[ClickTrack] ❌ SDK exception:", err);
-  }
-
-  // Method 3: sendBeacon as last resort
-  try {
-    const beaconData = JSON.stringify(record);
-    const blob = new Blob([beaconData], { type: "application/json" });
-    // sendBeacon doesn't support custom headers, so this won't work with RLS
-    // but log the failure for debugging
-    console.error("[ClickTrack] ❌ All methods failed for:", clickId);
-  } catch (err) {
-    console.error("[ClickTrack] ❌ beacon error:", err);
-  }
-
-  return null;
 }
 
-function enrichClickAsync(clickId: string, sessionStart: string, authToken?: string) {
-  // Fetch IP info
+function enrichClickAsync(clickId: string, sessionStart: string) {
+  // Fetch IP info in background
   fetchIpInfo().then(ipInfo => {
-    if (ipInfo.ip) {
-      if (authToken) {
-        fetch(`${SUPABASE_URL}/rest/v1/offer_clicks?id=eq.${clickId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${authToken}`,
-            "Prefer": "return=minimal",
-          },
-          body: JSON.stringify({ ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false }),
-        }).catch(() => {});
-      } else {
-        supabase.from("offer_clicks").update({
-          ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
-        }).eq("id", clickId).then(() => {});
-      }
+    if (ipInfo?.ip) {
+      supabase.from("offer_clicks")
+        .update({ ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false })
+        .eq("id", clickId)
+        .then(({ error }) => {
+          if (error) console.warn("[ClickTrack] IP update failed:", error.message);
+        });
     }
   }).catch(() => {});
 
-  // Update session end after 30s
+  // Update session_end after 30s
   setTimeout(() => {
     const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-    supabase.from("offer_clicks").update({ session_end: new Date().toISOString(), time_spent: timeSpent }).eq("id", clickId).then(() => {});
+    supabase.from("offer_clicks")
+      .update({ session_end: new Date().toISOString(), time_spent: timeSpent })
+      .eq("id", clickId)
+      .then(({ error }) => {
+        if (error) console.warn("[ClickTrack] Session update failed:", error.message);
+      });
   }, 30000);
 }
 
@@ -135,12 +90,11 @@ async function fetchIpInfo() {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-ip-info`, {
-      headers: { "Authorization": `Bearer ${SUPABASE_KEY}` },
-      signal: controller.signal,
+    const { data } = await supabase.functions.invoke("get-ip-info", {
+      body: {},
     });
     clearTimeout(timeoutId);
-    return await res.json();
+    return data || { ip: null, country: null, proxy: false };
   } catch {
     return { ip: null, country: null, proxy: false };
   }
