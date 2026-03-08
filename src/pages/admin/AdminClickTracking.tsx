@@ -1152,7 +1152,7 @@ const AdminClickTracking = () => {
                     <Table>
                       <TableHeader><TableRow><TableHead>IP</TableHead><TableHead>Device</TableHead><TableHead>Browser</TableHead><TableHead>OS</TableHead><TableHead>New Device</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {userDetailModal.logins.slice(0, 20).map((l: any) => (
+                        {userDetailModal.logins.map((l: any) => (
                           <TableRow key={l.id}>
                             <TableCell className="text-xs">{l.ip_address || "—"}</TableCell>
                             <TableCell className="text-xs">{l.device || "—"}</TableCell>
