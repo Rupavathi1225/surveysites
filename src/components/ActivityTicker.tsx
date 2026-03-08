@@ -105,9 +105,9 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   };
 
   return (
-    <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-1.5 px-2">
+    <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-1 px-2">
       {/* Header */}
-      <div className="flex items-center gap-1.5 mb-1.5">
+      <div className="flex items-center gap-1.5 mb-1">
         <Activity className="h-3 w-3 text-primary" />
         <span className="text-[10px] font-semibold text-foreground">Live Activity Feed</span>
         <span className="text-[8px] text-muted-foreground hidden sm:block">Real-time activity from our community</span>
@@ -119,31 +119,31 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
       {/* Scrolling ticker */}
       <div className="relative overflow-hidden">
-        <div className="flex gap-2 animate-ticker whitespace-nowrap" style={{ width: "max-content" }}>
+        <div className="flex gap-1.5 animate-ticker whitespace-nowrap" style={{ width: "max-content" }}>
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center gap-2 shrink-0 bg-purple-500/20 rounded-lg px-3 py-2 min-w-[190px] max-w-[200px] border border-border/40 shadow-sm"
+              className="inline-flex items-center gap-1.5 shrink-0 bg-purple-500/20 rounded-md px-2 py-1.5 min-w-[160px] max-w-[170px] border border-purple-500/10"
             >
               {/* Offerwall logo */}
-              <div className="w-8 h-8 rounded-md overflow-hidden shrink-0 bg-muted flex items-center justify-center">
+              <div className="w-6 h-6 rounded shrink-0 bg-muted/50 flex items-center justify-center overflow-hidden">
                 {item.offerwallLogo ? (
                   <img src={item.offerwallLogo} alt={item.offerwallName} className="w-full h-full object-contain" />
                 ) : (
-                  <span className="text-[10px] font-bold text-muted-foreground">{item.offerwallName?.charAt(0) || "?"}</span>
+                  <span className="text-[8px] font-bold text-muted-foreground">{item.offerwallName?.charAt(0) || "?"}</span>
                 )}
               </div>
 
               {/* Info */}
               <div className="flex flex-col min-w-0 flex-1 gap-0">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-semibold text-foreground truncate">{item.username}</span>
-                  <span className="text-[8px] text-muted-foreground">{getRelativeTime(item.created_at)}</span>
+                  <span className="text-[9px] font-semibold text-foreground truncate">{item.username}</span>
+                  <span className="text-[7px] text-muted-foreground">{getRelativeTime(item.created_at)}</span>
                 </div>
-                <span className="text-[9px] text-primary font-bold">{item.amount}</span>
-                <div className="flex items-center gap-1">
-                  {item.country && <span className="text-[9px]">{getCountryFlag(item.country)}</span>}
-                  <span className="text-[8px] text-muted-foreground truncate">{item.offerwallName}</span>
+                <span className="text-[8px] text-primary font-bold">{item.amount}</span>
+                <div className="flex items-center gap-0.5">
+                  {item.country && <span className="text-[8px]">{getCountryFlag(item.country)}</span>}
+                  <span className="text-[7px] text-muted-foreground truncate">{item.offerwallName}</span>
                 </div>
               </div>
             </div>
