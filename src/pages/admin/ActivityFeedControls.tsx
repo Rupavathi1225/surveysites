@@ -106,6 +106,7 @@ const ActivityFeedControls = () => {
     const allSettings = [
       ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(toggles[t.key] ?? false) })),
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: counts[t.countKey] || DEFAULT_PER_TYPE_COUNT })),
+      ...FEED_TOGGLES.map(t => ({ key: t.sizeKey, value: sizes[t.sizeKey] || DEFAULT_BOX_SIZE })),
       { key: TOTAL_COUNT_KEY, value: totalCount },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
