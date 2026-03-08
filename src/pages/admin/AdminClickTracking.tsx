@@ -788,7 +788,7 @@ const AdminClickTracking = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full" style={{ maxHeight: "700px" }}>
+              <ScrollArea className="w-full">
                 <div className="min-w-[2000px]">
                   <Table>
                     <TableHeader>
