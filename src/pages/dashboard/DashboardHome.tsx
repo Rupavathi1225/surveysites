@@ -403,115 +403,49 @@ const DashboardHome = () => {
                 const currentShadow = shadowColors[index % shadowColors.length];
 
                 return (
-                  <div 
-                    key={p.id}
-                    className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
-                    onClick={() => {
-                      const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
-                      if (p.iframe_url || p.iframe_code) {
-                        const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';
-                        window.open(ru(src), '_blank');
-                      } else if (p.url) {
-                        window.open(ru(p.url), '_blank');
-                      }
-                    }}
-                  >
-                    {/* Bonus Badge */}
-                    {p.point_percentage > 100 && (
-                      <div className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg z-10">
-                        +{p.point_percentage - 100}%
-                      </div>
-                    )}
-
-                    {/* Provider Logo and Name - EarnLab Style */}
-                    <div className="flex flex-col items-center justify-center h-full gap-3">
-                      {p.image_url ? (
-                        <img 
-                          src={getImageUrl(p.name, p.image_url)} 
-                          alt={p.name} 
-                          className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-300"
-                          onError={(e) => {
-                            // Fallback to provider-specific logos
-                            const providerLogos: Record<string, string> = {
-                              'Freecash': 'https://freecash.com/logo.png',
-                              'AdGate': 'https://cdn.adgate-media.com/offerwall-logo.png',
-                              'Adscend': 'https://www.adscendmedia.com/logo.png',
-                              'CPAGrip': 'https://cpagrip.com/logo.png',
-                              'Notik': 'https://notik.me/logo.png',
-                              'RevenueUniverse': 'https://revenueuniverse.com/logo.png',
-                              'Timewall': 'https://timewall.com/logo.png',
-                              'BitLabs': 'https://bitlabs.io/logo.png',
-                              'AyetStudios': 'https://ayetstudios.com/logo.png',
-                              'FusionCash': 'https://fusioncash.com/logo.png',
-                              'OfferToro': 'https://offertoro.com/logo.png',
-                              'RevenueWall': 'https://revenuewall.com/logo.png',
-                              'AdWorkMedia': 'https://adworkmedia.com/logo.png',
-                              'KiwiWall': 'https://kiwiwall.com/logo.png',
-                              'MyLead': 'https://mylead.com/logo.png',
-                              'SuperRewards': 'https://superrewards.com/logo.png',
-                              'RewardingWays': 'https://rewardingways.com/logo.png',
-                              'CPXResearch': 'https://cpxresearch.com/logo.png',
-                              'Heypiggy': 'https://heypiggy.com/logo.png',
-                              'PeanutLabs': 'https://peanutlabs.com/logo.png',
-                              'incarese': 'https://incarese.com/logo.png',
-                              'AdGem': 'https://adgem.com/logo.png',
-                              'CPALead': 'https://cpalead.com/logo.png',
-                              'MonuMatic': 'https://monumate.com/logo.png',
-                              'RevU': 'https://revu.com/logo.png',
-                              'AdWork': 'https://adwork.com/logo.png',
-                              'CPABuild': 'https://cpabuild.com/logo.png',
-                              'AdShift': 'https://adshift.com/logo.png',
-                              'RevenueJet': 'https://revenuejet.com/logo.png',
-                              'CPALocker': 'https://cpalocker.com/logo.png',
-                              'AdCapital': 'https://adcapital.com/logo.png',
-                              'CPAStrike': 'https://cpastrike.com/logo.png',
-                              'AdVerse': 'https://adverse.com/logo.png',
-                              'RevenueGiant': 'https://revenuegiant.com/logo.png',
-                              'CPAFusion': 'https://cpafusion.com/logo.png',
-                              'AdPrime': 'https://adprime.com/logo.png',
-                              'RevenueFlow': 'https://revenueflow.com/logo.png',
-                              'CPAEvolution': 'https://cpaevolution.com/logo.png',
-                              'AdCore': 'https://adcore.com/logo.png',
-                              'RevenueZen': 'https://revenuezen.com/logo.png',
-                              'CPAEpic': 'https://cpaepic.com/logo.png',
-                              'AdNova': 'https://adnova.com/logo.png',
-                              'RevenuePeak': 'https://revenuepeak.com/logo.png',
-                              'CPAVelocity': 'https://cpavelocity.com/logo.png',
-                              'AdVortex': 'https://advortex.com/logo.png',
-                              'RevenueSurge': 'https://revenuesurge.com/logo.png',
-                              'CPAFury': 'https://cpafury.com/logo.png',
-                              'AdEclipse': 'https://adeclipse.com/logo.png',
-                              'RevenueWave': 'https://revenuewave.com/logo.png',
-                              'CPALegend': 'https://cpalegend.com/logo.png',
-                              'AdCosmos': 'https://adcosmos.com/logo.png',
-                              'RevenueNova': 'https://revenuenova.com/logo.png',
-                              'CPANebula': 'https://cpanebula.com/logo.png',
-                              'AdStellar': 'https://adstellar.com/logo.png',
-                              'RevenueComet': 'https://revenuecomet.com/logo.png',
-                              'CPAInfinity': 'https://cpainfinity.com/logo.png',
-                              'AdInfinity': 'https://adinfinity.com/logo.png',
-                              'RevenueEternal': 'https://revenueeternal.com/logo.png',
-                              'CPACosmos': 'https://cpacosmos.com/logo.png',
-                              'AdUniverse': 'https://aduniverse.com/logo.png',
-                              'RevenueGalaxy': 'https://revenuegalaxy.com/logo.png',
-                              'CPAOmega': 'https://cpaomega.com/logo.png'
-                            };
-                            e.currentTarget.src = providerLogos[p.name] || `https://picsum.photos/seed/provider/80/80.jpg`;
-                          }}
-                        />
-                      ) : (
-                        <span className="text-2xl font-bold text-white">{p.name[0]}</span>
+                  <div key={p.id} className="flex flex-col items-center gap-2">
+                    <div 
+                      className="relative w-[180px] h-[120px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
+                      onClick={() => {
+                        const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
+                        if (p.iframe_url || p.iframe_code) {
+                          const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';
+                          window.open(ru(src), '_blank');
+                        } else if (p.url) {
+                          window.open(ru(p.url), '_blank');
+                        }
+                      }}
+                    >
+                      {/* Bonus Badge */}
+                      {p.point_percentage > 100 && (
+                        <div className="absolute top-2 right-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs px-2 py-1 rounded-full border-0 shadow-lg z-10">
+                          +{p.point_percentage - 100}%
+                        </div>
                       )}
 
-                    </div>
+                      {/* Provider Logo */}
+                      <div className="flex items-center justify-center h-full">
+                        {p.image_url ? (
+                          <img 
+                            src={getImageUrl(p.name, p.image_url)} 
+                            alt={p.name} 
+                            className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-300"
+                            onError={(e) => {
+                              e.currentTarget.src = `https://picsum.photos/seed/provider/80/80.jpg`;
+                            }}
+                          />
+                        ) : (
+                          <span className="text-2xl font-bold text-foreground">{p.name[0]}</span>
+                        )}
+                      </div>
 
-                    {/* Subtle glow effect */}
-                    <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
+                      {/* Subtle glow effect */}
+                      <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
+                    </div>
+                    {/* Name below card */}
+                    <span className="text-sm font-medium text-foreground text-center truncate w-[180px]">{p.name}</span>
                   </div>
                 );
-              })}
-              
-              {/* Show More Button */}
               <div 
                 onClick={() => setShowAllWalls(true)}
                 className="relative w-[180px] h-[140px] bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30 flex flex-col items-center justify-center"
