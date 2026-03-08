@@ -123,28 +123,32 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center gap-3 shrink-0 bg-primary/15 rounded-lg px-4 py-3 min-w-[220px] max-w-[260px] border border-primary/10"
+              className="inline-flex items-center shrink-0 bg-primary/15 rounded-xl px-4 py-3 min-w-[240px] border border-primary/10"
             >
-              {/* Offerwall logo */}
-              <div className="w-10 h-10 rounded-md shrink-0 bg-primary/10 flex items-center justify-center overflow-hidden">
+              {/* Left: Logo */}
+              <div className="w-12 h-12 rounded-lg shrink-0 bg-primary/20 flex items-center justify-center overflow-hidden mr-3">
                 {item.offerwallLogo ? (
                   <img src={item.offerwallLogo} alt={item.offerwallName} className="w-full h-full object-contain" />
                 ) : (
-                  <span className="text-xs font-bold text-foreground/70">{item.offerwallName?.charAt(0) || "?"}</span>
+                  <span className="text-sm font-bold text-foreground/70">{item.offerwallName?.charAt(0) || "?"}</span>
                 )}
               </div>
 
-              {/* Info */}
-              <div className="flex flex-col min-w-0 flex-1 gap-0.5">
+              {/* Middle: User info */}
+              <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-semibold text-foreground truncate">{item.username}</span>
-                  <span className="text-[9px] text-foreground/50">• {getRelativeTime(item.created_at)}</span>
+                  <span className="text-sm font-semibold text-foreground truncate">{item.username}</span>
+                  <span className="text-[10px] text-foreground/50">• {getRelativeTime(item.created_at)}</span>
                 </div>
-                <span className="text-sm text-foreground font-bold">{item.amount}</span>
-                <div className="flex items-center gap-1">
-                  {item.country && <span className="text-xs">{getCountryFlag(item.country)}</span>}
-                  <span className="text-[10px] text-foreground/60 truncate">{item.offerwallName}</span>
-                </div>
+                <span className="text-xs text-foreground/60 truncate">{item.offerwallName}</span>
+              </div>
+
+              {/* Right: Amount */}
+              <div className="shrink-0 text-right">
+                <span className="text-lg font-bold text-foreground whitespace-nowrap">{item.amount}</span>
+                {item.country && (
+                  <div className="text-xs text-foreground/50">{getCountryFlag(item.country)} {item.country}</div>
+                )}
               </div>
             </div>
           ))}
