@@ -857,7 +857,7 @@ const AdminClickTracking = () => {
           <h2 className="text-lg font-semibold">Offer & Survey Performance</h2>
           <Card>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[600px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1200px]">
                   <Table>
                     <TableHeader>
