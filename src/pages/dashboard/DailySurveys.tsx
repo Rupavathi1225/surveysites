@@ -36,8 +36,21 @@ const DailySurveys = () => {
   };
 
   const trackClick = async (item: any, type: "survey" | "offer" | "provider", providerId?: string) => {
-    if (!profile) return;
-    const ipInfo = await fetchIpInfo();
+    if (!profile) {
+      console.warn("[TrackClick] No profile, skipping click tracking");
+      return;
+    }
+    
+    let ipInfo = { ip: null, country: null, proxy: false };
+    try {
+      ipInfo = await Promise.race([
+        fetchIpInfo(),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000))
+      ]);
+    } catch {
+      console.warn("[TrackClick] IP info fetch failed/timed out, continuing without it");
+    }
+
     const utmParams: Record<string, string> = {};
     const urlParams = new URLSearchParams(window.location.search);
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
@@ -69,6 +82,7 @@ const DailySurveys = () => {
     else if (type === "survey") payload.survey_link_id = item.id;
     else if (type === "provider") payload.provider_id = providerId;
 
+    console.log("[TrackClick] Inserting click:", type, providerId || item.id);
     const { data, error } = await supabase.from("offer_clicks").insert(payload).select("id").single();
     if (error) console.error("[TrackClick Error]", error, payload);
     else console.log("[TrackClick OK]", data?.id, type, payload.provider_id || payload.offer_id || payload.survey_link_id);
