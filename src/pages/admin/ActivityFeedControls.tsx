@@ -33,6 +33,7 @@ const SIZE_OPTIONS = [
   { value: "small", label: "Small" },
   { value: "medium", label: "Medium" },
   { value: "large", label: "Large" },
+  { value: "custom", label: "Custom" },
 ];
 
 const SPEED_KEY = "feed_scroll_speed";
@@ -40,17 +41,32 @@ const COLOR1_KEY = "feed_box_color1";
 const COLOR2_KEY = "feed_box_color2";
 const TOTAL_COUNT_KEY = "feed_total_count";
 const BOX_SIZE_KEY = "feed_box_size";
+const BOX_WIDTH_KEY = "feed_box_width";
+const BOX_HEIGHT_KEY = "feed_box_height";
+const BOX_PADDING_KEY = "feed_box_padding";
+const BOX_FONT_SIZE_KEY = "feed_box_font_size";
+const BOX_BORDER_RADIUS_KEY = "feed_box_border_radius";
 const DEFAULT_SPEED = 120;
 const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
 const DEFAULT_TOTAL_COUNT = "20";
 const DEFAULT_PER_TYPE_COUNT = "20";
 const DEFAULT_BOX_SIZE = "medium";
+const DEFAULT_BOX_WIDTH = "200";
+const DEFAULT_BOX_HEIGHT = "60";
+const DEFAULT_BOX_PADDING = "16";
+const DEFAULT_BOX_FONT_SIZE = "14";
+const DEFAULT_BOX_BORDER_RADIUS = "12";
 
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [boxSize, setBoxSize] = useState(DEFAULT_BOX_SIZE);
+  const [boxWidth, setBoxWidth] = useState(DEFAULT_BOX_WIDTH);
+  const [boxHeight, setBoxHeight] = useState(DEFAULT_BOX_HEIGHT);
+  const [boxPadding, setBoxPadding] = useState(DEFAULT_BOX_PADDING);
+  const [boxFontSize, setBoxFontSize] = useState(DEFAULT_BOX_FONT_SIZE);
+  const [boxBorderRadius, setBoxBorderRadius] = useState(DEFAULT_BOX_BORDER_RADIUS);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
@@ -66,6 +82,7 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => t.key),
       ...FEED_TOGGLES.map(t => t.countKey),
       SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY, BOX_SIZE_KEY,
+      BOX_WIDTH_KEY, BOX_HEIGHT_KEY, BOX_PADDING_KEY, BOX_FONT_SIZE_KEY, BOX_BORDER_RADIUS_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
     const m = new Map((data || []).map(s => [s.key, s.value]));
@@ -80,6 +97,11 @@ const ActivityFeedControls = () => {
     setToggles(newToggles);
     setCounts(newCounts);
     setBoxSize(m.get(BOX_SIZE_KEY) || DEFAULT_BOX_SIZE);
+    setBoxWidth(m.get(BOX_WIDTH_KEY) || DEFAULT_BOX_WIDTH);
+    setBoxHeight(m.get(BOX_HEIGHT_KEY) || DEFAULT_BOX_HEIGHT);
+    setBoxPadding(m.get(BOX_PADDING_KEY) || DEFAULT_BOX_PADDING);
+    setBoxFontSize(m.get(BOX_FONT_SIZE_KEY) || DEFAULT_BOX_FONT_SIZE);
+    setBoxBorderRadius(m.get(BOX_BORDER_RADIUS_KEY) || DEFAULT_BOX_BORDER_RADIUS);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
@@ -106,6 +128,11 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: counts[t.countKey] || DEFAULT_PER_TYPE_COUNT })),
       { key: TOTAL_COUNT_KEY, value: totalCount },
       { key: BOX_SIZE_KEY, value: boxSize },
+      { key: BOX_WIDTH_KEY, value: boxWidth },
+      { key: BOX_HEIGHT_KEY, value: boxHeight },
+      { key: BOX_PADDING_KEY, value: boxPadding },
+      { key: BOX_FONT_SIZE_KEY, value: boxFontSize },
+      { key: BOX_BORDER_RADIUS_KEY, value: boxBorderRadius },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
       { key: COLOR2_KEY, value: color2 },
@@ -125,6 +152,11 @@ const ActivityFeedControls = () => {
     setToggles(defaultToggles);
     setCounts(defaultCounts);
     setBoxSize(DEFAULT_BOX_SIZE);
+    setBoxWidth(DEFAULT_BOX_WIDTH);
+    setBoxHeight(DEFAULT_BOX_HEIGHT);
+    setBoxPadding(DEFAULT_BOX_PADDING);
+    setBoxFontSize(DEFAULT_BOX_FONT_SIZE);
+    setBoxBorderRadius(DEFAULT_BOX_BORDER_RADIUS);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -136,6 +168,11 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: DEFAULT_PER_TYPE_COUNT })),
       { key: TOTAL_COUNT_KEY, value: DEFAULT_TOTAL_COUNT },
       { key: BOX_SIZE_KEY, value: DEFAULT_BOX_SIZE },
+      { key: BOX_WIDTH_KEY, value: DEFAULT_BOX_WIDTH },
+      { key: BOX_HEIGHT_KEY, value: DEFAULT_BOX_HEIGHT },
+      { key: BOX_PADDING_KEY, value: DEFAULT_BOX_PADDING },
+      { key: BOX_FONT_SIZE_KEY, value: DEFAULT_BOX_FONT_SIZE },
+      { key: BOX_BORDER_RADIUS_KEY, value: DEFAULT_BOX_BORDER_RADIUS },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
@@ -218,12 +255,17 @@ const ActivityFeedControls = () => {
             Ticker Box Size
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Choose the size of all ticker boxes in the activity feed
+            Choose a preset or set custom dimensions for all ticker boxes
           </p>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Select value={boxSize} onValueChange={setBoxSize}>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Select value={boxSize} onValueChange={(v) => {
+              setBoxSize(v);
+              if (v === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
+              if (v === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
+              if (v === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+            }}>
               <SelectTrigger className="w-full max-w-[200px]">
                 <SelectValue placeholder="Select size" />
               </SelectTrigger>
@@ -233,9 +275,9 @@ const ActivityFeedControls = () => {
                 ))}
               </SelectContent>
             </Select>
-            {/* Live preview */}
+            {/* Preset preview boxes */}
             <div className="flex items-center gap-3">
-              {SIZE_OPTIONS.map(s => (
+              {SIZE_OPTIONS.filter(s => s.value !== "custom").map(s => (
                 <div
                   key={s.value}
                   className={`rounded-lg border flex items-center justify-center text-[10px] font-medium transition-all cursor-pointer ${boxSize === s.value ? "border-primary ring-2 ring-primary/30 text-primary" : "border-border text-muted-foreground"}`}
@@ -245,11 +287,71 @@ const ActivityFeedControls = () => {
                     background: boxSize === s.value ? `linear-gradient(135deg, ${color1}, ${color2})` : undefined,
                     color: boxSize === s.value ? "white" : undefined,
                   }}
-                  onClick={() => setBoxSize(s.value)}
+                  onClick={() => {
+                    setBoxSize(s.value);
+                    if (s.value === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
+                    if (s.value === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
+                    if (s.value === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+                  }}
                 >
                   {s.label}
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Manual custom fields - always visible */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-border">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Width (px)</Label>
+              <Input type="number" min="100" max="500" value={boxWidth}
+                onChange={(e) => { setBoxWidth(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Height (px)</Label>
+              <Input type="number" min="30" max="200" value={boxHeight}
+                onChange={(e) => { setBoxHeight(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Padding (px)</Label>
+              <Input type="number" min="4" max="40" value={boxPadding}
+                onChange={(e) => { setBoxPadding(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Font Size (px)</Label>
+              <Input type="number" min="8" max="24" value={boxFontSize}
+                onChange={(e) => { setBoxFontSize(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Border Radius (px)</Label>
+              <Input type="number" min="0" max="30" value={boxBorderRadius}
+                onChange={(e) => { setBoxBorderRadius(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+          </div>
+
+          {/* Live preview with current values */}
+          <div className="pt-2">
+            <p className="text-xs text-muted-foreground mb-2">Live Preview:</p>
+            <div
+              className="inline-flex items-center border border-foreground/5"
+              style={{
+                minWidth: `${boxWidth}px`,
+                minHeight: `${boxHeight}px`,
+                padding: `${boxPadding}px`,
+                borderRadius: `${boxBorderRadius}px`,
+                background: `linear-gradient(135deg, ${color1}, ${color2})`,
+              }}
+            >
+              <div className="flex flex-col gap-0.5 flex-1 mr-3">
+                <span className="font-semibold text-white truncate" style={{ fontSize: `${boxFontSize}px` }}>SampleUser</span>
+                <span className="text-white/60 truncate" style={{ fontSize: `${Math.max(parseInt(boxFontSize) - 4, 8)}px` }}>PrimeWall</span>
+              </div>
+              <span className="font-bold text-white whitespace-nowrap" style={{ fontSize: `${Math.min(parseInt(boxFontSize) + 4, 24)}px` }}>150 pts</span>
             </div>
           </div>
         </CardContent>
