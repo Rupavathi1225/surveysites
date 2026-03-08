@@ -31,6 +31,7 @@ const AdminClickTracking = () => {
   const [detailModal, setDetailModal] = useState<{ title: string; data: any[]; columns: { key: string; label: string }[] } | null>(null);
   const [userDetailModal, setUserDetailModal] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activitySearch, setActivitySearch] = useState("");
 
   const now24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), []);
 
@@ -269,24 +270,31 @@ const AdminClickTracking = () => {
     }
   };
 
-  // User behavior aggregation (with postback data)
+  // User behavior aggregation - includes ALL users with clicks, postbacks, logins, or earnings
   const userBehavior = useMemo(() => {
     const allClicks = [...clicks, ...providerClicks];
     const map = new Map<string, any>();
+
+    const ensureUser = (userId: string, username?: string, email?: string) => {
+      if (!userId || map.has(userId)) return;
+      const prof = profiles.find(p => p.id === userId);
+      map.set(userId, {
+        user_id: userId, username: prof?.username || username || "—", email: prof?.email || email || "—",
+        totalClicks: 0, offerClicks: 0, surveyClicks: 0, providerClicks: 0,
+        completed: 0, reversed: 0, clicked: 0, vpnFlags: 0, riskSum: 0,
+        countries: new Set(), devices: new Set(), timeSum: 0, timeCount: 0,
+        lastClick: null, lastLogin: null, postbackSuccess: 0, postbackFailed: 0, postbackReversed: 0,
+        totalEarned: 0, totalReversedPayout: 0, loginCount: 0, pageViews: 0
+      });
+    };
     
-    // Build from clicks
+    // Build from ALL profiles first so every user appears
+    profiles.forEach(p => ensureUser(p.id, p.username, p.email));
+
+    // Add click data
     allClicks.forEach(c => {
       if (!c.user_id) return;
-      if (!map.has(c.user_id)) {
-        map.set(c.user_id, {
-          user_id: c.user_id, username: c.profiles?.username || "—", email: c.profiles?.email || "—",
-          totalClicks: 0, offerClicks: 0, surveyClicks: 0, providerClicks: 0,
-          completed: 0, reversed: 0, clicked: 0, vpnFlags: 0, riskSum: 0,
-          countries: new Set(), devices: new Set(), timeSum: 0, timeCount: 0,
-          lastClick: c.created_at, postbackSuccess: 0, postbackFailed: 0, postbackReversed: 0,
-          totalEarned: 0, totalReversedPayout: 0, loginCount: 0
-        });
-      }
+      ensureUser(c.user_id, c.profiles?.username, c.profiles?.email);
       const u = map.get(c.user_id);
       u.totalClicks++;
       if (c.offer_id) u.offerClicks++;
@@ -300,33 +308,32 @@ const AdminClickTracking = () => {
       if (c.country) u.countries.add(c.country);
       if (c.device_type) u.devices.add(c.device_type);
       if (c.time_spent > 0) { u.timeSum += c.time_spent; u.timeCount++; }
-      if (c.created_at > u.lastClick) u.lastClick = c.created_at;
+      if (!u.lastClick || c.created_at > u.lastClick) u.lastClick = c.created_at;
     });
 
     // Enrich with postback data
     postbackLogs.forEach(pb => {
       if (!pb.user_id) return;
-      if (!map.has(pb.user_id)) {
-        const prof = profiles.find(p => p.id === pb.user_id);
-        map.set(pb.user_id, {
-          user_id: pb.user_id, username: prof?.username || pb.username || "—", email: prof?.email || "—",
-          totalClicks: 0, offerClicks: 0, surveyClicks: 0, providerClicks: 0,
-          completed: 0, reversed: 0, clicked: 0, vpnFlags: 0, riskSum: 0,
-          countries: new Set(), devices: new Set(), timeSum: 0, timeCount: 0,
-          lastClick: pb.created_at, postbackSuccess: 0, postbackFailed: 0, postbackReversed: 0,
-          totalEarned: 0, totalReversedPayout: 0, loginCount: 0
-        });
-      }
+      ensureUser(pb.user_id, pb.username);
       const u = map.get(pb.user_id);
       if (pb.status === "success") { u.postbackSuccess++; u.totalEarned += (Number(pb.payout) || 0); }
       else if (pb.status === "failed") u.postbackFailed++;
       else if (["reversed","reversal","chargeback"].includes(pb.status)) { u.postbackReversed++; u.totalReversedPayout += (Number(pb.payout) || 0); }
     });
 
-    // Enrich with login count
+    // Enrich with login count for ALL users
     loginLogs.forEach(l => {
-      if (!l.user_id || !map.has(l.user_id)) return;
-      map.get(l.user_id).loginCount++;
+      if (!l.user_id) return;
+      ensureUser(l.user_id);
+      const u = map.get(l.user_id);
+      u.loginCount++;
+      if (!u.lastLogin || l.created_at > u.lastLogin) u.lastLogin = l.created_at;
+    });
+
+    // Enrich with page views
+    pageVisits.forEach(v => {
+      if (!v.user_id) return;
+      if (map.has(v.user_id)) map.get(v.user_id).pageViews++;
     });
 
     return [...map.values()].map(u => ({
@@ -335,8 +342,15 @@ const AdminClickTracking = () => {
       avgTime: u.timeCount ? Math.round(u.timeSum / u.timeCount) : 0,
       completionRate: u.totalClicks ? Math.round((u.completed / u.totalClicks) * 100) : 0,
       countries: [...u.countries].join(", "), devices: [...u.devices].join(", "),
-    })).sort((a, b) => b.totalClicks - a.totalClicks);
-  }, [clicks, providerClicks, postbackLogs, loginLogs, profiles]);
+      lastActivity: u.lastClick || u.lastLogin || null,
+    })).sort((a, b) => {
+      // Sort by last activity, then by login count
+      if (b.lastActivity && a.lastActivity) return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
+      if (b.lastActivity) return 1;
+      if (a.lastActivity) return -1;
+      return b.loginCount - a.loginCount;
+    });
+  }, [clicks, providerClicks, postbackLogs, loginLogs, pageVisits, profiles]);
 
   // Filtered user behavior
   const filteredUserBehavior = useMemo(() => {
@@ -453,6 +467,19 @@ const AdminClickTracking = () => {
   const allClicks = useMemo(() => {
     return [...clicks, ...providerClicks].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [clicks, providerClicks]);
+
+  const filteredAllClicks = useMemo(() => {
+    if (!activitySearch) return allClicks;
+    const q = activitySearch.toLowerCase();
+    return allClicks.filter(c => 
+      (c.profiles?.username || c.username || "").toLowerCase().includes(q) ||
+      (c.offers?.title || "").toLowerCase().includes(q) ||
+      (c.survey_links?.name || "").toLowerCase().includes(q) ||
+      (c.survey_providers?.name || "").toLowerCase().includes(q) ||
+      (c.ip_address || "").toLowerCase().includes(q) ||
+      (c.country || "").toLowerCase().includes(q)
+    );
+  }, [allClicks, activitySearch]);
 
   return (
     <div className="space-y-6">
@@ -630,7 +657,13 @@ const AdminClickTracking = () => {
 
         {/* ==================== CLICK ACTIVITY ==================== */}
         <TabsContent value="activity" className="space-y-4">
-          <h2 className="text-lg font-semibold">Click Activity & Completion Tracking</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Click Activity & Completion Tracking</h2>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search user or offer..." value={activitySearch} onChange={e => setActivitySearch(e.target.value)} className="pl-8" />
+            </div>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <StatCard icon={MousePointerClick} value={allClicks.length} label="All-Time Clicks" />
             <StatCard icon={TrendingUp} value={clicks.filter(c => c.completion_status === "completed").length} label="Completed" color="text-green-500" />
@@ -641,13 +674,19 @@ const AdminClickTracking = () => {
           </div>
 
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Recent Click Activity</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">All Click Activity ({filteredAllClicks.length} of {allClicks.length})</CardTitle>
+                <Badge variant="outline" className="text-xs">{allClicks.length} total records</Badge>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[500px]">
+              <ScrollArea className="w-full" style={{ maxHeight: "700px" }}>
                 <div className="min-w-[1400px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>#</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Offer/Survey</TableHead>
@@ -655,6 +694,8 @@ const AdminClickTracking = () => {
                         <TableHead>IP</TableHead>
                         <TableHead>Country</TableHead>
                         <TableHead>Device</TableHead>
+                        <TableHead>Browser</TableHead>
+                        <TableHead>OS</TableHead>
                         <TableHead>VPN</TableHead>
                         <TableHead>Risk</TableHead>
                         <TableHead>Time Spent</TableHead>
@@ -663,17 +704,20 @@ const AdminClickTracking = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {allClicks.slice(0, 150).map(c => {
+                      {filteredAllClicks.length === 0 ? (
+                        <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-8">No clicks found</TableCell></TableRow>
+                      ) : filteredAllClicks.map((c, idx) => {
                         const type = getItemType(c);
                         return (
                           <TableRow key={c.id}>
+                            <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
                             <TableCell>
                               <Badge variant={type === "provider" ? "default" : "secondary"} className={`text-xs ${type === "provider" ? "bg-purple-500" : type === "offer" ? "bg-blue-500" : "bg-green-500"}`}>
                                 {type === "provider" ? "Offerwall" : type === "offer" ? "Offer" : "Survey"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-sm font-medium cursor-pointer hover:underline" onClick={() => c.user_id && openUserDetail(c.user_id)}>{c.profiles?.username || "—"}</TableCell>
-                            <TableCell className="text-sm">{getItemName(c)}</TableCell>
+                            <TableCell className="text-sm font-medium cursor-pointer hover:underline" onClick={() => c.user_id && openUserDetail(c.user_id)}>{c.profiles?.username || c.username || "—"}</TableCell>
+                            <TableCell className="text-sm max-w-[150px] truncate">{getItemName(c)}</TableCell>
                             <TableCell>
                               <Badge variant={c.completion_status === "completed" ? "default" : c.completion_status === "reversed" ? "destructive" : "secondary"} className="text-xs">
                                 {type === "provider" ? "Clicked" : c.completion_status}
@@ -682,6 +726,8 @@ const AdminClickTracking = () => {
                             <TableCell className="text-xs">{c.ip_address || "—"}</TableCell>
                             <TableCell className="text-xs">{c.country || "—"}</TableCell>
                             <TableCell className="text-xs">{c.device_type || "—"}</TableCell>
+                            <TableCell className="text-xs">{c.browser || "—"}</TableCell>
+                            <TableCell className="text-xs">{c.os || "—"}</TableCell>
                             <TableCell className="text-xs">{c.vpn_proxy_flag ? "⚠️ Yes" : "No"}</TableCell>
                             <TableCell><Badge variant={c.risk_score > 50 ? "destructive" : "secondary"} className="text-xs">{c.risk_score || 0}</Badge></TableCell>
                             <TableCell className="text-xs">{c.time_spent ? `${c.time_spent}s` : "—"}</TableCell>
@@ -701,20 +747,39 @@ const AdminClickTracking = () => {
         {/* ==================== USER BEHAVIOR ==================== */}
         <TabsContent value="users" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">User Behavior Analysis</h2>
+            <div>
+              <h2 className="text-lg font-semibold">User Behavior Analysis</h2>
+              <p className="text-xs text-muted-foreground">All {userBehavior.length} users — click a username for full activity timeline</p>
+            </div>
             <div className="relative w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search user..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8" />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Click a username to see their full activity timeline</p>
+
+          {/* Summary stats */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <StatCard icon={Users} value={userBehavior.length} label="Total Users" />
+            <StatCard icon={UserCheck} value={userBehavior.filter(u => u.loginCount > 0).length} label="Users with Logins" color="text-green-500" />
+            <StatCard icon={MousePointerClick} value={userBehavior.filter(u => u.totalClicks > 0).length} label="Users with Clicks" color="text-blue-500" />
+            <StatCard icon={Activity} value={loginLogs.length} label="Total Login Sessions" />
+            <StatCard icon={Eye} value={pageVisits.length} label="Total Page Views" />
+          </div>
+
           <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">User Activity Table</CardTitle>
+                <Badge variant="outline" className="text-xs">{filteredUserBehavior.length} users shown</Badge>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[600px]">
-                <div className="min-w-[1800px]">
+              <ScrollArea className="w-full" style={{ maxHeight: "700px" }}>
+                <div className="min-w-[2000px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>#</TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Clicks</TableHead>
@@ -730,17 +795,19 @@ const AdminClickTracking = () => {
                         <TableHead>Earned</TableHead>
                         <TableHead>Rev. Payout</TableHead>
                         <TableHead>Logins</TableHead>
+                        <TableHead>Page Views</TableHead>
                         <TableHead>VPN</TableHead>
                         <TableHead>Avg Risk</TableHead>
                         <TableHead>Countries</TableHead>
-                        <TableHead>Last Click</TableHead>
+                        <TableHead>Last Activity</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredUserBehavior.length === 0 ? (
-                        <TableRow><TableCell colSpan={19} className="text-center text-muted-foreground py-8">No user data</TableCell></TableRow>
-                      ) : filteredUserBehavior.map(u => (
+                        <TableRow><TableCell colSpan={21} className="text-center text-muted-foreground py-8">No user data</TableCell></TableRow>
+                      ) : filteredUserBehavior.map((u, idx) => (
                         <TableRow key={u.user_id} className="cursor-pointer hover:bg-muted/50" onClick={() => openUserDetail(u.user_id)}>
+                          <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
                           <TableCell className="font-medium text-sm text-primary hover:underline">{u.username}</TableCell>
                           <TableCell className="text-xs">{u.email}</TableCell>
                           <TableCell className="font-bold">{u.totalClicks}</TableCell>
@@ -755,11 +822,12 @@ const AdminClickTracking = () => {
                           <TableCell className="text-orange-500">{u.postbackReversed}</TableCell>
                           <TableCell className="font-medium">{u.totalEarned.toFixed(0)}</TableCell>
                           <TableCell className="text-red-500">{u.totalReversedPayout.toFixed(0)}</TableCell>
-                          <TableCell>{u.loginCount}</TableCell>
+                          <TableCell className="font-medium">{u.loginCount}</TableCell>
+                          <TableCell>{u.pageViews}</TableCell>
                           <TableCell>{u.vpnFlags > 0 ? <span className="text-orange-500">⚠️ {u.vpnFlags}</span> : "0"}</TableCell>
                           <TableCell><Badge variant={u.avgRisk > 50 ? "destructive" : "secondary"} className="text-xs">{u.avgRisk}</Badge></TableCell>
                           <TableCell className="text-xs max-w-[100px] truncate">{u.countries || "—"}</TableCell>
-                          <TableCell className="text-xs">{fmtDate(u.lastClick)}</TableCell>
+                          <TableCell className="text-xs">{u.lastActivity ? fmtDate(u.lastActivity) : "—"}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
