@@ -324,7 +324,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           style={{ width: "max-content", animationDuration: scrollDuration }}
         >
           {looped.map((item, i) => {
-            const sz = getBoxSize(item.type);
             return (
               <div
                 key={`${item.id}-${i}`}
