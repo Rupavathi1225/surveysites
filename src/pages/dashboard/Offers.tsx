@@ -117,7 +117,15 @@ const Offers = () => {
 
   const trackClick = async (offer: any) => {
     if (!profile) return;
-    const ipInfo = await fetchIpInfo();
+    let ipInfo = { ip: null, country: null, proxy: false };
+    try {
+      ipInfo = await Promise.race([
+        fetchIpInfo(),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000))
+      ]);
+    } catch {
+      console.warn("[trackClick] IP info fetch failed/timed out");
+    }
     const utmParams: Record<string, string> = {};
     const urlParams = new URLSearchParams(window.location.search);
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
