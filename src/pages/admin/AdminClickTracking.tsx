@@ -1172,7 +1172,7 @@ const AdminClickTracking = () => {
                   <>
                     <h3 className="text-sm font-semibold">Page Visits ({userDetailModal.visits.length})</h3>
                     <div className="flex flex-wrap gap-1">
-                      {userDetailModal.visits.slice(0, 30).map((v: any, i: number) => (
+                      {userDetailModal.visits.map((v: any, i: number) => (
                         <Badge key={i} variant="outline" className="text-xs">{v.page_path}</Badge>
                       ))}
                     </div>
