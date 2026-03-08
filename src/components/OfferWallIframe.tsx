@@ -53,35 +53,29 @@ export const OfferWallIframe: React.FC<OfferWallIframeProps> = ({
     onFrameError?.();
   };
 
-  // Generate iframe src with user_id if needed
+  // Generate iframe src with user_id replaced by username
   let iframeSrc = "";
   
-  // Debug logging
-  console.log("OfferWallIframe - Provider data:", {
-    name: provider.name,
-    iframe_url: provider.iframe_url,
-    iframe_code: provider.iframe_code,
-    external_url: provider.external_url,
-    url: provider.url
-  });
+  const replaceUserId = (url: string) => {
+    return url
+      .replace(/USER_ID/g, username || "anonymous")
+      .replace(/\{user_id\}/g, username || "anonymous")
+      .replace(/\{username\}/g, username || "anonymous");
+  };
 
   if (provider.iframe_url) {
-    iframeSrc = provider.iframe_url;
+    iframeSrc = replaceUserId(provider.iframe_url);
   } else if (provider.iframe_code) {
-    // If iframe_code contains full iframe HTML, extract the src attribute
     const match = String(provider.iframe_code).match(/src=["']([^"']+)["']/);
     if (match && match[1]) {
-      iframeSrc = match[1];
+      iframeSrc = replaceUserId(match[1]);
     } else {
-      // Otherwise treat iframe_code as a URL template and replace keys
-      iframeSrc = String(provider.iframe_code).replace(/{user_id}/g, "user_123");
+      iframeSrc = replaceUserId(String(provider.iframe_code));
     }
   } else if (provider.external_url) {
-    // Fallback to external_url if no iframe configured
-    iframeSrc = provider.external_url;
+    iframeSrc = replaceUserId(provider.external_url);
   } else if (provider.url) {
-    // Last fallback to url field
-    iframeSrc = provider.url;
+    iframeSrc = replaceUserId(provider.url);
   }
 
   console.log("OfferWallIframe - Generated iframeSrc:", iframeSrc);
