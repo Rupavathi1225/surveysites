@@ -281,3 +281,14 @@
   animation: ticker-scroll 120s linear infinite;
 }
 
+.ticker-scroll {
+  animation: ticker-scroll linear infinite;
+}
+
+.animate-scroll:hover,
+.animate-scroll-slow:hover,
+.animate-ticker:hover,
+.ticker-scroll:hover {
+  animation-play-state: paused;
+}
+
