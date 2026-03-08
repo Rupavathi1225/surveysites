@@ -3216,20 +3216,45 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <p className="text-sm text-muted-foreground">Find and manage duplicate offers in your database</p>
               </div>
               <div className="flex gap-2 flex-wrap">
+                {selectedDuplicateOffers.size > 0 && (
+                  <Button 
+                    variant="destructive" 
+                    onClick={async () => {
+                      const toDelete = Array.from(selectedDuplicateOffers);
+                      if (!confirm(`Delete ${toDelete.length} selected duplicate offers?`)) return;
+                      try {
+                        const offerDataMap = new Map<string, any>();
+                        duplicateGroups.forEach(group => {
+                          group.offers.forEach((offer: any) => {
+                            if (selectedDuplicateOffers.has(offer.id)) {
+                              offerDataMap.set(offer.id, offer);
+                            }
+                          });
+                        });
+                        await moveMultipleToRecycleBin(toDelete, offerDataMap);
+                        toast({ title: "Delete Complete", description: `Moved ${toDelete.length} offers to recycle bin` });
+                        setSelectedDuplicateOffers(new Set());
+                        loadDuplicateGroups();
+                        load();
+                      } catch (e) {
+                        toast({ title: "Error", description: String(e), variant: "destructive" });
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete Selected ({selectedDuplicateOffers.size})
+                  </Button>
+                )}
                 {duplicateGroups.length > 0 && (
                   <Button 
                     variant="destructive" 
                     onClick={async () => {
-                      // Bulk delete all duplicates (keep first, delete rest)
                       const toDelete: string[] = [];
                       duplicateGroups.forEach(group => {
-                        // Keep the first offer, delete the rest
                         group.offers.slice(1).forEach((offer: any) => toDelete.push(offer.id));
                       });
                       if (toDelete.length === 0) return;
                       if (!confirm(`Delete ${toDelete.length} duplicate offers (keeping one from each group)?`)) return;
                       try {
-                        // Build offer data map for recycle bin
                         const offerDataMap = new Map<string, any>();
                         duplicateGroups.forEach(group => {
                           group.offers.slice(1).forEach((offer: any) => {
@@ -3238,6 +3263,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
                         });
                         await moveMultipleToRecycleBin(toDelete, offerDataMap);
                         toast({ title: "Bulk Delete Complete", description: `Moved ${toDelete.length} duplicates to recycle bin` });
+                        setSelectedDuplicateOffers(new Set());
                         loadDuplicateGroups();
                         load();
                       } catch (e) {
@@ -3282,9 +3308,22 @@ Expiry Date: ${o.expiry_date || "-"}`;
                     <Card key={index} className="border-yellow-200">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <Badge variant="outline" className="bg-yellow-50">
-                            Group #{index + 1}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={group.offers.every((o: any) => selectedDuplicateOffers.has(o.id))}
+                              onCheckedChange={(checked) => {
+                                const newSelected = new Set(selectedDuplicateOffers);
+                                group.offers.forEach((o: any) => {
+                                  if (checked) newSelected.add(o.id);
+                                  else newSelected.delete(o.id);
+                                });
+                                setSelectedDuplicateOffers(newSelected);
+                              }}
+                            />
+                            <Badge variant="outline" className="bg-yellow-50">
+                              Group #{index + 1}
+                            </Badge>
+                          </div>
                           <span className="text-sm text-muted-foreground">
                             {group.offers.length} duplicate(s)
                           </span>
@@ -3301,9 +3340,20 @@ Expiry Date: ${o.expiry_date || "-"}`;
                           <div className="space-y-2">
                             {group.offers.map((offer: any, offerIndex: number) => (
                               <div key={offer.id} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
-                                <div>
-                                  <span className="font-medium">{offer.title}</span>
-                                  <span className="text-muted-foreground ml-2">(ID: {offer.offer_id})</span>
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={selectedDuplicateOffers.has(offer.id)}
+                                    onCheckedChange={(checked) => {
+                                      const newSelected = new Set(selectedDuplicateOffers);
+                                      if (checked) newSelected.add(offer.id);
+                                      else newSelected.delete(offer.id);
+                                      setSelectedDuplicateOffers(newSelected);
+                                    }}
+                                  />
+                                  <div>
+                                    <span className="font-medium">{offer.title}</span>
+                                    <span className="text-muted-foreground ml-2">(ID: {offer.offer_id})</span>
+                                  </div>
                                 </div>
                                 <div className="flex gap-2">
                                   <Button size="sm" variant="outline" onClick={() => viewOfferDetails(offer)}>
