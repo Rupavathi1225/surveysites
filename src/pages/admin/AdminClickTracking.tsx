@@ -23,102 +23,109 @@ const AdminClickTracking = () => {
   const [surveyLinks, setSurveyLinks] = useState<any[]>([]);
   const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const now24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), []);
 
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
+    
+    // First fetch all reference data
+    const [offersRes, surveysRes, providersRes, profilesRes] = await Promise.all([
+      supabase.from("offers").select("id, title").eq("status", "active"),
+      supabase.from("survey_links").select("id, name").eq("status", "active"),
+      supabase.from("survey_providers").select("id, name, code").eq("status", "active"),
+      supabase.from("profiles").select("id, username, email"),
+    ]);
+    
+    setOffers(offersRes.data || []);
+    setSurveyLinks(surveysRes.data || []);
+    setProviders(providersRes.data || []);
+    
+    // Create lookup maps for faster access
+    const offerMap = new Map((offersRes.data || []).map(o => [o.id, o]));
+    const surveyMap = new Map((surveysRes.data || []).map(s => [s.id, s]));
+    const providerMap = new Map((providersRes.data || []).map(p => [p.id, p]));
+    const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
+
+    // Fetch clicks - no limit on provider clicks to get accurate counts
+    const [clicksRes, providerClicksRes, loginsRes, visitsRes, earningsRes, promoRes] = await Promise.all([
+      supabase.from("offer_clicks")
+        .select("*")
+        .or("offer_id.not.is.null,survey_link_id.not.is.null")
+        .order("created_at", { ascending: false }).limit(1000),
+      
+      // Provider/Offerwall clicks - no limit to get ALL clicks for accurate totals
+      supabase.from("offer_clicks")
+        .select("*")
+        .not("provider_id", "is", null)
+        .order("created_at", { ascending: false }),
+      
+      supabase.from("login_logs")
+        .select("*")
+        .order("created_at", { ascending: false }).limit(500),
+      
+      supabase.from("page_visits")
+        .select("*").order("visited_at", { ascending: false }).limit(1000),
+      
+      supabase.from("earning_history")
+        .select("*")
+        .order("created_at", { ascending: false }).limit(500),
+      
+      supabase.from("promocode_redemptions")
+        .select("*")
+        .order("created_at", { ascending: false }).limit(200),
+    ]);
+    
+    console.log("[AdminClickTracking] Provider clicks fetched:", providerClicksRes.data?.length, "error:", providerClicksRes.error);
+    
+    // Enhance click data with joined information
+    const enhancedClicks = (clicksRes.data || []).map(click => ({
+      ...click,
+      profiles: profileMap.get(click.user_id) || null,
+      offers: click.offer_id ? offerMap.get(click.offer_id) : null,
+      survey_links: click.survey_link_id ? surveyMap.get(click.survey_link_id) : null
+    }));
+
+    const enhancedProviderClicks = (providerClicksRes.data || []).map((click: any) => ({
+      ...click,
+      profiles: profileMap.get(click.user_id) || null,
+      survey_providers: click.provider_id ? providerMap.get(click.provider_id) : null
+    }));
+
+    // Enhance other data
+    const enhancedLogins = (loginsRes.data || []).map(log => ({
+      ...log,
+      profiles: profileMap.get(log.user_id) || null
+    }));
+
+    const enhancedEarnings = (earningsRes.data || []).map(earn => ({
+      ...earn,
+      profiles: profileMap.get(earn.user_id) || null
+    }));
+
+    const enhancedPromo = (promoRes.data || []).map(promo => ({
+      ...promo,
+      profiles: profileMap.get(promo.user_id) || null,
+      promocodes: promo.promocode_id ? { code: promo.promocode_id } : null
+    }));
+
+    setClicks(enhancedClicks);
+    setProviderClicks(enhancedProviderClicks);
+    setLoginLogs(enhancedLogins);
+    setPageVisits(visitsRes.data || []);
+    setEarnings(enhancedEarnings);
+    setPromoRedemptions(enhancedPromo);
+    setProfiles(profilesRes.data || []);
+    setLoading(false);
+    setLastRefresh(new Date());
+  };
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      
-      // First fetch all reference data
-      const [offersRes, surveysRes, providersRes, profilesRes] = await Promise.all([
-        supabase.from("offers").select("id, title").eq("status", "active"),
-        supabase.from("survey_links").select("id, name").eq("status", "active"),
-        supabase.from("survey_providers").select("id, name, code").eq("status", "active"),
-        supabase.from("profiles").select("id, username, email"),
-      ]);
-      
-      setOffers(offersRes.data || []);
-      setSurveyLinks(surveysRes.data || []);
-      setProviders(providersRes.data || []);
-      
-      // Create lookup maps for faster access
-      const offerMap = new Map((offersRes.data || []).map(o => [o.id, o]));
-      const surveyMap = new Map((surveysRes.data || []).map(s => [s.id, s]));
-      const providerMap = new Map((providersRes.data || []).map(p => [p.id, p]));
-      const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
-
-      // Fetch clicks
-      const [clicksRes, providerClicksRes, loginsRes, visitsRes, earningsRes, promoRes] = await Promise.all([
-        // Regular offer/survey clicks
-        supabase.from("offer_clicks")
-          .select("*")
-          .or("offer_id.not.is.null,survey_link_id.not.is.null")
-          .order("created_at", { ascending: false }).limit(1000),
-        
-        // Provider/Offerwall clicks
-        supabase.from("offer_clicks")
-          .select("*")
-          .not("provider_id", "is", null)
-          .order("created_at", { ascending: false }).limit(500),
-        
-        supabase.from("login_logs")
-          .select("*")
-          .order("created_at", { ascending: false }).limit(500),
-        
-        supabase.from("page_visits")
-          .select("*").order("visited_at", { ascending: false }).limit(1000),
-        
-        supabase.from("earning_history")
-          .select("*")
-          .order("created_at", { ascending: false }).limit(500),
-        
-        supabase.from("promocode_redemptions")
-          .select("*")
-          .order("created_at", { ascending: false }).limit(200),
-      ]);
-      
-      // Enhance click data with joined information
-      const enhancedClicks = (clicksRes.data || []).map(click => ({
-        ...click,
-        profiles: profileMap.get(click.user_id) || null,
-        offers: click.offer_id ? offerMap.get(click.offer_id) : null,
-        survey_links: click.survey_link_id ? surveyMap.get(click.survey_link_id) : null
-      }));
-
-      const enhancedProviderClicks = (providerClicksRes.data || []).map((click: any) => ({
-        ...click,
-        profiles: profileMap.get(click.user_id) || null,
-        survey_providers: click.provider_id ? providerMap.get(click.provider_id) : null
-      }));
-
-      // Enhance other data
-      const enhancedLogins = (loginsRes.data || []).map(log => ({
-        ...log,
-        profiles: profileMap.get(log.user_id) || null
-      }));
-
-      const enhancedEarnings = (earningsRes.data || []).map(earn => ({
-        ...earn,
-        profiles: profileMap.get(earn.user_id) || null
-      }));
-
-      const enhancedPromo = (promoRes.data || []).map(promo => ({
-        ...promo,
-        profiles: profileMap.get(promo.user_id) || null,
-        promocodes: promo.promocode_id ? { code: promo.promocode_id } : null
-      }));
-
-      setClicks(enhancedClicks);
-      setProviderClicks(enhancedProviderClicks);
-      setLoginLogs(enhancedLogins);
-      setPageVisits(visitsRes.data || []);
-      setEarnings(enhancedEarnings);
-      setPromoRedemptions(enhancedPromo);
-      setProfiles(profilesRes.data || []);
-      setLoading(false);
-    };
-    load();
+    loadData();
+    // Auto-refresh every 15 seconds
+    const interval = setInterval(() => loadData(true), 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // Helper function to get item name
