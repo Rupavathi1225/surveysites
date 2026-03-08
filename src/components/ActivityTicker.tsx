@@ -30,6 +30,7 @@ interface FeedSettings {
   feed_scroll_speed: number;
   feed_box_color1: string;
   feed_box_color2: string;
+  feed_box_size: string;
   feed_total_count: number;
   feed_count_offers: number;
   feed_count_surveys: number;
@@ -44,19 +45,6 @@ interface FeedSettings {
   feed_count_new_offers: number;
   feed_count_global_notifications: number;
   feed_count_feed_generator: number;
-  feed_size_offers: string;
-  feed_size_surveys: string;
-  feed_size_signups: string;
-  feed_size_withdrawals: string;
-  feed_size_logins: string;
-  feed_size_contests: string;
-  feed_size_referrals: string;
-  feed_size_promocodes: string;
-  feed_size_payment_completed: string;
-  feed_size_new_promocodes: string;
-  feed_size_new_offers: string;
-  feed_size_global_notifications: string;
-  feed_size_feed_generator: string;
 }
 
 const DEFAULT_SETTINGS: FeedSettings = {
@@ -76,6 +64,7 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_scroll_speed: 120,
   feed_box_color1: "#1e293b",
   feed_box_color2: "#334155",
+  feed_box_size: "medium",
   feed_total_count: 20,
   feed_count_offers: 20,
   feed_count_surveys: 20,
@@ -90,19 +79,6 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_count_new_offers: 20,
   feed_count_global_notifications: 20,
   feed_count_feed_generator: 20,
-  feed_size_offers: "medium",
-  feed_size_surveys: "medium",
-  feed_size_signups: "medium",
-  feed_size_withdrawals: "medium",
-  feed_size_logins: "medium",
-  feed_size_contests: "medium",
-  feed_size_referrals: "medium",
-  feed_size_promocodes: "medium",
-  feed_size_payment_completed: "medium",
-  feed_size_new_promocodes: "medium",
-  feed_size_new_offers: "medium",
-  feed_size_global_notifications: "medium",
-  feed_size_feed_generator: "medium",
 };
 
 const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS);
@@ -155,22 +131,6 @@ const TYPE_TO_COUNT_KEY: Record<string, keyof FeedSettings> = {
   feed_generator: "feed_count_feed_generator",
 };
 
-const TYPE_TO_SIZE_KEY: Record<string, keyof FeedSettings> = {
-  offer: "feed_size_offers",
-  survey: "feed_size_surveys",
-  signup: "feed_size_signups",
-  withdrawal: "feed_size_withdrawals",
-  login: "feed_size_logins",
-  contest: "feed_size_contests",
-  referral: "feed_size_referrals",
-  promocode: "feed_size_promocodes",
-  payment_completed: "feed_size_payment_completed",
-  new_promocodes: "feed_size_new_promocodes",
-  new_offers: "feed_size_new_offers",
-  global_notifications: "feed_size_global_notifications",
-  feed_generator: "feed_size_feed_generator",
-};
-
 const ActivityTicker = ({ userId }: { userId?: string }) => {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [settings, setSettings] = useState<FeedSettings>(DEFAULT_SETTINGS);
@@ -205,6 +165,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_scroll_speed: getNum("feed_scroll_speed", 120),
           feed_box_color1: getStr("feed_box_color1", DEFAULT_SETTINGS.feed_box_color1),
           feed_box_color2: getStr("feed_box_color2", DEFAULT_SETTINGS.feed_box_color2),
+          feed_box_size: getStr("feed_box_size", "medium"),
           feed_total_count: getNum("feed_total_count", 20),
           feed_count_offers: getNum("feed_count_offers", 20),
           feed_count_surveys: getNum("feed_count_surveys", 20),
@@ -219,19 +180,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_count_new_offers: getNum("feed_count_new_offers", 20),
           feed_count_global_notifications: getNum("feed_count_global_notifications", 20),
           feed_count_feed_generator: getNum("feed_count_feed_generator", 20),
-          feed_size_offers: getStr("feed_size_offers", "medium"),
-          feed_size_surveys: getStr("feed_size_surveys", "medium"),
-          feed_size_signups: getStr("feed_size_signups", "medium"),
-          feed_size_withdrawals: getStr("feed_size_withdrawals", "medium"),
-          feed_size_logins: getStr("feed_size_logins", "medium"),
-          feed_size_contests: getStr("feed_size_contests", "medium"),
-          feed_size_referrals: getStr("feed_size_referrals", "medium"),
-          feed_size_promocodes: getStr("feed_size_promocodes", "medium"),
-          feed_size_payment_completed: getStr("feed_size_payment_completed", "medium"),
-          feed_size_new_promocodes: getStr("feed_size_new_promocodes", "medium"),
-          feed_size_new_offers: getStr("feed_size_new_offers", "medium"),
-          feed_size_global_notifications: getStr("feed_size_global_notifications", "medium"),
-          feed_size_feed_generator: getStr("feed_size_feed_generator", "medium"),
         });
       }
     };
@@ -345,10 +293,8 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const scrollDuration = `${settings.feed_scroll_speed}s`;
   const boxGradient = `linear-gradient(135deg, ${settings.feed_box_color1}, ${settings.feed_box_color2})`;
 
-  const getBoxSize = (type: string) => {
-    const sizeKey = TYPE_TO_SIZE_KEY[type];
-    const size = sizeKey ? (settings[sizeKey] as string) : "medium";
-    switch (size) {
+  const getBoxSize = () => {
+    switch (settings.feed_box_size) {
       case "small":
         return { minW: "min-w-[160px]", px: "px-3", py: "py-2", imgSize: "w-6 h-6", nameSize: "text-xs", amountSize: "text-sm", countrySize: "text-[9px]", offerSize: "text-[10px]" };
       case "large":
@@ -357,6 +303,8 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         return { minW: "min-w-[200px]", px: "px-4", py: "py-3", imgSize: "w-8 h-8", nameSize: "text-sm", amountSize: "text-lg", countrySize: "text-xs", offerSize: "text-xs" };
     }
   };
+
+  const sz = getBoxSize();
 
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
@@ -376,7 +324,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           style={{ width: "max-content", animationDuration: scrollDuration }}
         >
           {looped.map((item, i) => {
-            const sz = getBoxSize(item.type);
             return (
               <div
                 key={`${item.id}-${i}`}

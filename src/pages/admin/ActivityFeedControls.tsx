@@ -12,19 +12,19 @@ import { Activity, Save, RotateCcw, Gauge, Palette, Hash } from "lucide-react";
 import { toast } from "sonner";
 
 const FEED_TOGGLES = [
-  { key: "feed_show_offers", countKey: "feed_count_offers", sizeKey: "feed_size_offers", label: "Offer/Survey Completed", desc: "Show when users complete offers" },
-  { key: "feed_show_surveys", countKey: "feed_count_surveys", sizeKey: "feed_size_surveys", label: "Survey Completions", desc: "Show when users complete surveys" },
-  { key: "feed_show_signups", countKey: "feed_count_signups", sizeKey: "feed_size_signups", label: "New User Signups", desc: "Show when new users register" },
-  { key: "feed_show_logins", countKey: "feed_count_logins", sizeKey: "feed_size_logins", label: "User Logins", desc: "Show when users log in" },
-  { key: "feed_show_withdrawals", countKey: "feed_count_withdrawals", sizeKey: "feed_size_withdrawals", label: "Payment Requested", desc: "Show when users request withdrawals" },
-  { key: "feed_show_payment_completed", countKey: "feed_count_payment_completed", sizeKey: "feed_size_payment_completed", label: "Payment Completed", desc: "Show when payments are completed" },
-  { key: "feed_show_contests", countKey: "feed_count_contests", sizeKey: "feed_size_contests", label: "Contest Wins", desc: "Show contest winner announcements" },
-  { key: "feed_show_referrals", countKey: "feed_count_referrals", sizeKey: "feed_size_referrals", label: "Referrals", desc: "Show referral earnings" },
-  { key: "feed_show_promocodes", countKey: "feed_count_promocodes", sizeKey: "feed_size_promocodes", label: "Promocode Redeemed", desc: "Show promo code redemptions" },
-  { key: "feed_show_new_promocodes", countKey: "feed_count_new_promocodes", sizeKey: "feed_size_new_promocodes", label: "New Promocode Added", desc: "Show when new promo codes are added" },
-  { key: "feed_show_new_offers", countKey: "feed_count_new_offers", sizeKey: "feed_size_new_offers", label: "New Offers Added", desc: "Show when new offers are added" },
-  { key: "feed_show_global_notifications", countKey: "feed_count_global_notifications", sizeKey: "feed_size_global_notifications", label: "Global Notifications", desc: "Show global notification announcements" },
-  { key: "feed_show_feed_generator", countKey: "feed_count_feed_generator", sizeKey: "feed_size_feed_generator", label: "Feed Generator", desc: "Auto-generate simulated activity items" },
+  { key: "feed_show_offers", countKey: "feed_count_offers", label: "Offer/Survey Completed", desc: "Show when users complete offers" },
+  { key: "feed_show_surveys", countKey: "feed_count_surveys", label: "Survey Completions", desc: "Show when users complete surveys" },
+  { key: "feed_show_signups", countKey: "feed_count_signups", label: "New User Signups", desc: "Show when new users register" },
+  { key: "feed_show_logins", countKey: "feed_count_logins", label: "User Logins", desc: "Show when users log in" },
+  { key: "feed_show_withdrawals", countKey: "feed_count_withdrawals", label: "Payment Requested", desc: "Show when users request withdrawals" },
+  { key: "feed_show_payment_completed", countKey: "feed_count_payment_completed", label: "Payment Completed", desc: "Show when payments are completed" },
+  { key: "feed_show_contests", countKey: "feed_count_contests", label: "Contest Wins", desc: "Show contest winner announcements" },
+  { key: "feed_show_referrals", countKey: "feed_count_referrals", label: "Referrals", desc: "Show referral earnings" },
+  { key: "feed_show_promocodes", countKey: "feed_count_promocodes", label: "Promocode Redeemed", desc: "Show promo code redemptions" },
+  { key: "feed_show_new_promocodes", countKey: "feed_count_new_promocodes", label: "New Promocode Added", desc: "Show when new promo codes are added" },
+  { key: "feed_show_new_offers", countKey: "feed_count_new_offers", label: "New Offers Added", desc: "Show when new offers are added" },
+  { key: "feed_show_global_notifications", countKey: "feed_count_global_notifications", label: "Global Notifications", desc: "Show global notification announcements" },
+  { key: "feed_show_feed_generator", countKey: "feed_count_feed_generator", label: "Feed Generator", desc: "Auto-generate simulated activity items" },
 ];
 
 const COUNT_OPTIONS = ["10", "20", "30", "40", "50"];
@@ -39,6 +39,7 @@ const SPEED_KEY = "feed_scroll_speed";
 const COLOR1_KEY = "feed_box_color1";
 const COLOR2_KEY = "feed_box_color2";
 const TOTAL_COUNT_KEY = "feed_total_count";
+const BOX_SIZE_KEY = "feed_box_size";
 const DEFAULT_SPEED = 120;
 const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
@@ -49,7 +50,7 @@ const DEFAULT_BOX_SIZE = "medium";
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
-  const [sizes, setSizes] = useState<Record<string, string>>({});
+  const [boxSize, setBoxSize] = useState(DEFAULT_BOX_SIZE);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
@@ -64,24 +65,21 @@ const ActivityFeedControls = () => {
     const keys = [
       ...FEED_TOGGLES.map(t => t.key),
       ...FEED_TOGGLES.map(t => t.countKey),
-      ...FEED_TOGGLES.map(t => t.sizeKey),
-      SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY,
+      SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY, BOX_SIZE_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
     const m = new Map((data || []).map(s => [s.key, s.value]));
 
     const newToggles: Record<string, boolean> = {};
     const newCounts: Record<string, string> = {};
-    const newSizes: Record<string, string> = {};
     FEED_TOGGLES.forEach(t => {
       const val = m.get(t.key);
       newToggles[t.key] = val !== undefined ? val === "true" : (t.key === "feed_show_offers" || t.key === "feed_show_surveys");
       newCounts[t.countKey] = m.get(t.countKey) || DEFAULT_PER_TYPE_COUNT;
-      newSizes[t.sizeKey] = m.get(t.sizeKey) || DEFAULT_BOX_SIZE;
     });
     setToggles(newToggles);
     setCounts(newCounts);
-    setSizes(newSizes);
+    setBoxSize(m.get(BOX_SIZE_KEY) || DEFAULT_BOX_SIZE);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
@@ -106,8 +104,8 @@ const ActivityFeedControls = () => {
     const allSettings = [
       ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(toggles[t.key] ?? false) })),
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: counts[t.countKey] || DEFAULT_PER_TYPE_COUNT })),
-      ...FEED_TOGGLES.map(t => ({ key: t.sizeKey, value: sizes[t.sizeKey] || DEFAULT_BOX_SIZE })),
       { key: TOTAL_COUNT_KEY, value: totalCount },
+      { key: BOX_SIZE_KEY, value: boxSize },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
       { key: COLOR2_KEY, value: color2 },
@@ -120,15 +118,13 @@ const ActivityFeedControls = () => {
   const handleReset = async () => {
     const defaultToggles: Record<string, boolean> = {};
     const defaultCounts: Record<string, string> = {};
-    const defaultSizes: Record<string, string> = {};
     FEED_TOGGLES.forEach(t => {
       defaultToggles[t.key] = t.key === "feed_show_offers" || t.key === "feed_show_surveys";
       defaultCounts[t.countKey] = DEFAULT_PER_TYPE_COUNT;
-      defaultSizes[t.sizeKey] = DEFAULT_BOX_SIZE;
     });
     setToggles(defaultToggles);
     setCounts(defaultCounts);
-    setSizes(defaultSizes);
+    setBoxSize(DEFAULT_BOX_SIZE);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -138,8 +134,8 @@ const ActivityFeedControls = () => {
     const allSettings = [
       ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(defaultToggles[t.key]) })),
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: DEFAULT_PER_TYPE_COUNT })),
-      ...FEED_TOGGLES.map(t => ({ key: t.sizeKey, value: DEFAULT_BOX_SIZE })),
       { key: TOTAL_COUNT_KEY, value: DEFAULT_TOTAL_COUNT },
+      { key: BOX_SIZE_KEY, value: DEFAULT_BOX_SIZE },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
@@ -214,6 +210,51 @@ const ActivityFeedControls = () => {
         </CardContent>
       </Card>
 
+      {/* Ticker Box Size */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Hash className="h-5 w-5 text-primary" />
+            Ticker Box Size
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Choose the size of all ticker boxes in the activity feed
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Select value={boxSize} onValueChange={setBoxSize}>
+              <SelectTrigger className="w-full max-w-[200px]">
+                <SelectValue placeholder="Select size" />
+              </SelectTrigger>
+              <SelectContent>
+                {SIZE_OPTIONS.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Live preview */}
+            <div className="flex items-center gap-3">
+              {SIZE_OPTIONS.map(s => (
+                <div
+                  key={s.value}
+                  className={`rounded-lg border flex items-center justify-center text-[10px] font-medium transition-all cursor-pointer ${boxSize === s.value ? "border-primary ring-2 ring-primary/30 text-primary" : "border-border text-muted-foreground"}`}
+                  style={{
+                    width: s.value === "small" ? 50 : s.value === "large" ? 90 : 70,
+                    height: s.value === "small" ? 30 : s.value === "large" ? 50 : 40,
+                    background: boxSize === s.value ? `linear-gradient(135deg, ${color1}, ${color2})` : undefined,
+                    color: boxSize === s.value ? "white" : undefined,
+                  }}
+                  onClick={() => setBoxSize(s.value)}
+                >
+                  {s.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Activity Type Toggles with per-type count */}
       <Card>
         <CardHeader className="pb-3">
@@ -233,7 +274,7 @@ const ActivityFeedControls = () => {
                     <p className="text-sm font-medium text-foreground">{t.label}</p>
                     <p className="text-xs text-muted-foreground">{t.desc}</p>
                     {isEnabled && (
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <div className="mt-2">
                         <Select
                           value={counts[t.countKey] || DEFAULT_PER_TYPE_COUNT}
                           onValueChange={(v) => setCounts(prev => ({ ...prev, [t.countKey]: v }))}
@@ -247,31 +288,6 @@ const ActivityFeedControls = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Select
-                          value={sizes[t.sizeKey] || DEFAULT_BOX_SIZE}
-                          onValueChange={(v) => setSizes(prev => ({ ...prev, [t.sizeKey]: v }))}
-                        >
-                          <SelectTrigger className="w-[110px] h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SIZE_OPTIONS.map(s => (
-                              <SelectItem key={s.value} value={s.value}>{s.label} Box</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {/* Size preview */}
-                        <div
-                          className="rounded border border-primary/30 flex items-center justify-center text-[9px] text-muted-foreground"
-                          style={{
-                            width: sizes[t.sizeKey] === "small" ? 40 : sizes[t.sizeKey] === "large" ? 80 : 60,
-                            height: sizes[t.sizeKey] === "small" ? 24 : sizes[t.sizeKey] === "large" ? 40 : 32,
-                            background: `linear-gradient(135deg, ${color1}, ${color2})`,
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <span className="text-white/70">{sizes[t.sizeKey] || "md"}</span>
-                        </div>
                       </div>
                     )}
                   </div>
