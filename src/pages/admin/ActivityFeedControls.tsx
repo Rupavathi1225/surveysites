@@ -255,12 +255,17 @@ const ActivityFeedControls = () => {
             Ticker Box Size
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            Choose the size of all ticker boxes in the activity feed
+            Choose a preset or set custom dimensions for all ticker boxes
           </p>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Select value={boxSize} onValueChange={setBoxSize}>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Select value={boxSize} onValueChange={(v) => {
+              setBoxSize(v);
+              if (v === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
+              if (v === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
+              if (v === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+            }}>
               <SelectTrigger className="w-full max-w-[200px]">
                 <SelectValue placeholder="Select size" />
               </SelectTrigger>
@@ -270,9 +275,9 @@ const ActivityFeedControls = () => {
                 ))}
               </SelectContent>
             </Select>
-            {/* Live preview */}
+            {/* Preset preview boxes */}
             <div className="flex items-center gap-3">
-              {SIZE_OPTIONS.map(s => (
+              {SIZE_OPTIONS.filter(s => s.value !== "custom").map(s => (
                 <div
                   key={s.value}
                   className={`rounded-lg border flex items-center justify-center text-[10px] font-medium transition-all cursor-pointer ${boxSize === s.value ? "border-primary ring-2 ring-primary/30 text-primary" : "border-border text-muted-foreground"}`}
@@ -282,11 +287,71 @@ const ActivityFeedControls = () => {
                     background: boxSize === s.value ? `linear-gradient(135deg, ${color1}, ${color2})` : undefined,
                     color: boxSize === s.value ? "white" : undefined,
                   }}
-                  onClick={() => setBoxSize(s.value)}
+                  onClick={() => {
+                    setBoxSize(s.value);
+                    if (s.value === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
+                    if (s.value === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
+                    if (s.value === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+                  }}
                 >
                   {s.label}
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Manual custom fields - always visible */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-border">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Width (px)</Label>
+              <Input type="number" min="100" max="500" value={boxWidth}
+                onChange={(e) => { setBoxWidth(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Height (px)</Label>
+              <Input type="number" min="30" max="200" value={boxHeight}
+                onChange={(e) => { setBoxHeight(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Padding (px)</Label>
+              <Input type="number" min="4" max="40" value={boxPadding}
+                onChange={(e) => { setBoxPadding(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Font Size (px)</Label>
+              <Input type="number" min="8" max="24" value={boxFontSize}
+                onChange={(e) => { setBoxFontSize(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Border Radius (px)</Label>
+              <Input type="number" min="0" max="30" value={boxBorderRadius}
+                onChange={(e) => { setBoxBorderRadius(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+          </div>
+
+          {/* Live preview with current values */}
+          <div className="pt-2">
+            <p className="text-xs text-muted-foreground mb-2">Live Preview:</p>
+            <div
+              className="inline-flex items-center border border-foreground/5"
+              style={{
+                minWidth: `${boxWidth}px`,
+                minHeight: `${boxHeight}px`,
+                padding: `${boxPadding}px`,
+                borderRadius: `${boxBorderRadius}px`,
+                background: `linear-gradient(135deg, ${color1}, ${color2})`,
+              }}
+            >
+              <div className="flex flex-col gap-0.5 flex-1 mr-3">
+                <span className="font-semibold text-white truncate" style={{ fontSize: `${boxFontSize}px` }}>SampleUser</span>
+                <span className="text-white/60 truncate" style={{ fontSize: `${Math.max(parseInt(boxFontSize) - 4, 8)}px` }}>PrimeWall</span>
+              </div>
+              <span className="font-bold text-white whitespace-nowrap" style={{ fontSize: `${Math.min(parseInt(boxFontSize) + 4, 24)}px` }}>150 pts</span>
             </div>
           </div>
         </CardContent>
