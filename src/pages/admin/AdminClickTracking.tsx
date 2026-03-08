@@ -420,13 +420,17 @@ const AdminClickTracking = () => {
           <h1 className="text-2xl font-bold">Analytics & Click Tracking</h1>
           <p className="text-sm text-muted-foreground">Track visitor sessions, click activity & user behavior</p>
         </div>
-        <Badge variant="outline" className="text-xs"><RefreshCw className="h-3 w-3 mr-1" /> Live Data</Badge>
-      </div>
-
-      <Tabs defaultValue="last24h">
-        <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="last24h">Last 24 Hours</TabsTrigger>
-          <TabsTrigger value="activity">Click Activity</TabsTrigger>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            <Clock className="h-3 w-3 mr-1" /> {lastRefresh.toLocaleTimeString()}
+          </Badge>
+          <button 
+            onClick={() => loadData()} 
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+        </div>
           <TabsTrigger value="users">User Behavior</TabsTrigger>
           <TabsTrigger value="offers">Offer Performance</TabsTrigger>
           <TabsTrigger value="providers">Offerwall Analytics</TabsTrigger>
