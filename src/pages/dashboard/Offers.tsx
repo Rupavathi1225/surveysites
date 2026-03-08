@@ -106,6 +106,13 @@ const Offers = () => {
       offer_id: offer.id,
     }).catch(err => console.error("[trackClick] error:", err));
   };
+  // API image integration function
+  const getImageUrl = (title: string, existingUrl?: string) => {
+    if (existingUrl && existingUrl.startsWith('http')) {
+      return existingUrl;
+    }
+    return `https://picsum.photos/seed/${encodeURIComponent(title)}/200/150.jpg`;
+  };
 
   const trackProviderClick = async (provider: any) => {
     if (!profile) {
