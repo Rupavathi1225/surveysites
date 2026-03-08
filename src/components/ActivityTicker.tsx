@@ -138,12 +138,12 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
               <div className="flex flex-col min-w-0 flex-1 gap-0">
                 <div className="flex items-center gap-1">
                   <span className="text-[9px] font-semibold text-foreground truncate">{item.username}</span>
-                  <span className="text-[7px] text-muted-foreground">{getRelativeTime(item.created_at)}</span>
+                  <span className="text-[7px] text-foreground/70">{getRelativeTime(item.created_at)}</span>
                 </div>
                 <span className="text-[8px] text-primary font-bold">{item.amount}</span>
                 <div className="flex items-center gap-0.5">
                   {item.country && <span className="text-[8px]">{getCountryFlag(item.country)}</span>}
-                  <span className="text-[7px] text-muted-foreground truncate">{item.offerwallName}</span>
+                  <span className="text-[7px] text-foreground/60 truncate">{item.offerwallName}</span>
                 </div>
               </div>
             </div>
