@@ -582,7 +582,7 @@ const AdminClickTracking = () => {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Conversion Performance by Offerwall</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[500px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1000px]">
                   <Table>
                     <TableHeader>
