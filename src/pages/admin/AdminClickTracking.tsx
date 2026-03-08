@@ -643,7 +643,13 @@ const AdminClickTracking = () => {
 
         {/* ==================== CLICK ACTIVITY ==================== */}
         <TabsContent value="activity" className="space-y-4">
-          <h2 className="text-lg font-semibold">Click Activity & Completion Tracking</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Click Activity & Completion Tracking</h2>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search user or offer..." value={activitySearch} onChange={e => setActivitySearch(e.target.value)} className="pl-8" />
+            </div>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <StatCard icon={MousePointerClick} value={allClicks.length} label="All-Time Clicks" />
             <StatCard icon={TrendingUp} value={clicks.filter(c => c.completion_status === "completed").length} label="Completed" color="text-green-500" />
@@ -654,13 +660,19 @@ const AdminClickTracking = () => {
           </div>
 
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Recent Click Activity</CardTitle></CardHeader>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm">All Click Activity ({filteredAllClicks.length} of {allClicks.length})</CardTitle>
+                <Badge variant="outline" className="text-xs">{allClicks.length} total records</Badge>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[500px]">
+              <ScrollArea className="w-full" style={{ maxHeight: "700px" }}>
                 <div className="min-w-[1400px]">
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>#</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Offer/Survey</TableHead>
@@ -668,6 +680,8 @@ const AdminClickTracking = () => {
                         <TableHead>IP</TableHead>
                         <TableHead>Country</TableHead>
                         <TableHead>Device</TableHead>
+                        <TableHead>Browser</TableHead>
+                        <TableHead>OS</TableHead>
                         <TableHead>VPN</TableHead>
                         <TableHead>Risk</TableHead>
                         <TableHead>Time Spent</TableHead>
@@ -676,17 +690,20 @@ const AdminClickTracking = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {allClicks.slice(0, 150).map(c => {
+                      {filteredAllClicks.length === 0 ? (
+                        <TableRow><TableCell colSpan={15} className="text-center text-muted-foreground py-8">No clicks found</TableCell></TableRow>
+                      ) : filteredAllClicks.map((c, idx) => {
                         const type = getItemType(c);
                         return (
                           <TableRow key={c.id}>
+                            <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
                             <TableCell>
                               <Badge variant={type === "provider" ? "default" : "secondary"} className={`text-xs ${type === "provider" ? "bg-purple-500" : type === "offer" ? "bg-blue-500" : "bg-green-500"}`}>
                                 {type === "provider" ? "Offerwall" : type === "offer" ? "Offer" : "Survey"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-sm font-medium cursor-pointer hover:underline" onClick={() => c.user_id && openUserDetail(c.user_id)}>{c.profiles?.username || "—"}</TableCell>
-                            <TableCell className="text-sm">{getItemName(c)}</TableCell>
+                            <TableCell className="text-sm font-medium cursor-pointer hover:underline" onClick={() => c.user_id && openUserDetail(c.user_id)}>{c.profiles?.username || c.username || "—"}</TableCell>
+                            <TableCell className="text-sm max-w-[150px] truncate">{getItemName(c)}</TableCell>
                             <TableCell>
                               <Badge variant={c.completion_status === "completed" ? "default" : c.completion_status === "reversed" ? "destructive" : "secondary"} className="text-xs">
                                 {type === "provider" ? "Clicked" : c.completion_status}
@@ -695,6 +712,8 @@ const AdminClickTracking = () => {
                             <TableCell className="text-xs">{c.ip_address || "—"}</TableCell>
                             <TableCell className="text-xs">{c.country || "—"}</TableCell>
                             <TableCell className="text-xs">{c.device_type || "—"}</TableCell>
+                            <TableCell className="text-xs">{c.browser || "—"}</TableCell>
+                            <TableCell className="text-xs">{c.os || "—"}</TableCell>
                             <TableCell className="text-xs">{c.vpn_proxy_flag ? "⚠️ Yes" : "No"}</TableCell>
                             <TableCell><Badge variant={c.risk_score > 50 ? "destructive" : "secondary"} className="text-xs">{c.risk_score || 0}</Badge></TableCell>
                             <TableCell className="text-xs">{c.time_spent ? `${c.time_spent}s` : "—"}</TableCell>
