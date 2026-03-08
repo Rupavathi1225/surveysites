@@ -474,6 +474,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           source: isPaid ? `Payment completed via ${w.payment_method}` : `Requested withdrawal via ${w.payment_method}`,
           amount: `$ ${(w.amount || 0).toFixed(2)}`,
           icon: "payment",
+          created_at: w.created_at,
         });
       });
 
