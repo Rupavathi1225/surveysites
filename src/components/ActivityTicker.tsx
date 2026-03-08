@@ -178,7 +178,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_count_global_notifications: getNum("feed_count_global_notifications", 20),
           feed_count_feed_generator: getNum("feed_count_feed_generator", 20),
         });
-        });
       }
     };
     loadSettings();
