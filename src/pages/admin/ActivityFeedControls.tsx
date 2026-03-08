@@ -49,6 +49,7 @@ const DEFAULT_BOX_SIZE = "medium";
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
+  const [sizes, setSizes] = useState<Record<string, string>>({});
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
