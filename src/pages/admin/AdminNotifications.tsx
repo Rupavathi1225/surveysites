@@ -429,30 +429,7 @@ const extractAdminLogDetails = (message: string): { summary: string; details: st
         </div>
       </div>
 
-      {/* Activity Feed Controls */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium flex items-center gap-2">
-                <Settings2 className="h-4 w-4" /> Activity Feed Controls
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1">Manage automated activity generation</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Label htmlFor="feed-generator-toggle" className="text-sm">Feed Generator</Label>
-              <Switch 
-                id="feed-generator-toggle"
-                checked={feedGeneratorEnabled} 
-                onCheckedChange={setFeedGeneratorEnabled} 
-              />
-              <span className="text-xs text-muted-foreground">
-                {feedGeneratorEnabled ? "ON" : "OFF"}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Activity Feed Controls removed - moved to Admin Dashboard */}
 
       {/* Sent Notifications Table */}
       <Card>

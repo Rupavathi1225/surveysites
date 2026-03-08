@@ -439,19 +439,17 @@ const AdminDashboard = () => {
               </div>
             ))}
             
-            {/* Feed Generator Button */}
+            {/* Feed Generator Toggle */}
             <div className="pt-4 border-t">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Network className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Feed Generator</span>
+                  <span className="text-sm">Feed Generator</span>
                 </div>
-                <Button 
-                  onClick={() => window.location.href = '/admin/notifications'}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Open Feed Generator
-                </Button>
+                <Switch
+                  checked={(feedSettings as any).feedGenerator || false}
+                  onCheckedChange={(v) => setFeedSettings((p) => ({ ...p, feedGenerator: v }))}
+                />
               </div>
             </div>
           </CardContent>
