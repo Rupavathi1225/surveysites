@@ -69,7 +69,9 @@ const DailySurveys = () => {
     else if (type === "survey") payload.survey_link_id = item.id;
     else if (type === "provider") payload.provider_id = providerId;
 
-    await supabase.from("offer_clicks").insert(payload).select("id").single();
+    const { data, error } = await supabase.from("offer_clicks").insert(payload).select("id").single();
+    if (error) console.error("[TrackClick Error]", error, payload);
+    else console.log("[TrackClick OK]", data?.id, type, payload.provider_id || payload.offer_id || payload.survey_link_id);
   };
 
   const handleStart = async (item: any, type: "survey" | "offer") => {
