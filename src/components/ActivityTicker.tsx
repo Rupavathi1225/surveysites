@@ -308,18 +308,14 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const scrollDuration = `${settings.feed_scroll_speed}s`;
   const boxGradient = `linear-gradient(135deg, ${settings.feed_box_color1}, ${settings.feed_box_color2})`;
 
-  const getBoxSize = () => {
-    switch (settings.feed_box_size) {
-      case "small":
-        return { minW: "min-w-[160px]", px: "px-3", py: "py-2", imgSize: "w-6 h-6", nameSize: "text-xs", amountSize: "text-sm", countrySize: "text-[9px]", offerSize: "text-[10px]" };
-      case "large":
-        return { minW: "min-w-[280px]", px: "px-5", py: "py-4", imgSize: "w-10 h-10", nameSize: "text-base", amountSize: "text-xl", countrySize: "text-xs", offerSize: "text-sm" };
-      default:
-        return { minW: "min-w-[200px]", px: "px-4", py: "py-3", imgSize: "w-8 h-8", nameSize: "text-sm", amountSize: "text-lg", countrySize: "text-xs", offerSize: "text-xs" };
-    }
-  };
-
-  const sz = getBoxSize();
+  const w = parseInt(settings.feed_box_width) || 200;
+  const h = parseInt(settings.feed_box_height) || 60;
+  const pad = parseInt(settings.feed_box_padding) || 16;
+  const fs = parseInt(settings.feed_box_font_size) || 14;
+  const br = parseInt(settings.feed_box_border_radius) || 12;
+  const imgSz = Math.max(Math.round(fs * 1.8), 20);
+  const amountFs = Math.min(fs + 4, 24);
+  const subFs = Math.max(fs - 4, 8);
 
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
@@ -342,23 +338,31 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
             return (
               <div
                 key={`${item.id}-${i}`}
-                className={`inline-flex items-center shrink-0 rounded-xl ${sz.px} ${sz.py} ${sz.minW} border border-foreground/5 transition-all`}
-                style={{ background: boxGradient }}
+                className="inline-flex items-center shrink-0 border border-foreground/5 transition-all"
+                style={{
+                  background: boxGradient,
+                  minWidth: `${w}px`,
+                  minHeight: `${h}px`,
+                  padding: `${pad}px`,
+                  borderRadius: `${br}px`,
+                }}
               >
                 {item.offerwallLogo && (
-                  <img src={item.offerwallLogo} alt={item.offerwallName} className={`${sz.imgSize} object-contain shrink-0 mr-2`} />
+                  <img src={item.offerwallLogo} alt={item.offerwallName}
+                    className="object-contain shrink-0 mr-2"
+                    style={{ width: `${imgSz}px`, height: `${imgSz}px` }} />
                 )}
                 <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                   <div className="flex items-center gap-1.5">
-                    <span className={`${sz.nameSize} font-semibold text-white truncate`}>{item.username}</span>
-                    <span className="text-[10px] text-white/50">• {getRelativeTime(item.created_at)}</span>
+                    <span className="font-semibold text-white truncate" style={{ fontSize: `${fs}px` }}>{item.username}</span>
+                    <span className="text-white/50" style={{ fontSize: `${subFs}px` }}>• {getRelativeTime(item.created_at)}</span>
                   </div>
-                  <span className={`${sz.offerSize} text-white/60 truncate`}>{item.offerwallName}</span>
+                  <span className="text-white/60 truncate" style={{ fontSize: `${subFs}px` }}>{item.offerwallName}</span>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className={`${sz.amountSize} font-bold text-white whitespace-nowrap`}>{item.amount}</span>
+                  <span className="font-bold text-white whitespace-nowrap" style={{ fontSize: `${amountFs}px` }}>{item.amount}</span>
                   {item.country && (
-                    <div className={`${sz.countrySize} text-white/50 whitespace-nowrap`}>{getCountryFlag(item.country)} {item.country}</div>
+                    <div className="text-white/50 whitespace-nowrap" style={{ fontSize: `${Math.max(subFs - 1, 8)}px` }}>{getCountryFlag(item.country)} {item.country}</div>
                   )}
                 </div>
               </div>
