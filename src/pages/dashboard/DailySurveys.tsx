@@ -40,7 +40,7 @@ const DailySurveys = () => {
     else if (type === "provider") payload.provider_id = providerId;
 
     console.log("[TrackClick] Tracking:", type, providerId || item.id);
-    trackClickRobust(payload).catch(err => console.error("[TrackClick] error:", err));
+    await trackClickRobust(payload);
   };
 
   const handleStart = (item: any, type: "survey" | "offer") => {
