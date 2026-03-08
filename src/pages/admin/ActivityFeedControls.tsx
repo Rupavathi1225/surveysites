@@ -229,7 +229,7 @@ const ActivityFeedControls = () => {
                     <p className="text-sm font-medium text-foreground">{t.label}</p>
                     <p className="text-xs text-muted-foreground">{t.desc}</p>
                     {isEnabled && (
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <div className="mt-2">
                         <Select
                           value={counts[t.countKey] || DEFAULT_PER_TYPE_COUNT}
                           onValueChange={(v) => setCounts(prev => ({ ...prev, [t.countKey]: v }))}
@@ -243,31 +243,6 @@ const ActivityFeedControls = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Select
-                          value={sizes[t.sizeKey] || DEFAULT_BOX_SIZE}
-                          onValueChange={(v) => setSizes(prev => ({ ...prev, [t.sizeKey]: v }))}
-                        >
-                          <SelectTrigger className="w-[110px] h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {SIZE_OPTIONS.map(s => (
-                              <SelectItem key={s.value} value={s.value}>{s.label} Box</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {/* Size preview */}
-                        <div
-                          className="rounded border border-primary/30 flex items-center justify-center text-[9px] text-muted-foreground"
-                          style={{
-                            width: sizes[t.sizeKey] === "small" ? 40 : sizes[t.sizeKey] === "large" ? 80 : 60,
-                            height: sizes[t.sizeKey] === "small" ? 24 : sizes[t.sizeKey] === "large" ? 40 : 32,
-                            background: `linear-gradient(135deg, ${color1}, ${color2})`,
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <span className="text-white/70">{sizes[t.sizeKey] || "md"}</span>
-                        </div>
                       </div>
                     )}
                   </div>
