@@ -10,6 +10,7 @@ import { Monitor, Smartphone, Tablet, Send, MessageCircle, X, Star, Network, Che
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivityTicker from "@/components/ActivityTicker";
+import { trackClickRobust } from "@/lib/clickTrackingHelper";
 
 const DashboardHome = () => {
   const { profile, user } = useAuth();
