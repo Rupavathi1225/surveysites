@@ -152,6 +152,7 @@ const AdminOffers = () => {
   const [countryFilter, setCountryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [networkFilter, setNetworkFilter] = useState("all");
+  const [approvalFilter, setApprovalFilter] = useState("all");
   const [networks, setNetworks] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalOffers, setTotalOffers] = useState(0);
