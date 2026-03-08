@@ -273,10 +273,12 @@ const AdminClickTracking = () => {
     // Regular offers and surveys
     clicks.forEach(c => {
       const key = c.offer_id || c.survey_link_id || "unknown";
+      if (key === "unknown") return; // Skip clicks with no offer or survey
       if (!map.has(key)) {
+        const resolvedName = c.offers?.title || c.survey_links?.name || null;
         map.set(key, {
           id: key,
-          name: c.offers?.title || c.survey_links?.name || "Unknown",
+          name: resolvedName || `Deleted (${key.substring(0, 8)}…)`,
           type: c.offer_id ? "Offer" : "Survey",
           totalClicks: 0,
           completed: 0,
