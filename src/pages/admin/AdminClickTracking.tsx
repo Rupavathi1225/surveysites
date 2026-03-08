@@ -627,7 +627,7 @@ const AdminClickTracking = () => {
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm">Recent Postback Activity</CardTitle></CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="w-full max-h-[400px]">
+              <ScrollArea className="w-full">
                 <div className="min-w-[1200px]">
                   <Table>
                     <TableHeader>
