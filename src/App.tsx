@@ -16,6 +16,8 @@ import Withdrawal from "./pages/dashboard/Withdrawal";
 import ConvertPoints from "./pages/dashboard/ConvertPoints";
 import DailySurveys from "./pages/dashboard/DailySurveys";
 import Offers from "./pages/dashboard/Offers";
+import Offerwalls from "./pages/dashboard/Offerwalls";
+import OfferwallViewer from "./pages/dashboard/OfferwallViewer";
 import Contest from "./pages/dashboard/Contest";
 import News from "./pages/dashboard/News";
 import Promocode from "./pages/dashboard/Promocode";
