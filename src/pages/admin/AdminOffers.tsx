@@ -188,6 +188,7 @@ const AdminOffers = () => {
   // Duplicate groups state for Duplicates tab
   const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
   const [loadingDuplicates, setLoadingDuplicates] = useState(false);
+  const [selectedDuplicateOffers, setSelectedDuplicateOffers] = useState<Set<string>>(new Set());
 
 // Recycle bin multi-delete state
   const [deletingRecycleBin, setDeletingRecycleBin] = useState(false);
