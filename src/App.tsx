@@ -46,6 +46,7 @@ import AdminClickTracking from "./pages/admin/AdminClickTracking";
 import DownwardPartners from "./pages/admin/DownwardPartners";
 import PostbackLogs from "./pages/admin/PostbackLogs";
 import TestPostback from "./pages/admin/TestPostback";
+import ActivityFeedControls from "./pages/admin/ActivityFeedControls";
 import NotFound from "./pages/NotFound";
 import Terms from "./pages/Terms";
 
