@@ -151,7 +151,9 @@ const Offers = () => {
     utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
-    const { data: inserted } = await supabase.from("offer_clicks").insert({
+    const clickId = crypto.randomUUID();
+    const { error } = await supabase.from("offer_clicks").insert({
+      id: clickId,
       user_id: profile.id, offer_id: offer.id, username: profile.username || null,
       session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
       user_agent: navigator.userAgent,
@@ -163,19 +165,16 @@ const Offers = () => {
       ip_address: ipInfo.ip || null, country: ipInfo.country || null,
       vpn_proxy_flag: ipInfo.proxy || false,
       utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
-    }).select("id").single();
+    });
 
-    if (inserted?.id) {
-      const updateEnd = () => {
+    if (error) {
+      console.error("[trackClick] Insert error:", error);
+    } else {
+      console.log("[trackClick] OK:", clickId);
+      setTimeout(() => {
         const endTime = new Date().toISOString();
         const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
-      };
-      window.addEventListener("beforeunload", updateEnd, { once: true });
-      setTimeout(async () => {
-        const endTime = new Date().toISOString();
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
+        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", clickId).then(() => {});
       }, 30000);
     }
   };
