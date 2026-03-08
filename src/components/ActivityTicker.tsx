@@ -25,6 +25,15 @@ interface FeedSettings {
   feed_scroll_speed: number;
   feed_box_color1: string;
   feed_box_color2: string;
+  feed_total_count: number;
+  feed_count_offers: number;
+  feed_count_surveys: number;
+  feed_count_signups: number;
+  feed_count_withdrawals: number;
+  feed_count_logins: number;
+  feed_count_contests: number;
+  feed_count_referrals: number;
+  feed_count_promocodes: number;
 }
 
 const DEFAULT_SETTINGS: FeedSettings = {
@@ -39,13 +48,25 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_scroll_speed: 120,
   feed_box_color1: "#1e293b",
   feed_box_color2: "#334155",
+  feed_total_count: 20,
+  feed_count_offers: 20,
+  feed_count_surveys: 20,
+  feed_count_signups: 20,
+  feed_count_withdrawals: 20,
+  feed_count_logins: 20,
+  feed_count_contests: 20,
+  feed_count_referrals: 20,
+  feed_count_promocodes: 20,
 };
 
 const SETTING_KEYS = [
   "feed_show_offers", "feed_show_surveys", "feed_show_signups",
   "feed_show_withdrawals", "feed_show_logins", "feed_show_contests",
   "feed_show_referrals", "feed_show_promocodes", "feed_scroll_speed",
-  "feed_box_color1", "feed_box_color2",
+  "feed_box_color1", "feed_box_color2", "feed_total_count",
+  "feed_count_offers", "feed_count_surveys", "feed_count_signups",
+  "feed_count_withdrawals", "feed_count_logins", "feed_count_contests",
+  "feed_count_referrals", "feed_count_promocodes",
 ];
 
 function classifyEarning(desc: string, offerName: string, type: string): string {
@@ -59,6 +80,17 @@ function classifyEarning(desc: string, offerName: string, type: string): string 
   if (text.includes("login") || text.includes("log in")) return "login";
   return "offer";
 }
+
+const TYPE_TO_COUNT_KEY: Record<string, keyof FeedSettings> = {
+  offer: "feed_count_offers",
+  survey: "feed_count_surveys",
+  signup: "feed_count_signups",
+  withdrawal: "feed_count_withdrawals",
+  login: "feed_count_logins",
+  contest: "feed_count_contests",
+  referral: "feed_count_referrals",
+  promocode: "feed_count_promocodes",
+};
 
 const ActivityTicker = ({ userId }: { userId?: string }) => {
   const [items, setItems] = useState<TickerItem[]>([]);
@@ -85,6 +117,15 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_scroll_speed: parseInt(map.get("feed_scroll_speed") || "120") || 120,
           feed_box_color1: map.get("feed_box_color1") || DEFAULT_SETTINGS.feed_box_color1,
           feed_box_color2: map.get("feed_box_color2") || DEFAULT_SETTINGS.feed_box_color2,
+          feed_total_count: parseInt(map.get("feed_total_count") || "20") || 20,
+          feed_count_offers: parseInt(map.get("feed_count_offers") || "20") || 20,
+          feed_count_surveys: parseInt(map.get("feed_count_surveys") || "20") || 20,
+          feed_count_signups: parseInt(map.get("feed_count_signups") || "20") || 20,
+          feed_count_withdrawals: parseInt(map.get("feed_count_withdrawals") || "20") || 20,
+          feed_count_logins: parseInt(map.get("feed_count_logins") || "20") || 20,
+          feed_count_contests: parseInt(map.get("feed_count_contests") || "20") || 20,
+          feed_count_referrals: parseInt(map.get("feed_count_referrals") || "20") || 20,
+          feed_count_promocodes: parseInt(map.get("feed_count_promocodes") || "20") || 20,
         });
       }
     };
@@ -93,12 +134,14 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
   useEffect(() => {
     const fetchAll = async () => {
+      // Fetch more than needed so we can apply per-type limits
+      const fetchLimit = Math.max(settings.feed_total_count * 3, 100);
       const { data: earnings } = await supabase
         .from("earning_history")
         .select("id, amount, offer_name, user_id, description, created_at, status, type")
         .eq("status", "approved")
         .order("created_at", { ascending: false })
-        .limit(40);
+        .limit(fetchLimit);
 
       if (!earnings?.length) return;
 
@@ -132,21 +175,34 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         };
       });
 
+      // Apply per-type visibility filter & per-type count limits
+      const typeCounts: Record<string, number> = {};
       const filtered = tickerItems.filter(item => {
-        switch (item.type) {
-          case "offer": return settings.feed_show_offers;
-          case "survey": return settings.feed_show_surveys;
-          case "signup": return settings.feed_show_signups;
-          case "withdrawal": return settings.feed_show_withdrawals;
-          case "login": return settings.feed_show_logins;
-          case "contest": return settings.feed_show_contests;
-          case "referral": return settings.feed_show_referrals;
-          case "promocode": return settings.feed_show_promocodes;
-          default: return settings.feed_show_offers;
+        // Check if type is enabled
+        const showKey = `feed_show_${item.type}s` as keyof FeedSettings;
+        if (showKey === "feed_show_offers" ? !settings.feed_show_offers :
+            showKey === "feed_show_surveys" ? !settings.feed_show_surveys :
+            showKey === "feed_show_signups" ? !settings.feed_show_signups :
+            showKey === "feed_show_withdrawals" ? !settings.feed_show_withdrawals :
+            showKey === "feed_show_logins" ? !settings.feed_show_logins :
+            showKey === "feed_show_contests" ? !settings.feed_show_contests :
+            showKey === "feed_show_referrals" ? !settings.feed_show_referrals :
+            showKey === "feed_show_promocodes" ? !settings.feed_show_promocodes :
+            !settings.feed_show_offers) {
+          return false;
         }
+
+        // Check per-type count limit
+        const countKey = TYPE_TO_COUNT_KEY[item.type];
+        const maxForType = countKey ? (settings[countKey] as number) : 20;
+        const currentCount = typeCounts[item.type] || 0;
+        if (currentCount >= maxForType) return false;
+        typeCounts[item.type] = currentCount + 1;
+        return true;
       });
 
-      setItems(filtered.slice(0, 20));
+      // Apply total mixed limit
+      setItems(filtered.slice(0, settings.feed_total_count));
     };
 
     fetchAll();
