@@ -577,10 +577,12 @@ const DashboardHome = () => {
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
                     onClick={() => {
+                      const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                       if (p.iframe_url || p.iframe_code) {
-                        window.open(p.iframe_url || '#', '_blank');
+                        const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';
+                        window.open(ru(src), '_blank');
                       } else if (p.url) {
-                        window.open(p.url, '_blank');
+                        window.open(ru(p.url), '_blank');
                       }
                     }}
                   >
