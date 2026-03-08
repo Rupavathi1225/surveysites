@@ -40,12 +40,22 @@ const COLOR1_KEY = "feed_box_color1";
 const COLOR2_KEY = "feed_box_color2";
 const TOTAL_COUNT_KEY = "feed_total_count";
 const BOX_SIZE_KEY = "feed_box_size";
+const BOX_WIDTH_KEY = "feed_box_width";
+const BOX_HEIGHT_KEY = "feed_box_height";
+const BOX_PADDING_KEY = "feed_box_padding";
+const BOX_FONT_SIZE_KEY = "feed_box_font_size";
+const BOX_BORDER_RADIUS_KEY = "feed_box_border_radius";
 const DEFAULT_SPEED = 120;
 const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
 const DEFAULT_TOTAL_COUNT = "20";
 const DEFAULT_PER_TYPE_COUNT = "20";
 const DEFAULT_BOX_SIZE = "medium";
+const DEFAULT_BOX_WIDTH = "200";
+const DEFAULT_BOX_HEIGHT = "60";
+const DEFAULT_BOX_PADDING = "16";
+const DEFAULT_BOX_FONT_SIZE = "14";
+const DEFAULT_BOX_BORDER_RADIUS = "12";
 
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
