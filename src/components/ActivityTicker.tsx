@@ -434,6 +434,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           source: "Just joined the platform!",
           amount: "",
           icon: "signup",
+          created_at: u.created_at,
         });
       });
 
