@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { trackClickRobust } from "@/lib/clickTrackingHelper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,121 +95,36 @@ const Offers = () => {
     return `${hours}h ${minutes}m ${seconds}s`;
   };
 
-  const fetchIpInfo = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-ip-info`;
-      const res = await fetch(url, {
-        headers: { "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      return await res.json();
-    } catch {
-      console.warn("[fetchIpInfo] Failed or timed out");
-      return { ip: null, country: null, proxy: false };
+  const trackClick = async (offer: any) => {
+    if (!profile) {
+      console.warn("[trackClick] No profile, skipping");
+      return;
     }
+    trackClickRobust({
+      user_id: profile.id,
+      username: profile.username || null,
+      offer_id: offer.id,
+    }).catch(err => console.error("[trackClick] error:", err));
   };
-
   // API image integration function
   const getImageUrl = (title: string, existingUrl?: string) => {
     if (existingUrl && existingUrl.startsWith('http')) {
       return existingUrl;
     }
-    // Use a placeholder API for better image quality
     return `https://picsum.photos/seed/${encodeURIComponent(title)}/200/150.jpg`;
-  };
-
-  const trackClick = async (offer: any) => {
-    if (!profile) return;
-    const clickId = crypto.randomUUID();
-    const sessionStart = new Date().toISOString();
-    const utmParams: Record<string, string> = { page: window.location.pathname };
-    const urlParams = new URLSearchParams(window.location.search);
-    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
-      const v = urlParams.get(k);
-      if (v) utmParams[k] = v;
-    });
-
-    // INSERT IMMEDIATELY - don't wait for IP info
-    const { error } = await supabase.from("offer_clicks").insert({
-      id: clickId,
-      user_id: profile.id, offer_id: offer.id, username: profile.username || null,
-      session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
-      user_agent: navigator.userAgent,
-      device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
-      browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
-      os: navigator.platform || "Unknown",
-      source: document.referrer || window.location.href,
-      completion_status: "clicked",
-      utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
-    });
-
-    if (error) {
-      console.error("[trackClick] Insert error:", error);
-    } else {
-      console.log("[trackClick] OK:", clickId, offer.title || offer.id);
-      // Update with IP info asynchronously - don't block
-      fetchIpInfo().then(ipInfo => {
-        if (ipInfo.ip) {
-          supabase.from("offer_clicks").update({
-            ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
-          }).eq("id", clickId).then(() => {});
-        }
-      }).catch(() => {});
-      // Update session end after 30s
-      setTimeout(() => {
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: new Date().toISOString(), time_spent: timeSpent }).eq("id", clickId).then(() => {});
-      }, 30000);
-    }
   };
 
   const trackProviderClick = async (provider: any) => {
     if (!profile) {
-      console.log("❌ No profile, skipping tracking");
+      console.warn("[trackProviderClick] No profile, skipping");
       return;
     }
-    const clickId = crypto.randomUUID();
-    const sessionStart = new Date().toISOString();
-    const utmParams: Record<string, string> = { page: window.location.pathname };
-
-    console.log("📝 trackProviderClick:", provider.name, provider.id);
-
-    // INSERT IMMEDIATELY - don't wait for IP info
-    const { error } = await supabase.from("offer_clicks").insert({
-      id: clickId,
+    console.log("[trackProviderClick] Tracking:", provider.name, provider.id);
+    trackClickRobust({
       user_id: profile.id,
       username: profile.username || null,
       provider_id: provider.id,
-      session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
-      user_agent: navigator.userAgent,
-      device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
-      browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
-      os: navigator.platform || "Unknown",
-      source: document.referrer || window.location.href,
-      completion_status: "clicked",
-      utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
-    });
-
-    if (error) {
-      console.error("❌ Insert error:", error);
-    } else {
-      console.log("✅ Click recorded:", clickId, provider.name);
-      // Update with IP info asynchronously
-      fetchIpInfo().then(ipInfo => {
-        if (ipInfo.ip) {
-          supabase.from("offer_clicks").update({
-            ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
-          }).eq("id", clickId).then(() => {});
-        }
-      }).catch(() => {});
-      setTimeout(() => {
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: new Date().toISOString(), time_spent: timeSpent }).eq("id", clickId).then(() => {});
-      }, 30000);
-    }
+    }).catch(err => console.error("[trackProviderClick] error:", err));
   };
 
   const openOfferModal = (offer: any) => {

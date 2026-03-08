@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { trackClickRobust } from "@/lib/clickTrackingHelper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,69 +24,23 @@ const DailySurveys = () => {
     supabase.from("survey_providers").select("*").eq("status", "active").order("is_recommended", { ascending: false }).then(({ data }) => setProviders(data || []));
   }, []);
 
-  const fetchIpInfo = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-ip-info`;
-      const res = await fetch(url, {
-        headers: { "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      return await res.json();
-    } catch {
-      console.warn("[fetchIpInfo] Failed or timed out");
-      return { ip: null, country: null, proxy: false };
-    }
-  };
-
   const trackClick = async (item: any, type: "survey" | "offer" | "provider", providerId?: string) => {
     if (!profile) {
       console.warn("[TrackClick] No profile, skipping");
       return;
     }
 
-    const clickId = crypto.randomUUID();
-    const sessionStart = new Date().toISOString();
-    const utmParams: Record<string, string> = { page: window.location.pathname };
-
     const payload: any = {
-      id: clickId,
       user_id: profile.id,
       username: profile.username || null,
-      session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
-      user_agent: navigator.userAgent,
-      device_type: /Mobile|Android/i.test(navigator.userAgent) ? "mobile" : /Tablet|iPad/i.test(navigator.userAgent) ? "tablet" : "desktop",
-      browser: navigator.userAgent.match(/(Chrome|Firefox|Safari|Edge|Opera)/)?.[0] || "Unknown",
-      os: navigator.platform || "Unknown",
-      source: document.referrer || window.location.href,
-      completion_status: "clicked",
-      utm_params: utmParams,
-      session_start: sessionStart,
-      session_end: sessionStart,
     };
 
     if (type === "offer") payload.offer_id = item.id;
     else if (type === "survey") payload.survey_link_id = item.id;
     else if (type === "provider") payload.provider_id = providerId;
 
-    // INSERT IMMEDIATELY - don't wait for IP info
-    console.log("[TrackClick] Inserting:", type, providerId || item.id);
-    const { error } = await supabase.from("offer_clicks").insert(payload);
-    if (error) {
-      console.error("[TrackClick Error]", error);
-    } else {
-      console.log("[TrackClick OK]", clickId, type);
-      // Update with IP info asynchronously
-      fetchIpInfo().then(ipInfo => {
-        if (ipInfo.ip) {
-          supabase.from("offer_clicks").update({
-            ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
-          }).eq("id", clickId).then(() => {});
-        }
-      }).catch(() => {});
-    }
+    console.log("[TrackClick] Tracking:", type, providerId || item.id);
+    trackClickRobust(payload).catch(err => console.error("[TrackClick] error:", err));
   };
 
   const handleStart = (item: any, type: "survey" | "offer") => {
