@@ -472,12 +472,12 @@ const idsToRestore = Array.from(selectedRecycleBin);
   // Filter offers based on selected filters
   const filterOffers = (offers: any[]) => {
     return offers.filter(o => {
-      // Status filter - apply to main offers list
       if (statusFilter !== "all" && o.status !== statusFilter) return false;
       if (categoryFilter !== "all" && o.category !== categoryFilter) return false;
       if (deviceFilter !== "all" && o.device !== deviceFilter && o.devices !== deviceFilter) return false;
       if (countryFilter !== "all" && o.countries && !o.countries.toLowerCase().includes(countryFilter.toLowerCase())) return false;
       if (networkFilter !== "all" && o.network_id !== networkFilter) return false;
+      if (approvalFilter !== "all" && o.approval_status !== approvalFilter) return false;
       return true;
     });
   };
