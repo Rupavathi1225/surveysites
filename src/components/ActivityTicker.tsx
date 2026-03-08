@@ -679,13 +679,14 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         });
       });
 
-      // Shuffle to mix activity types
-      for (let i = allItems.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
-      }
+      // Sort by created_at descending (latest first) and limit to 20
+      allItems.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      });
 
-      setItems(allItems);
+      setItems(allItems.slice(0, 20));
     };
 
     fetchAll();
