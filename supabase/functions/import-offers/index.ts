@@ -440,14 +440,91 @@ function processName(name: string, country?: string): string {
   return processedName;
 }
 
-// Helper function to get image URL with fallback
-function getImageUrl(offer: HasOffersOffer, vertical: string): string {
-  // Try to get image from API first
+// Cache for AI-generated images per category to avoid regenerating
+const aiImageCache: Record<string, string> = {};
+
+// Helper function to generate AI image using Lovable AI Gateway
+async function generateAIImage(category: string, vertical: string): Promise<string | null> {
+  const cacheKey = `${category}-${vertical}`;
+  if (aiImageCache[cacheKey]) {
+    return aiImageCache[cacheKey];
+  }
+
+  try {
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    if (!lovableApiKey) {
+      console.log("LOVABLE_API_KEY not found, skipping AI image generation");
+      return null;
+    }
+
+    const prompt = `Generate a professional, clean banner image for a ${category} ${vertical} offer. The image should be modern, visually appealing, and suitable for an offer wall. Use vibrant colors related to ${vertical}. No text in the image. On a clean background.`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [{ role: "user", content: prompt }],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (!response.ok) {
+      console.log(`AI image generation failed: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const imageUrl = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    if (imageUrl) {
+      // Upload base64 image to Supabase storage
+      const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
+      const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+      const fileName = `offer-images/ai-generated/${cacheKey.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}.png`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("survey-provider-images")
+        .upload(fileName, imageBytes, {
+          contentType: "image/png",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.log("Image upload error:", uploadError.message);
+        return null;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("survey-provider-images")
+        .getPublicUrl(fileName);
+
+      const publicUrl = publicUrlData?.publicUrl || null;
+      if (publicUrl) {
+        aiImageCache[cacheKey] = publicUrl;
+        console.log(`AI image generated and cached for ${cacheKey}: ${publicUrl}`);
+      }
+      return publicUrl;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("AI image generation error:", error);
+    return null;
+  }
+}
+
+// Helper function to get image URL with fallback to AI generation
+async function getImageUrl(offer: HasOffersOffer, vertical: string, category: string): Promise<string> {
+  // 1. Try to get image from API first
   if (offer.image_url && offer.image_url.trim() !== "") {
     return offer.image_url;
   }
 
-  // Check for common image URL patterns in the offer data
+  // 2. Check for common image URL patterns in the offer data
   const offerData = JSON.stringify(offer).toLowerCase();
   const imagePatterns = [
     /https?:\/\/[^\s"']+\.(jpg|jpeg|png|gif|webp)/gi,
@@ -465,7 +542,13 @@ function getImageUrl(offer: HasOffersOffer, vertical: string): string {
     }
   }
 
-  // Fallback to vertical-based default image
+  // 3. Try AI image generation
+  const aiImage = await generateAIImage(category, vertical);
+  if (aiImage) {
+    return aiImage;
+  }
+
+  // 4. Fallback to vertical-based default image
   return defaultImagesByVertical[vertical] || defaultImagesByVertical["Technology"];
 }
 
@@ -631,7 +714,7 @@ function summarizeDataShape(data: any) {
   return { type: typeof data };
 }
 
-function mapOffer(offer: HasOffersOffer, idx: number, provider: string, networkId?: string) {
+async function mapOffer(offer: HasOffersOffer, idx: number, provider: string, networkId?: string) {
   const offerCore = offer.Offer || offer?.AffiliateOffer?.Offer || undefined;
   const offerId = offer.offer_id ?? offerCore?.id ?? offer.id ?? `offer-${idx}`;
   
@@ -729,8 +812,8 @@ function mapOffer(offer: HasOffersOffer, idx: number, provider: string, networkI
   // Generate traffic sources
   const trafficSources = generateTrafficSources(vertical);
   
-  // Get image URL with fallback
-  const imageUrl = getImageUrl(offer, vertical);
+  // Get image URL with AI fallback (async)
+  const imageUrl = await getImageUrl(offer, vertical, category);
 
   return {
     offer_id: offerId.toString(),
@@ -850,7 +933,7 @@ serve(async (req: Request) => {
       });
     }
 
-    const transformedOffers = offers.map((offer, idx) => mapOffer(offer, idx, provider, networkId));
+    const transformedOffers = await Promise.all(offers.map((offer, idx) => mapOffer(offer, idx, provider, networkId)));
 
     if (action === "preview") {
       return json(headers, 200, {
