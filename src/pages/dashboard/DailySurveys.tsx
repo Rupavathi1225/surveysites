@@ -237,7 +237,7 @@ const DailySurveys = () => {
           <DialogHeader><DialogTitle>{selectedProvider?.name}</DialogTitle></DialogHeader>
           {selectedProvider && (
             <div className="h-[70vh]">
-              <OfferWallIframe provider={selectedProvider} isOpen={!!selectedProvider} onClose={() => setSelectedProvider(null)} />
+              <OfferWallIframe provider={selectedProvider} isOpen={!!selectedProvider} onClose={() => setSelectedProvider(null)} username={profile?.username || undefined} />
             </div>
           )}
         </DialogContent>
