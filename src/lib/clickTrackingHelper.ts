@@ -39,7 +39,14 @@ export async function trackClickRobust(payload: TrackPayload): Promise<string | 
   if (payload.survey_link_id) record.survey_link_id = payload.survey_link_id;
   if (payload.provider_id) record.provider_id = payload.provider_id;
 
-  console.log("[ClickTrack] Inserting click:", clickId, payload.provider_id || payload.offer_id || payload.survey_link_id);
+  // Verify auth session before inserting
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    console.error("[ClickTrack] ❌ No auth session! User not logged in. Click will not be recorded.");
+    return null;
+  }
+
+  console.log("[ClickTrack] Inserting click:", clickId, payload.provider_id || payload.offer_id || payload.survey_link_id, "auth:", session.user.id);
 
   try {
     // Use SDK .insert() WITHOUT .select() to avoid RLS rollback
