@@ -1417,24 +1417,63 @@ Expiry Date: ${o.expiry_date || "-"}`;
     if (!file) return;
 
     setProcessingBulkImport(true);
+    setUploadSummary(null);
     try {
       const csvData = await parseCSV(file);
 
+      // Validate required fields
+      const requiredFields = ['offer_id', 'title', 'countries'];
+      const missingFieldOffers: string[] = [];
+      
       let processedData = csvData.map((offer, index) => {
-        // Ensure each offer has a unique offer_id
         const offerId = offer.offer_id || `CSV_${Date.now()}_${index}`;
+        const title = offer.title || offer.name || "";
+        
+        // Check required fields
+        const missing = requiredFields.filter(field => {
+          if (field === 'offer_id') return !offer.offer_id;
+          if (field === 'title') return !title;
+          if (field === 'countries') return !offer.countries && !offer.country;
+          return false;
+        });
+        
+        if (missing.length > 0) {
+          missingFieldOffers.push(`Row ${index + 1} (${title || offerId}): missing ${missing.join(', ')}`);
+        }
         
         const withDefaults = {
           ...offer,
           offer_id: offerId,
+          title: title,
+          countries: offer.countries || offer.country || "",
           payout: offer.payout ? Number(offer.payout) : 0,
           currency: offer.currency || "USD",
           payout_model: offer.payout_model || "CPA",
           status: "pending",
+          network_id: offer.network_id || offer.network || null,
+          tracking_url: offer.tracking_url || null,
+          approval_status: offer.tracking_url ? "approved" : (offer.approval_status || "pending"),
           is_public: offer.is_public !== "false" && offer.is_public !== "0",
         };
         return autoFillOfferData(withDefaults);
       });
+
+      if (missingFieldOffers.length > 0 && missingFieldOffers.length === processedData.length) {
+        toast({ 
+          title: "Required Fields Missing", 
+          description: `All offers are missing required fields (offer_id, title, country). Please check your CSV.`,
+          variant: "destructive" 
+        });
+        setProcessingBulkImport(false);
+        return;
+      }
+
+      if (missingFieldOffers.length > 0) {
+        toast({ 
+          title: "Some Offers Missing Fields", 
+          description: `${missingFieldOffers.length} offers have missing required fields and will still be imported with defaults.`,
+        });
+      }
 
       const duplicates = await checkBatchDuplicates(processedData);
       setDuplicateMatches(duplicates);
@@ -1456,7 +1495,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
 
       setBulkImportPreview(previewData);
       setShowBulkPreview(true);
-      toast({ title: "CSV Parsed Successfully", description: `Found ${processedData.length} offers with unique IDs. ${duplicates.size} duplicates detected.` });
+      toast({ title: "CSV Parsed Successfully", description: `Found ${processedData.length} offers. ${duplicates.size} duplicates detected.` });
     } catch (error) {
       console.error("Error parsing CSV:", error);
       toast({ title: "CSV Parse Error", description: String(error), variant: "destructive" });
