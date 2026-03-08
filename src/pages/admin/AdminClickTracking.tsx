@@ -1131,7 +1131,7 @@ const AdminClickTracking = () => {
                     <Table>
                       <TableHeader><TableRow><TableHead>Amount</TableHead><TableHead>Type</TableHead><TableHead>Offer</TableHead><TableHead>Status</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {userDetailModal.earnings.slice(0, 30).map((e: any) => (
+                        {userDetailModal.earnings.map((e: any) => (
                           <TableRow key={e.id}>
                             <TableCell className="font-medium">{e.amount}</TableCell>
                             <TableCell className="text-xs">{e.type || "—"}</TableCell>
