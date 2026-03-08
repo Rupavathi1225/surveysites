@@ -210,6 +210,51 @@ const ActivityFeedControls = () => {
         </CardContent>
       </Card>
 
+      {/* Ticker Box Size */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Hash className="h-5 w-5 text-primary" />
+            Ticker Box Size
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Choose the size of all ticker boxes in the activity feed
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Select value={boxSize} onValueChange={setBoxSize}>
+              <SelectTrigger className="w-full max-w-[200px]">
+                <SelectValue placeholder="Select size" />
+              </SelectTrigger>
+              <SelectContent>
+                {SIZE_OPTIONS.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {/* Live preview */}
+            <div className="flex items-center gap-3">
+              {SIZE_OPTIONS.map(s => (
+                <div
+                  key={s.value}
+                  className={`rounded-lg border flex items-center justify-center text-[10px] font-medium transition-all cursor-pointer ${boxSize === s.value ? "border-primary ring-2 ring-primary/30 text-primary" : "border-border text-muted-foreground"}`}
+                  style={{
+                    width: s.value === "small" ? 50 : s.value === "large" ? 90 : 70,
+                    height: s.value === "small" ? 30 : s.value === "large" ? 50 : 40,
+                    background: boxSize === s.value ? `linear-gradient(135deg, ${color1}, ${color2})` : undefined,
+                    color: boxSize === s.value ? "white" : undefined,
+                  }}
+                  onClick={() => setBoxSize(s.value)}
+                >
+                  {s.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Activity Type Toggles with per-type count */}
       <Card>
         <CardHeader className="pb-3">
