@@ -16,6 +16,8 @@ import Withdrawal from "./pages/dashboard/Withdrawal";
 import ConvertPoints from "./pages/dashboard/ConvertPoints";
 import DailySurveys from "./pages/dashboard/DailySurveys";
 import Offers from "./pages/dashboard/Offers";
+import Offerwalls from "./pages/dashboard/Offerwalls";
+import OfferwallViewer from "./pages/dashboard/OfferwallViewer";
 import Contest from "./pages/dashboard/Contest";
 import News from "./pages/dashboard/News";
 import Promocode from "./pages/dashboard/Promocode";
@@ -89,6 +91,8 @@ const App = () => (
           <Route path="/dashboard/convert-points" element={<DashboardPage><ConvertPoints /></DashboardPage>} />
           <Route path="/dashboard/daily-surveys" element={<DashboardPage><DailySurveys /></DashboardPage>} />
           <Route path="/dashboard/offers" element={<DashboardPage><Offers /></DashboardPage>} />
+          <Route path="/dashboard/offerwalls" element={<DashboardPage><Offerwalls /></DashboardPage>} />
+          <Route path="/dashboard/offerwall/:slug" element={<DashboardPage><OfferwallViewer /></DashboardPage>} />
           <Route path="/dashboard/contest" element={<DashboardPage><Contest /></DashboardPage>} />
           <Route path="/dashboard/news" element={<DashboardPage><News /></DashboardPage>} />
           <Route path="/dashboard/promocode" element={<DashboardPage><Promocode /></DashboardPage>} />
