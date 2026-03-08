@@ -278,6 +278,6 @@
 }
 
 .animate-ticker {
-  animation: ticker-scroll 240s linear infinite;
+  animation: ticker-scroll 120s linear infinite;
 }
 

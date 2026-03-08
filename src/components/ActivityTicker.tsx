@@ -123,7 +123,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center shrink-0 bg-primary/15 rounded-xl px-4 py-3 min-w-[240px] border border-primary/10"
+              className="inline-flex items-center shrink-0 bg-foreground/10 rounded-xl px-4 py-3 min-w-[240px] border border-foreground/5"
             >
               {/* Left: Logo */}
               <div className="w-12 h-12 rounded-lg shrink-0 bg-primary/20 flex items-center justify-center overflow-hidden mr-3">
