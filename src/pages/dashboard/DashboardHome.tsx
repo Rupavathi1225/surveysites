@@ -405,7 +405,7 @@ const DashboardHome = () => {
                 return (
                   <div key={p.id} className="flex flex-col items-center gap-2">
                     <div 
-                      className="relative w-[180px] h-[120px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
+                      className="relative w-[180px] h-[120px] bg-white border border-border/30 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg"
                       onClick={() => {
                         const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                         if (p.iframe_url || p.iframe_code) {
