@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Users, MousePointerClick, Globe, Shield, Clock, Eye, Gift, Ticket,
   TrendingUp, TrendingDown, Activity, UserCheck, UserX, Monitor,
@@ -24,63 +25,47 @@ const AdminClickTracking = () => {
   const [providers, setProviders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [detailModal, setDetailModal] = useState<{ title: string; data: any[]; columns: { key: string; label: string }[] } | null>(null);
 
   const now24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), []);
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     
-    // First fetch all reference data
-    // Fetch ALL offers/surveys/providers (not just active) so we can resolve names for historical clicks
     const [offersRes, surveysRes, providersRes, profilesRes] = await Promise.all([
       supabase.from("offers").select("id, title"),
       supabase.from("survey_links").select("id, name"),
       supabase.from("survey_providers").select("id, name, code"),
-      supabase.from("profiles").select("id, username, email"),
+      supabase.from("profiles").select("id, username, email, created_at"),
     ]);
     
     setOffers(offersRes.data || []);
     setSurveyLinks(surveysRes.data || []);
     setProviders(providersRes.data || []);
     
-    // Create lookup maps for faster access
     const offerMap = new Map((offersRes.data || []).map(o => [o.id, o]));
     const surveyMap = new Map((surveysRes.data || []).map(s => [s.id, s]));
     const providerMap = new Map((providersRes.data || []).map(p => [p.id, p]));
     const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p]));
 
-    // Fetch clicks - no limit on provider clicks to get accurate counts
     const [clicksRes, providerClicksRes, loginsRes, visitsRes, earningsRes, promoRes] = await Promise.all([
-      supabase.from("offer_clicks")
-        .select("*")
+      supabase.from("offer_clicks").select("*")
         .or("offer_id.not.is.null,survey_link_id.not.is.null")
         .order("created_at", { ascending: false }).limit(1000),
-      
-      // Provider/Offerwall clicks - no limit to get ALL clicks for accurate totals
-      supabase.from("offer_clicks")
-        .select("*")
+      supabase.from("offer_clicks").select("*")
         .not("provider_id", "is", null)
         .order("created_at", { ascending: false }),
-      
-      supabase.from("login_logs")
-        .select("*")
+      supabase.from("login_logs").select("*")
         .order("created_at", { ascending: false }).limit(500),
-      
-      supabase.from("page_visits")
-        .select("*").order("visited_at", { ascending: false }).limit(1000),
-      
-      supabase.from("earning_history")
-        .select("*")
+      supabase.from("page_visits").select("*").order("visited_at", { ascending: false }).limit(1000),
+      supabase.from("earning_history").select("*")
         .order("created_at", { ascending: false }).limit(500),
-      
-      supabase.from("promocode_redemptions")
-        .select("*")
+      supabase.from("promocode_redemptions").select("*, promocodes(code)")
         .order("created_at", { ascending: false }).limit(200),
     ]);
     
     console.log("[AdminClickTracking] Provider clicks fetched:", providerClicksRes.data?.length, "error:", providerClicksRes.error);
     
-    // Enhance click data with joined information
     const enhancedClicks = (clicksRes.data || []).map(click => ({
       ...click,
       profiles: profileMap.get(click.user_id) || null,
@@ -94,7 +79,6 @@ const AdminClickTracking = () => {
       survey_providers: click.provider_id ? providerMap.get(click.provider_id) : null
     }));
 
-    // Enhance other data
     const enhancedLogins = (loginsRes.data || []).map(log => ({
       ...log,
       profiles: profileMap.get(log.user_id) || null
@@ -108,7 +92,6 @@ const AdminClickTracking = () => {
     const enhancedPromo = (promoRes.data || []).map(promo => ({
       ...promo,
       profiles: profileMap.get(promo.user_id) || null,
-      promocodes: promo.promocode_id ? { code: promo.promocode_id } : null
     }));
 
     setClicks(enhancedClicks);
@@ -124,26 +107,17 @@ const AdminClickTracking = () => {
 
   useEffect(() => {
     loadData();
-    // Auto-refresh every 15 seconds
     const interval = setInterval(() => loadData(true), 15000);
     return () => clearInterval(interval);
   }, []);
 
-  // Helper function to get item name
   const getItemName = (click: any) => {
-    if (click.offer_id && click.offers) {
-      return click.offers.title || "Unknown Offer";
-    }
-    if (click.survey_link_id && click.survey_links) {
-      return click.survey_links.name || "Unknown Survey";
-    }
-    if (click.provider_id && click.survey_providers) {
-      return click.survey_providers.name || "Unknown Offerwall";
-    }
+    if (click.offer_id && click.offers) return click.offers.title || "Unknown Offer";
+    if (click.survey_link_id && click.survey_links) return click.survey_links.name || "Unknown Survey";
+    if (click.provider_id && click.survey_providers) return click.survey_providers.name || "Unknown Offerwall";
     return "—";
   };
 
-  // Helper function to get item type
   const getItemType = (click: any) => {
     if (click.offer_id) return "offer";
     if (click.survey_link_id) return "survey";
@@ -207,47 +181,158 @@ const AdminClickTracking = () => {
     };
   }, [clicks24h, providerClicks24h, logins24h, visits24h, earnings24h, promo24h, newUsers24h]);
 
+  // Helper to open detail modal for a specific card
+  const openCardDetail = (cardType: string) => {
+    const fmtDate = (d: string) => d ? new Date(d).toLocaleString() : "—";
+    const profileName = (item: any) => item.profiles?.username || item.username || "—";
+    const profileEmail = (item: any) => item.profiles?.email || "—";
+
+    switch (cardType) {
+      case "newUsers": {
+        const data = newUsers24h.map(u => ({ username: u.username || "—", email: u.email || "—", country: u.country || "—", created_at: fmtDate(u.created_at) }));
+        setDetailModal({ title: "New Users Registered (24h)", data, columns: [{ key: "username", label: "Username" }, { key: "email", label: "Email" }, { key: "country", label: "Country" }, { key: "created_at", label: "Registered" }] });
+        break;
+      }
+      case "uniqueLogins": {
+        const seen = new Set<string>();
+        const data = logins24h.filter(l => { if (!l.user_id || seen.has(l.user_id)) return false; seen.add(l.user_id); return true; })
+          .map(l => ({ username: profileName(l), ip: l.ip_address || "—", device: l.device || "—", browser: l.browser || "—", time: fmtDate(l.created_at) }));
+        setDetailModal({ title: "Unique Logins (24h)", data, columns: [{ key: "username", label: "User" }, { key: "ip", label: "IP" }, { key: "device", label: "Device" }, { key: "browser", label: "Browser" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "totalLogins": {
+        const data = logins24h.map(l => ({ username: profileName(l), ip: l.ip_address || "—", device: l.device || "—", browser: l.browser || "—", os: l.os || "—", new_device: l.is_new_device ? "Yes" : "No", time: fmtDate(l.created_at) }));
+        setDetailModal({ title: "All Login Sessions (24h)", data, columns: [{ key: "username", label: "User" }, { key: "ip", label: "IP" }, { key: "device", label: "Device" }, { key: "browser", label: "Browser" }, { key: "os", label: "OS" }, { key: "new_device", label: "New Device" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "newDeviceLogins": {
+        const data = logins24h.filter(l => l.is_new_device).map(l => ({ username: profileName(l), ip: l.ip_address || "—", device: l.device || "—", browser: l.browser || "—", time: fmtDate(l.created_at) }));
+        setDetailModal({ title: "New Device Logins (24h)", data, columns: [{ key: "username", label: "User" }, { key: "ip", label: "IP" }, { key: "device", label: "Device" }, { key: "browser", label: "Browser" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "pageViews": {
+        const profileMap = new Map(profiles.map(p => [p.id, p]));
+        const data = visits24h.map(v => ({ username: profileMap.get(v.user_id)?.username || "—", page: v.page_path || "—", time: fmtDate(v.visited_at) }));
+        setDetailModal({ title: "Page Views (24h)", data, columns: [{ key: "username", label: "User" }, { key: "page", label: "Page" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "totalClicks": {
+        const allC = [...clicks24h, ...providerClicks24h].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        const data = allC.map(c => ({ username: profileName(c), item: getItemName(c), type: getItemType(c), ip: c.ip_address || "—", country: c.country || "—", device: c.device_type || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Total Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "type", label: "Type" }, { key: "ip", label: "IP" }, { key: "country", label: "Country" }, { key: "device", label: "Device" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "uniqueClicks": {
+        const allC = [...clicks24h, ...providerClicks24h];
+        const seen = new Set<string>();
+        const unique = allC.filter(c => { const k = `${c.user_id}_${c.offer_id || c.survey_link_id || c.provider_id}`; if (seen.has(k)) return false; seen.add(k); return true; });
+        const data = unique.map(c => ({ username: profileName(c), item: getItemName(c), type: getItemType(c), time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Unique Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "type", label: "Type" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "uniqueClickers": {
+        const allC = [...clicks24h, ...providerClicks24h];
+        const userMap = new Map<string, any>();
+        allC.forEach(c => { if (c.user_id && !userMap.has(c.user_id)) userMap.set(c.user_id, c); });
+        const data = [...userMap.values()].map(c => ({ username: profileName(c), email: profileEmail(c), clicks: allC.filter(x => x.user_id === c.user_id).length, last_click: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Unique Clickers (24h)", data, columns: [{ key: "username", label: "User" }, { key: "email", label: "Email" }, { key: "clicks", label: "Clicks" }, { key: "last_click", label: "Last Click" }] });
+        break;
+      }
+      case "uniqueIPs": {
+        const allC = [...clicks24h, ...providerClicks24h];
+        const ipMap = new Map<string, any[]>();
+        allC.forEach(c => { if (c.ip_address) { if (!ipMap.has(c.ip_address)) ipMap.set(c.ip_address, []); ipMap.get(c.ip_address)!.push(c); } });
+        const data = [...ipMap.entries()].map(([ip, items]) => ({ ip, clicks: items.length, users: [...new Set(items.map(i => i.profiles?.username).filter(Boolean))].join(", ") || "—", country: items[0]?.country || "—" }));
+        setDetailModal({ title: "Unique IPs (24h)", data, columns: [{ key: "ip", label: "IP Address" }, { key: "clicks", label: "Clicks" }, { key: "users", label: "Users" }, { key: "country", label: "Country" }] });
+        break;
+      }
+      case "offerClicks": {
+        const data = clicks24h.filter(c => c.offer_id).map(c => ({ username: profileName(c), offer: c.offers?.title || "Unknown", status: c.completion_status || "—", ip: c.ip_address || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Offer Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "offer", label: "Offer" }, { key: "status", label: "Status" }, { key: "ip", label: "IP" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "surveyClicks": {
+        const data = clicks24h.filter(c => c.survey_link_id).map(c => ({ username: profileName(c), survey: c.survey_links?.name || "Unknown", status: c.completion_status || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Survey Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "survey", label: "Survey" }, { key: "status", label: "Status" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "offerwallClicks": {
+        const data = providerClicks24h.map(c => ({ username: profileName(c), offerwall: c.survey_providers?.name || "Unknown", ip: c.ip_address || "—", country: c.country || "—", device: c.device_type || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Offerwall Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "offerwall", label: "Offerwall" }, { key: "ip", label: "IP" }, { key: "country", label: "Country" }, { key: "device", label: "Device" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "completed": {
+        const data = clicks24h.filter(c => c.completion_status === "completed").map(c => ({ username: profileName(c), item: getItemName(c), time_spent: c.time_spent ? `${c.time_spent}s` : "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Completed (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "time_spent", label: "Time Spent" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "reversed": {
+        const data = clicks24h.filter(c => c.completion_status === "reversed").map(c => ({ username: profileName(c), item: getItemName(c), time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Reversed (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "vpn": {
+        const allC = [...clicks24h, ...providerClicks24h].filter(c => c.vpn_proxy_flag);
+        const data = allC.map(c => ({ username: profileName(c), item: getItemName(c), ip: c.ip_address || "—", country: c.country || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "VPN/Proxy Detected (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "ip", label: "IP" }, { key: "country", label: "Country" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "highRisk": {
+        const allC = [...clicks24h, ...providerClicks24h].filter(c => c.risk_score > 50);
+        const data = allC.map(c => ({ username: profileName(c), item: getItemName(c), risk: c.risk_score, ip: c.ip_address || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "High Risk Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "risk", label: "Risk Score" }, { key: "ip", label: "IP" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "promoRedeemed": {
+        const data = promo24h.map(p => ({ username: profileName(p), code: (p as any).promocodes?.code || "—", time: fmtDate(p.created_at) }));
+        setDetailModal({ title: "Promocodes Redeemed (24h)", data, columns: [{ key: "username", label: "User" }, { key: "code", label: "Code" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "pointsEarned": {
+        const data = earnings24h.filter(e => e.status === "approved").map(e => ({ username: profileName(e), amount: e.amount, type: e.type || "—", offer: e.offer_name || "—", time: fmtDate(e.created_at) }));
+        setDetailModal({ title: "Points Earned (24h)", data, columns: [{ key: "username", label: "User" }, { key: "amount", label: "Amount" }, { key: "type", label: "Type" }, { key: "offer", label: "Offer" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "surveyPageVisits": {
+        const profileMap2 = new Map(profiles.map(p => [p.id, p]));
+        const data = visits24h.filter(v => v.page_path?.includes("survey") || v.page_path?.includes("daily")).map(v => ({ username: profileMap2.get(v.user_id)?.username || "—", page: v.page_path || "—", time: fmtDate(v.visited_at) }));
+        setDetailModal({ title: "Survey Page Visits (24h)", data, columns: [{ key: "username", label: "User" }, { key: "page", label: "Page" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "mobileClicks": {
+        const allC = [...clicks24h, ...providerClicks24h].filter(c => c.device_type === "mobile");
+        const data = allC.map(c => ({ username: profileName(c), item: getItemName(c), browser: c.browser || "—", os: c.os || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Mobile Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "browser", label: "Browser" }, { key: "os", label: "OS" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      case "desktopClicks": {
+        const allC = [...clicks24h, ...providerClicks24h].filter(c => c.device_type === "desktop");
+        const data = allC.map(c => ({ username: profileName(c), item: getItemName(c), browser: c.browser || "—", os: c.os || "—", time: fmtDate(c.created_at) }));
+        setDetailModal({ title: "Desktop Clicks (24h)", data, columns: [{ key: "username", label: "User" }, { key: "item", label: "Item" }, { key: "browser", label: "Browser" }, { key: "os", label: "OS" }, { key: "time", label: "Time" }] });
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
   // User behavior aggregation
   const userBehavior = useMemo(() => {
     const allClicks = [...clicks, ...providerClicks];
     const map = new Map<string, any>();
-    
     allClicks.forEach(c => {
       if (!c.user_id) return;
       if (!map.has(c.user_id)) {
-        map.set(c.user_id, {
-          user_id: c.user_id,
-          username: c.profiles?.username || "—",
-          email: c.profiles?.email || "—",
-          totalClicks: 0,
-          offerClicks: 0,
-          surveyClicks: 0,
-          providerClicks: 0,
-          completed: 0,
-          reversed: 0,
-          clicked: 0,
-          vpnFlags: 0,
-          avgRisk: 0,
-          riskSum: 0,
-          countries: new Set(),
-          devices: new Set(),
-          avgTime: 0,
-          timeSum: 0,
-          timeCount: 0,
-          lastClick: c.created_at,
-        });
+        map.set(c.user_id, { user_id: c.user_id, username: c.profiles?.username || "—", email: c.profiles?.email || "—", totalClicks: 0, offerClicks: 0, surveyClicks: 0, providerClicks: 0, completed: 0, reversed: 0, clicked: 0, vpnFlags: 0, avgRisk: 0, riskSum: 0, countries: new Set(), devices: new Set(), avgTime: 0, timeSum: 0, timeCount: 0, lastClick: c.created_at });
       }
       const u = map.get(c.user_id);
       u.totalClicks++;
-      
       if (c.offer_id) u.offerClicks++;
       else if (c.survey_link_id) u.surveyClicks++;
       else if (c.provider_id) u.providerClicks++;
-      
       if (c.completion_status === "completed") u.completed++;
       else if (c.completion_status === "reversed") u.reversed++;
       else u.clicked++;
-      
       if (c.vpn_proxy_flag) u.vpnFlags++;
       u.riskSum += (c.risk_score || 0);
       if (c.country) u.countries.add(c.country);
@@ -255,40 +340,23 @@ const AdminClickTracking = () => {
       if (c.time_spent > 0) { u.timeSum += c.time_spent; u.timeCount++; }
       if (c.created_at > u.lastClick) u.lastClick = c.created_at;
     });
-    
     return [...map.values()].map(u => ({
-      ...u,
-      avgRisk: u.totalClicks ? Math.round(u.riskSum / u.totalClicks) : 0,
+      ...u, avgRisk: u.totalClicks ? Math.round(u.riskSum / u.totalClicks) : 0,
       avgTime: u.timeCount ? Math.round(u.timeSum / u.timeCount) : 0,
       completionRate: u.totalClicks ? Math.round((u.completed / u.totalClicks) * 100) : 0,
-      countries: [...u.countries].join(", "),
-      devices: [...u.devices].join(", "),
+      countries: [...u.countries].join(", "), devices: [...u.devices].join(", "),
     })).sort((a, b) => b.totalClicks - a.totalClicks);
   }, [clicks, providerClicks]);
 
   // Offer performance
   const offerPerformance = useMemo(() => {
     const map = new Map<string, any>();
-    
-    // Regular offers and surveys
     clicks.forEach(c => {
       const key = c.offer_id || c.survey_link_id || "unknown";
-      if (key === "unknown") return; // Skip clicks with no offer or survey
+      if (key === "unknown") return;
       if (!map.has(key)) {
         const resolvedName = c.offers?.title || c.survey_links?.name || null;
-        map.set(key, {
-          id: key,
-          name: resolvedName || `Deleted (${key.substring(0, 8)}…)`,
-          type: c.offer_id ? "Offer" : "Survey",
-          totalClicks: 0,
-          completed: 0,
-          reversed: 0,
-          clicked: 0,
-          uniqueUsers: new Set(),
-          avgTime: 0,
-          timeSum: 0,
-          timeCount: 0,
-        });
+        map.set(key, { id: key, name: resolvedName || `Deleted (${key.substring(0, 8)}…)`, type: c.offer_id ? "Offer" : "Survey", totalClicks: 0, completed: 0, reversed: 0, clicked: 0, uniqueUsers: new Set(), avgTime: 0, timeSum: 0, timeCount: 0 });
       }
       const o = map.get(key);
       o.totalClicks++;
@@ -298,36 +366,18 @@ const AdminClickTracking = () => {
       if (c.user_id) o.uniqueUsers.add(c.user_id);
       if (c.time_spent > 0) { o.timeSum += c.time_spent; o.timeCount++; }
     });
-
-    // Provider/Offerwall clicks
     providerClicks.forEach(c => {
       const key = `provider_${c.provider_id}`;
       if (!map.has(key)) {
-        map.set(key, {
-          id: c.provider_id,
-          name: c.survey_providers?.name || "Unknown Provider",
-          type: "Offerwall",
-          totalClicks: 0,
-          completed: 0,
-          reversed: 0,
-          clicked: 0,
-          uniqueUsers: new Set(),
-          avgTime: 0,
-          timeSum: 0,
-          timeCount: 0,
-        });
+        map.set(key, { id: c.provider_id, name: c.survey_providers?.name || "Unknown Provider", type: "Offerwall", totalClicks: 0, completed: 0, reversed: 0, clicked: 0, uniqueUsers: new Set(), avgTime: 0, timeSum: 0, timeCount: 0 });
       }
       const o = map.get(key);
-      o.totalClicks++;
-      o.clicked++;
+      o.totalClicks++; o.clicked++;
       if (c.user_id) o.uniqueUsers.add(c.user_id);
       if (c.time_spent > 0) { o.timeSum += c.time_spent; o.timeCount++; }
     });
-    
     return [...map.values()].map(o => ({
-      ...o,
-      uniqueUsers: o.uniqueUsers.size,
-      avgTime: o.timeCount ? Math.round(o.timeSum / o.timeCount) : 0,
+      ...o, uniqueUsers: o.uniqueUsers.size, avgTime: o.timeCount ? Math.round(o.timeSum / o.timeCount) : 0,
       completionRate: o.totalClicks ? Math.round((o.completed / o.totalClicks) * 100) : 0,
       reversalRate: o.totalClicks ? Math.round((o.reversed / o.totalClicks) * 100) : 0,
     })).sort((a, b) => b.totalClicks - a.totalClicks);
@@ -336,45 +386,15 @@ const AdminClickTracking = () => {
   // Provider performance
   const providerPerformance = useMemo(() => {
     const map = new Map<string, any>();
-    
-    // Initialize ALL providers first (so even those with 0 clicks appear)
     providers.forEach(p => {
-      map.set(p.id, {
-        id: p.id,
-        name: p.name || "Unknown",
-        code: p.code || "—",
-        totalClicks: 0,
-        uniqueUsers: new Set(),
-        avgTime: 0,
-        timeSum: 0,
-        timeCount: 0,
-        vpnCount: 0,
-        countries: new Set(),
-        devices: { mobile: 0, desktop: 0, tablet: 0 }
-      });
+      map.set(p.id, { id: p.id, name: p.name || "Unknown", code: p.code || "—", totalClicks: 0, uniqueUsers: new Set(), avgTime: 0, timeSum: 0, timeCount: 0, vpnCount: 0, countries: new Set(), devices: { mobile: 0, desktop: 0, tablet: 0 } });
     });
-
-    // Then aggregate click data
     providerClicks.forEach(c => {
       const providerId = c.provider_id;
       if (!providerId) return;
-      
       if (!map.has(providerId)) {
-        map.set(providerId, {
-          id: providerId,
-          name: c.survey_providers?.name || "Unknown",
-          code: c.survey_providers?.code || "—",
-          totalClicks: 0,
-          uniqueUsers: new Set(),
-          avgTime: 0,
-          timeSum: 0,
-          timeCount: 0,
-          vpnCount: 0,
-          countries: new Set(),
-          devices: { mobile: 0, desktop: 0, tablet: 0 }
-        });
+        map.set(providerId, { id: providerId, name: c.survey_providers?.name || "Unknown", code: c.survey_providers?.code || "—", totalClicks: 0, uniqueUsers: new Set(), avgTime: 0, timeSum: 0, timeCount: 0, vpnCount: 0, countries: new Set(), devices: { mobile: 0, desktop: 0, tablet: 0 } });
       }
-      
       const p = map.get(providerId);
       p.totalClicks++;
       if (c.user_id) p.uniqueUsers.add(c.user_id);
@@ -387,18 +407,14 @@ const AdminClickTracking = () => {
       }
       if (c.time_spent > 0) { p.timeSum += c.time_spent; p.timeCount++; }
     });
-    
     return [...map.values()].map(p => ({
-      ...p,
-      uniqueUsers: p.uniqueUsers.size,
-      avgTime: p.timeCount ? Math.round(p.timeSum / p.timeCount) : 0,
-      vpnPercentage: p.totalClicks ? Math.round((p.vpnCount / p.totalClicks) * 100) : 0,
-      countries: [...p.countries].join(", "),
+      ...p, uniqueUsers: p.uniqueUsers.size, avgTime: p.timeCount ? Math.round(p.timeSum / p.timeCount) : 0,
+      vpnPercentage: p.totalClicks ? Math.round((p.vpnCount / p.totalClicks) * 100) : 0, countries: [...p.countries].join(", "),
     })).sort((a, b) => b.totalClicks - a.totalClicks);
   }, [providerClicks, providers]);
 
-  const StatCard = ({ icon: Icon, value, label, color = "text-primary" }: { icon: any; value: any; label: string; color?: string }) => (
-    <Card className="hover:border-primary/30 transition-colors">
+  const StatCard = ({ icon: Icon, value, label, color = "text-primary", onClick }: { icon: any; value: any; label: string; color?: string; onClick?: () => void }) => (
+    <Card className={`hover:border-primary/30 transition-colors ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`} onClick={onClick}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-2">
           <Icon className={`h-5 w-5 ${color}`} />
