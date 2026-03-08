@@ -1090,7 +1090,7 @@ const AdminClickTracking = () => {
                 <Table>
                   <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Item</TableHead><TableHead>Status</TableHead><TableHead>IP</TableHead><TableHead>Device</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {userDetailModal.clicks.slice(0, 50).map((c: any) => (
+                    {userDetailModal.clicks.map((c: any) => (
                       <TableRow key={c.id}>
                         <TableCell><Badge variant="secondary" className="text-xs">{getItemType(c)}</Badge></TableCell>
                         <TableCell className="text-sm">{getItemName(c)}</TableCell>
