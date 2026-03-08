@@ -31,10 +31,11 @@ const AdminClickTracking = () => {
     if (!silent) setLoading(true);
     
     // First fetch all reference data
+    // Fetch ALL offers/surveys/providers (not just active) so we can resolve names for historical clicks
     const [offersRes, surveysRes, providersRes, profilesRes] = await Promise.all([
-      supabase.from("offers").select("id, title").eq("status", "active"),
-      supabase.from("survey_links").select("id, name").eq("status", "active"),
-      supabase.from("survey_providers").select("id, name, code").eq("status", "active"),
+      supabase.from("offers").select("id, title"),
+      supabase.from("survey_links").select("id, name"),
+      supabase.from("survey_providers").select("id, name, code"),
       supabase.from("profiles").select("id, username, email"),
     ]);
     
