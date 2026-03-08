@@ -803,6 +803,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
     setCountryFilter("all");
     setNetworkFilter("all");
     setStatusFilter("all");
+    setApprovalFilter("all");
   };
 
   // Bulk select function
