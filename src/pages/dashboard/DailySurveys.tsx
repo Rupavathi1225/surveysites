@@ -87,10 +87,12 @@ const DailySurveys = () => {
     else if (type === "survey") payload.survey_link_id = item.id;
     else if (type === "provider") payload.provider_id = providerId;
 
+    const clickId = crypto.randomUUID();
+    payload.id = clickId;
     console.log("[TrackClick] Inserting click:", type, providerId || item.id);
-    const { data, error } = await supabase.from("offer_clicks").insert(payload).select("id").single();
+    const { error } = await supabase.from("offer_clicks").insert(payload);
     if (error) console.error("[TrackClick Error]", error, payload);
-    else console.log("[TrackClick OK]", data?.id, type, payload.provider_id || payload.offer_id || payload.survey_link_id);
+    else console.log("[TrackClick OK]", clickId, type, payload.provider_id || payload.offer_id || payload.survey_link_id);
   };
 
   const handleStart = (item: any, type: "survey" | "offer") => {

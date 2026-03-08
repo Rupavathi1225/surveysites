@@ -216,9 +216,11 @@ const Offers = () => {
     utmParams["page"] = window.location.pathname;
 
     const sessionStart = new Date().toISOString();
+    const clickId = crypto.randomUUID();
     console.log("📝 Inserting click record for provider:", provider.id, provider.name);
     
-    const { data: inserted, error } = await supabase.from("offer_clicks").insert({
+    const { error } = await supabase.from("offer_clicks").insert({
+      id: clickId,
       user_id: profile.id, 
       username: profile.username || null,
       provider_id: provider.id,
@@ -232,25 +234,17 @@ const Offers = () => {
       ip_address: ipInfo.ip || null, country: ipInfo.country || null,
       vpn_proxy_flag: ipInfo.proxy || false,
       utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
-    }).select("id").single();
+    });
 
     if (error) {
       console.error("❌ Error inserting click record:", error);
-    } else if (inserted?.id) {
-      console.log("✅ Click record inserted successfully:", inserted.id);
-      const updateEnd = () => {
-        const endTime = new Date().toISOString();
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id).then(() => {});
-      };
-      window.addEventListener("beforeunload", updateEnd, { once: true });
-      setTimeout(async () => {
-        const endTime = new Date().toISOString();
-        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        await supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", inserted.id);
-      }, 30000);
     } else {
-      console.log("❌ No data returned from insert");
+      console.log("✅ Click recorded:", clickId, provider.name);
+      setTimeout(() => {
+        const endTime = new Date().toISOString();
+        const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
+        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", clickId).then(() => {});
+      }, 30000);
     }
   };
 
