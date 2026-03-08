@@ -44,6 +44,19 @@ interface FeedSettings {
   feed_count_new_offers: number;
   feed_count_global_notifications: number;
   feed_count_feed_generator: number;
+  feed_size_offers: string;
+  feed_size_surveys: string;
+  feed_size_signups: string;
+  feed_size_withdrawals: string;
+  feed_size_logins: string;
+  feed_size_contests: string;
+  feed_size_referrals: string;
+  feed_size_promocodes: string;
+  feed_size_payment_completed: string;
+  feed_size_new_promocodes: string;
+  feed_size_new_offers: string;
+  feed_size_global_notifications: string;
+  feed_size_feed_generator: string;
 }
 
 const DEFAULT_SETTINGS: FeedSettings = {
@@ -77,6 +90,19 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_count_new_offers: 20,
   feed_count_global_notifications: 20,
   feed_count_feed_generator: 20,
+  feed_size_offers: "medium",
+  feed_size_surveys: "medium",
+  feed_size_signups: "medium",
+  feed_size_withdrawals: "medium",
+  feed_size_logins: "medium",
+  feed_size_contests: "medium",
+  feed_size_referrals: "medium",
+  feed_size_promocodes: "medium",
+  feed_size_payment_completed: "medium",
+  feed_size_new_promocodes: "medium",
+  feed_size_new_offers: "medium",
+  feed_size_global_notifications: "medium",
+  feed_size_feed_generator: "medium",
 };
 
 const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS);
