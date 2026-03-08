@@ -120,12 +120,15 @@ const ActivityFeedControls = () => {
   const handleReset = async () => {
     const defaultToggles: Record<string, boolean> = {};
     const defaultCounts: Record<string, string> = {};
+    const defaultSizes: Record<string, string> = {};
     FEED_TOGGLES.forEach(t => {
       defaultToggles[t.key] = t.key === "feed_show_offers" || t.key === "feed_show_surveys";
       defaultCounts[t.countKey] = DEFAULT_PER_TYPE_COUNT;
+      defaultSizes[t.sizeKey] = DEFAULT_BOX_SIZE;
     });
     setToggles(defaultToggles);
     setCounts(defaultCounts);
+    setSizes(defaultSizes);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -135,6 +138,7 @@ const ActivityFeedControls = () => {
     const allSettings = [
       ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(defaultToggles[t.key]) })),
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: DEFAULT_PER_TYPE_COUNT })),
+      ...FEED_TOGGLES.map(t => ({ key: t.sizeKey, value: DEFAULT_BOX_SIZE })),
       { key: TOTAL_COUNT_KEY, value: DEFAULT_TOTAL_COUNT },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
