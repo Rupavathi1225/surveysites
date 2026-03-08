@@ -434,6 +434,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           source: "Just joined the platform!",
           amount: "",
           icon: "signup",
+          created_at: u.created_at,
         });
       });
 
@@ -459,6 +460,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           source: "Redeemed a promocode",
           amount: "",
           icon: "promocode",
+          created_at: p.created_at,
         });
       });
 
@@ -472,6 +474,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           source: isPaid ? `Payment completed via ${w.payment_method}` : `Requested withdrawal via ${w.payment_method}`,
           amount: `$ ${(w.amount || 0).toFixed(2)}`,
           icon: "payment",
+          created_at: w.created_at,
         });
       });
 
