@@ -3453,13 +3453,61 @@ Expiry Date: ${o.expiry_date || "-"}`;
                       disabled={processingBulkImport} 
                     />
                     <div className="text-center">
-                      <FileUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="font-medium">Drop CSV or click to upload</p>
+                      {processingBulkImport ? (
+                        <>
+                          <Loader2 className="h-8 w-8 mx-auto mb-2 text-primary animate-spin" />
+                          <p className="font-medium">Processing CSV...</p>
+                        </>
+                      ) : (
+                        <>
+                          <FileUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="font-medium">Drop CSV or click to upload</p>
+                        </>
+                      )}
                     </div>
                   </label>
                 </div>
-                {bulkImportPreview.length > 0 && (
+
+                {/* Upload Progress */}
+                {bulkUploading && (
                   <div className="mt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Importing offers...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
+
+                {/* Upload Summary */}
+                {uploadSummary && !bulkUploading && (
+                  <div className="mt-4 grid grid-cols-4 gap-2">
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold">{uploadSummary.total}</p>
+                      <p className="text-xs text-muted-foreground">Total</p>
+                    </CardContent></Card>
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold text-green-600">{uploadSummary.valid}</p>
+                      <p className="text-xs text-muted-foreground">Imported</p>
+                    </CardContent></Card>
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold text-yellow-600">{uploadSummary.duplicates}</p>
+                      <p className="text-xs text-muted-foreground">Duplicates</p>
+                    </CardContent></Card>
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold text-red-600">{uploadSummary.invalid}</p>
+                      <p className="text-xs text-muted-foreground">Failed</p>
+                    </CardContent></Card>
+                  </div>
+                )}
+
+                {bulkImportPreview.length > 0 && !bulkUploading && (
+                  <div className="mt-4 space-y-2">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-sm text-green-800 font-medium">
+                        {bulkImportPreview.length} offers parsed successfully. {duplicateMatches.size > 0 ? `${duplicateMatches.size} duplicates detected.` : ''}
+                      </p>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Checkbox 
                         id="skip-duplicates" 
