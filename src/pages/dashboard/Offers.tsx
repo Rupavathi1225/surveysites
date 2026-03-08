@@ -1119,9 +1119,9 @@ const Offers = () => {
                   <div 
                     key={p.id}
                     className="relative w-[180px] h-[140px] bg-black border-2 border-gray-600 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30"
-                    onClick={async () => {
-                      // Track the provider click first
-                      await trackProviderClick(p);
+                    onClick={() => {
+                      // Track click in background (don't await - prevents popup blocker)
+                      trackProviderClick(p).catch(err => console.error("Track error:", err));
                       const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                       if (p.iframe_url || p.iframe_code) {
                         const src = p.iframe_code?.match(/src=["']([^"']+)["']/)?.[1] || p.iframe_url || '#';
