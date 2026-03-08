@@ -285,7 +285,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
               <div className="shrink-0 text-right">
                 <span className="text-lg font-bold text-white whitespace-nowrap">{item.amount}</span>
                 {item.country && (
-                  <div className="text-xs text-white/50">{getCountryFlag(item.country)} {item.country}</div>
+                  <div className="text-xs text-white/50 whitespace-nowrap">{getCountryFlag(item.country)} {item.country}</div>
                 )}
               </div>
             </div>
