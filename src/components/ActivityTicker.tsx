@@ -31,6 +31,11 @@ interface FeedSettings {
   feed_box_color1: string;
   feed_box_color2: string;
   feed_box_size: string;
+  feed_box_width: string;
+  feed_box_height: string;
+  feed_box_padding: string;
+  feed_box_font_size: string;
+  feed_box_border_radius: string;
   feed_total_count: number;
   feed_count_offers: number;
   feed_count_surveys: number;
