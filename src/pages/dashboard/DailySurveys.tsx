@@ -42,30 +42,16 @@ const DailySurveys = () => {
 
   const trackClick = async (item: any, type: "survey" | "offer" | "provider", providerId?: string) => {
     if (!profile) {
-      console.warn("[TrackClick] No profile, skipping click tracking");
+      console.warn("[TrackClick] No profile, skipping");
       return;
     }
-    
-    let ipInfo = { ip: null, country: null, proxy: false };
-    try {
-      ipInfo = await Promise.race([
-        fetchIpInfo(),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000))
-      ]);
-    } catch {
-      console.warn("[TrackClick] IP info fetch failed/timed out, continuing without it");
-    }
 
-    const utmParams: Record<string, string> = {};
-    const urlParams = new URLSearchParams(window.location.search);
-    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
-      const v = urlParams.get(k);
-      if (v) utmParams[k] = v;
-    });
-    utmParams["page"] = window.location.pathname;
-
+    const clickId = crypto.randomUUID();
     const sessionStart = new Date().toISOString();
+    const utmParams: Record<string, string> = { page: window.location.pathname };
+
     const payload: any = {
+      id: clickId,
       user_id: profile.id,
       username: profile.username || null,
       session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
@@ -75,9 +61,6 @@ const DailySurveys = () => {
       os: navigator.platform || "Unknown",
       source: document.referrer || window.location.href,
       completion_status: "clicked",
-      ip_address: ipInfo.ip || null,
-      country: ipInfo.country || null,
-      vpn_proxy_flag: ipInfo.proxy || false,
       utm_params: utmParams,
       session_start: sessionStart,
       session_end: sessionStart,
@@ -87,12 +70,22 @@ const DailySurveys = () => {
     else if (type === "survey") payload.survey_link_id = item.id;
     else if (type === "provider") payload.provider_id = providerId;
 
-    const clickId = crypto.randomUUID();
-    payload.id = clickId;
-    console.log("[TrackClick] Inserting click:", type, providerId || item.id);
+    // INSERT IMMEDIATELY - don't wait for IP info
+    console.log("[TrackClick] Inserting:", type, providerId || item.id);
     const { error } = await supabase.from("offer_clicks").insert(payload);
-    if (error) console.error("[TrackClick Error]", error, payload);
-    else console.log("[TrackClick OK]", clickId, type, payload.provider_id || payload.offer_id || payload.survey_link_id);
+    if (error) {
+      console.error("[TrackClick Error]", error);
+    } else {
+      console.log("[TrackClick OK]", clickId, type);
+      // Update with IP info asynchronously
+      fetchIpInfo().then(ipInfo => {
+        if (ipInfo.ip) {
+          supabase.from("offer_clicks").update({
+            ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
+          }).eq("id", clickId).then(() => {});
+        }
+      }).catch(() => {});
+    }
   };
 
   const handleStart = (item: any, type: "survey" | "offer") => {

@@ -122,36 +122,16 @@ const Offers = () => {
 
   const trackClick = async (offer: any) => {
     if (!profile) return;
-    let ipInfo = { ip: null, country: null, proxy: false };
-    try {
-      ipInfo = await Promise.race([
-        fetchIpInfo(),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000))
-      ]);
-    } catch {
-      console.warn("[trackClick] IP info fetch failed/timed out");
-    }
-    const utmParams: Record<string, string> = {};
+    const clickId = crypto.randomUUID();
+    const sessionStart = new Date().toISOString();
+    const utmParams: Record<string, string> = { page: window.location.pathname };
     const urlParams = new URLSearchParams(window.location.search);
     ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
       const v = urlParams.get(k);
       if (v) utmParams[k] = v;
     });
-    if (Object.keys(utmParams).length === 0 && document.referrer) {
-      try {
-        const refUrl = new URL(document.referrer);
-        const refParams = new URLSearchParams(refUrl.search);
-        ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
-          const v = refParams.get(k);
-          if (v) utmParams[k] = v;
-        });
-        if (Object.keys(utmParams).length === 0) utmParams["referrer"] = refUrl.hostname;
-      } catch {}
-    }
-    utmParams["page"] = window.location.pathname;
 
-    const sessionStart = new Date().toISOString();
-    const clickId = crypto.randomUUID();
+    // INSERT IMMEDIATELY - don't wait for IP info
     const { error } = await supabase.from("offer_clicks").insert({
       id: clickId,
       user_id: profile.id, offer_id: offer.id, username: profile.username || null,
@@ -162,66 +142,44 @@ const Offers = () => {
       os: navigator.platform || "Unknown",
       source: document.referrer || window.location.href,
       completion_status: "clicked",
-      ip_address: ipInfo.ip || null, country: ipInfo.country || null,
-      vpn_proxy_flag: ipInfo.proxy || false,
       utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
     });
 
     if (error) {
       console.error("[trackClick] Insert error:", error);
     } else {
-      console.log("[trackClick] OK:", clickId);
+      console.log("[trackClick] OK:", clickId, offer.title || offer.id);
+      // Update with IP info asynchronously - don't block
+      fetchIpInfo().then(ipInfo => {
+        if (ipInfo.ip) {
+          supabase.from("offer_clicks").update({
+            ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
+          }).eq("id", clickId).then(() => {});
+        }
+      }).catch(() => {});
+      // Update session end after 30s
       setTimeout(() => {
-        const endTime = new Date().toISOString();
         const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", clickId).then(() => {});
+        supabase.from("offer_clicks").update({ session_end: new Date().toISOString(), time_spent: timeSpent }).eq("id", clickId).then(() => {});
       }, 30000);
     }
   };
 
   const trackProviderClick = async (provider: any) => {
-    console.log("🔍 trackProviderClick called for:", provider.name, provider.id);
     if (!profile) {
-      console.log("❌ No profile found, skipping tracking");
+      console.log("❌ No profile, skipping tracking");
       return;
     }
-    console.log("✅ Profile found, tracking click for:", profile.username);
-    
-    let ipInfo = { ip: null, country: null, proxy: false };
-    try {
-      ipInfo = await Promise.race([
-        fetchIpInfo(),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000))
-      ]);
-    } catch {
-      console.warn("[trackProviderClick] IP info fetch failed/timed out");
-    }
-    const utmParams: Record<string, string> = {};
-    const urlParams = new URLSearchParams(window.location.search);
-    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
-      const v = urlParams.get(k);
-      if (v) utmParams[k] = v;
-    });
-    if (Object.keys(utmParams).length === 0 && document.referrer) {
-      try {
-        const refUrl = new URL(document.referrer);
-        const refParams = new URLSearchParams(refUrl.search);
-        ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"].forEach(k => {
-          const v = refParams.get(k);
-          if (v) utmParams[k] = v;
-        });
-        if (Object.keys(utmParams).length === 0) utmParams["referrer"] = refUrl.hostname;
-      } catch {}
-    }
-    utmParams["page"] = window.location.pathname;
-
-    const sessionStart = new Date().toISOString();
     const clickId = crypto.randomUUID();
-    console.log("📝 Inserting click record for provider:", provider.id, provider.name);
-    
+    const sessionStart = new Date().toISOString();
+    const utmParams: Record<string, string> = { page: window.location.pathname };
+
+    console.log("📝 trackProviderClick:", provider.name, provider.id);
+
+    // INSERT IMMEDIATELY - don't wait for IP info
     const { error } = await supabase.from("offer_clicks").insert({
       id: clickId,
-      user_id: profile.id, 
+      user_id: profile.id,
       username: profile.username || null,
       provider_id: provider.id,
       session_id: sessionStorage.getItem("session_id") || crypto.randomUUID(),
@@ -231,19 +189,24 @@ const Offers = () => {
       os: navigator.platform || "Unknown",
       source: document.referrer || window.location.href,
       completion_status: "clicked",
-      ip_address: ipInfo.ip || null, country: ipInfo.country || null,
-      vpn_proxy_flag: ipInfo.proxy || false,
       utm_params: utmParams, session_start: sessionStart, session_end: sessionStart,
     });
 
     if (error) {
-      console.error("❌ Error inserting click record:", error);
+      console.error("❌ Insert error:", error);
     } else {
       console.log("✅ Click recorded:", clickId, provider.name);
+      // Update with IP info asynchronously
+      fetchIpInfo().then(ipInfo => {
+        if (ipInfo.ip) {
+          supabase.from("offer_clicks").update({
+            ip_address: ipInfo.ip, country: ipInfo.country, vpn_proxy_flag: ipInfo.proxy || false,
+          }).eq("id", clickId).then(() => {});
+        }
+      }).catch(() => {});
       setTimeout(() => {
-        const endTime = new Date().toISOString();
         const timeSpent = Math.round((Date.now() - new Date(sessionStart).getTime()) / 1000);
-        supabase.from("offer_clicks").update({ session_end: endTime, time_spent: timeSpent }).eq("id", clickId).then(() => {});
+        supabase.from("offer_clicks").update({ session_end: new Date().toISOString(), time_spent: timeSpent }).eq("id", clickId).then(() => {});
       }, 30000);
     }
   };
