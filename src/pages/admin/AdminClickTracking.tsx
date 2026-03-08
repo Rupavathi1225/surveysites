@@ -84,9 +84,8 @@ const AdminClickTracking = () => {
       fetchAll("postback_logs"),
     ]);
     
-    console.log("[AdminClickTracking] All clicks fetched:", allClicksRes.data?.length, "error:", allClicksRes.error?.message);
+    console.log("[AdminClickTracking] All clicks fetched:", allClicksData.length);
     
-    const allClicksData = allClicksRes.data || [];
     // Split into offer/survey clicks and provider clicks from the same dataset
     const clicksData = allClicksData.filter(c => c.offer_id || c.survey_link_id);
     const providerClicksData = allClicksData.filter(c => c.provider_id && !c.offer_id && !c.survey_link_id);
@@ -104,22 +103,22 @@ const AdminClickTracking = () => {
       survey_providers: click.provider_id ? providerMap.get(click.provider_id) : null
     }));
 
-    const enhancedLogins = (loginsRes.data || []).map(log => ({
+    const enhancedLogins = loginsData.map((log: any) => ({
       ...log,
       profiles: profileMap.get(log.user_id) || null
     }));
 
-    const enhancedEarnings = (earningsRes.data || []).map(earn => ({
+    const enhancedEarnings = earningsData.map((earn: any) => ({
       ...earn,
       profiles: profileMap.get(earn.user_id) || null
     }));
 
-    const enhancedPromo = (promoRes.data || []).map(promo => ({
+    const enhancedPromo = (promoRes.data || []).map((promo: any) => ({
       ...promo,
       profiles: profileMap.get(promo.user_id) || null,
     }));
 
-    const enhancedPostbacks = (postbackRes.data || []).map(pb => ({
+    const enhancedPostbacks = postbackData.map((pb: any) => ({
       ...pb,
       profiles: profileMap.get(pb.user_id) || null,
       survey_providers: pb.provider_id ? providerMap.get(pb.provider_id) : null,
@@ -128,11 +127,11 @@ const AdminClickTracking = () => {
     setClicks(enhancedClicks);
     setProviderClicks(enhancedProviderClicks);
     setLoginLogs(enhancedLogins);
-    setPageVisits(visitsRes.data || []);
+    setPageVisits(visitsData);
     setEarnings(enhancedEarnings);
     setPromoRedemptions(enhancedPromo);
     setPostbackLogs(enhancedPostbacks);
-    setProfiles(profilesRes.data || []);
+    setProfiles(profilesAll);
     setLoading(false);
     setLastRefresh(new Date());
   };
