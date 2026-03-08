@@ -1110,7 +1110,7 @@ const AdminClickTracking = () => {
                     <Table>
                       <TableHeader><TableRow><TableHead>Status</TableHead><TableHead>Provider</TableHead><TableHead>Payout</TableHead><TableHead>Txn</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {userDetailModal.postbacks.slice(0, 50).map((pb: any) => (
+                        {userDetailModal.postbacks.map((pb: any) => (
                           <TableRow key={pb.id}>
                             <TableCell><Badge variant={pb.status === "success" ? "default" : pb.status === "failed" ? "destructive" : "secondary"} className={`text-xs ${pb.status === "success" ? "bg-green-500" : ["reversed","reversal","chargeback"].includes(pb.status) ? "bg-orange-500" : ""}`}>{pb.status}</Badge></TableCell>
                             <TableCell className="text-sm">{pb.provider_name || "—"}</TableCell>
