@@ -127,6 +127,11 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: counts[t.countKey] || DEFAULT_PER_TYPE_COUNT })),
       { key: TOTAL_COUNT_KEY, value: totalCount },
       { key: BOX_SIZE_KEY, value: boxSize },
+      { key: BOX_WIDTH_KEY, value: boxWidth },
+      { key: BOX_HEIGHT_KEY, value: boxHeight },
+      { key: BOX_PADDING_KEY, value: boxPadding },
+      { key: BOX_FONT_SIZE_KEY, value: boxFontSize },
+      { key: BOX_BORDER_RADIUS_KEY, value: boxBorderRadius },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
       { key: COLOR2_KEY, value: color2 },
@@ -146,6 +151,11 @@ const ActivityFeedControls = () => {
     setToggles(defaultToggles);
     setCounts(defaultCounts);
     setBoxSize(DEFAULT_BOX_SIZE);
+    setBoxWidth(DEFAULT_BOX_WIDTH);
+    setBoxHeight(DEFAULT_BOX_HEIGHT);
+    setBoxPadding(DEFAULT_BOX_PADDING);
+    setBoxFontSize(DEFAULT_BOX_FONT_SIZE);
+    setBoxBorderRadius(DEFAULT_BOX_BORDER_RADIUS);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -157,6 +167,11 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => ({ key: t.countKey, value: DEFAULT_PER_TYPE_COUNT })),
       { key: TOTAL_COUNT_KEY, value: DEFAULT_TOTAL_COUNT },
       { key: BOX_SIZE_KEY, value: DEFAULT_BOX_SIZE },
+      { key: BOX_WIDTH_KEY, value: DEFAULT_BOX_WIDTH },
+      { key: BOX_HEIGHT_KEY, value: DEFAULT_BOX_HEIGHT },
+      { key: BOX_PADDING_KEY, value: DEFAULT_BOX_PADDING },
+      { key: BOX_FONT_SIZE_KEY, value: DEFAULT_BOX_FONT_SIZE },
+      { key: BOX_BORDER_RADIUS_KEY, value: DEFAULT_BOX_BORDER_RADIUS },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
