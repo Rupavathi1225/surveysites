@@ -327,6 +327,24 @@ const AdminClickTracking = () => {
   const providerPerformance = useMemo(() => {
     const map = new Map<string, any>();
     
+    // Initialize ALL providers first (so even those with 0 clicks appear)
+    providers.forEach(p => {
+      map.set(p.id, {
+        id: p.id,
+        name: p.name || "Unknown",
+        code: p.code || "—",
+        totalClicks: 0,
+        uniqueUsers: new Set(),
+        avgTime: 0,
+        timeSum: 0,
+        timeCount: 0,
+        vpnCount: 0,
+        countries: new Set(),
+        devices: { mobile: 0, desktop: 0, tablet: 0 }
+      });
+    });
+
+    // Then aggregate click data
     providerClicks.forEach(c => {
       const providerId = c.provider_id;
       if (!providerId) return;
@@ -343,11 +361,7 @@ const AdminClickTracking = () => {
           timeCount: 0,
           vpnCount: 0,
           countries: new Set(),
-          devices: {
-            mobile: 0,
-            desktop: 0,
-            tablet: 0
-          }
+          devices: { mobile: 0, desktop: 0, tablet: 0 }
         });
       }
       
@@ -371,7 +385,7 @@ const AdminClickTracking = () => {
       vpnPercentage: p.totalClicks ? Math.round((p.vpnCount / p.totalClicks) * 100) : 0,
       countries: [...p.countries].join(", "),
     })).sort((a, b) => b.totalClicks - a.totalClicks);
-  }, [providerClicks]);
+  }, [providerClicks, providers]);
 
   const StatCard = ({ icon: Icon, value, label, color = "text-primary" }: { icon: any; value: any; label: string; color?: string }) => (
     <Card className="hover:border-primary/30 transition-colors">
