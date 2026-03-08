@@ -211,10 +211,10 @@ const Offers = () => {
     }
   };
 
-  const openOfferModal = async (offer: any) => {
+  const openOfferModal = (offer: any) => {
     setSelectedOffer(offer);
     setIsModalOpen(true);
-    await trackClick(offer);
+    trackClick(offer).catch(err => console.error("[openOfferModal] track error:", err));
   };
 
   const filtered = offers.filter(o => {
