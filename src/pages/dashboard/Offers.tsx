@@ -96,12 +96,17 @@ const Offers = () => {
 
   const fetchIpInfo = async () => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-ip-info`;
       const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       return await res.json();
     } catch {
+      console.warn("[fetchIpInfo] Failed or timed out");
       return { ip: null, country: null, proxy: false };
     }
   };
