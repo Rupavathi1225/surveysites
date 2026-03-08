@@ -470,37 +470,37 @@ const AdminClickTracking = () => {
             <p className="text-muted-foreground text-sm">Loading analytics...</p>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                <StatCard icon={Users} value={metrics24h.newUsers} label="New Users Registered" />
-                <StatCard icon={UserCheck} value={metrics24h.uniqueLogins} label="Unique Logins" />
-                <StatCard icon={Activity} value={logins24h.length} label="Total Login Sessions" />
-                <StatCard icon={Monitor} value={metrics24h.newDeviceLogins} label="New Device Logins" color="text-yellow-500" />
-                <StatCard icon={Eye} value={metrics24h.totalPageViews} label="Total Page Views" />
+               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <StatCard icon={Users} value={metrics24h.newUsers} label="New Users Registered" onClick={() => openCardDetail("newUsers")} />
+                <StatCard icon={UserCheck} value={metrics24h.uniqueLogins} label="Unique Logins" onClick={() => openCardDetail("uniqueLogins")} />
+                <StatCard icon={Activity} value={logins24h.length} label="Total Login Sessions" onClick={() => openCardDetail("totalLogins")} />
+                <StatCard icon={Monitor} value={metrics24h.newDeviceLogins} label="New Device Logins" color="text-yellow-500" onClick={() => openCardDetail("newDeviceLogins")} />
+                <StatCard icon={Eye} value={metrics24h.totalPageViews} label="Total Page Views" onClick={() => openCardDetail("pageViews")} />
                 
-                <StatCard icon={MousePointerClick} value={metrics24h.totalClicks} label="Total Clicks" />
-                <StatCard icon={MousePointerClick} value={metrics24h.uniqueClicks} label="Unique Clicks" />
-                <StatCard icon={Users} value={metrics24h.uniqueUsers} label="Unique Clickers" />
-                <StatCard icon={Globe} value={metrics24h.uniqueIPs} label="Unique IPs" />
+                <StatCard icon={MousePointerClick} value={metrics24h.totalClicks} label="Total Clicks" onClick={() => openCardDetail("totalClicks")} />
+                <StatCard icon={MousePointerClick} value={metrics24h.uniqueClicks} label="Unique Clicks" onClick={() => openCardDetail("uniqueClicks")} />
+                <StatCard icon={Users} value={metrics24h.uniqueUsers} label="Unique Clickers" onClick={() => openCardDetail("uniqueClickers")} />
+                <StatCard icon={Globe} value={metrics24h.uniqueIPs} label="Unique IPs" onClick={() => openCardDetail("uniqueIPs")} />
                 
-                <StatCard icon={TrendingUp} value={metrics24h.offerClicked} label="Offer Clicks" />
-                <StatCard icon={BarChart3} value={metrics24h.surveyClicked} label="Survey Clicks" />
-                <StatCard icon={Layout} value={metrics24h.providerClicks} label="Offerwall Clicks" color="text-purple-500" />
+                <StatCard icon={TrendingUp} value={metrics24h.offerClicked} label="Offer Clicks" onClick={() => openCardDetail("offerClicks")} />
+                <StatCard icon={BarChart3} value={metrics24h.surveyClicked} label="Survey Clicks" onClick={() => openCardDetail("surveyClicks")} />
+                <StatCard icon={Layout} value={metrics24h.providerClicks} label="Offerwall Clicks" color="text-purple-500" onClick={() => openCardDetail("offerwallClicks")} />
                 
                 <StatCard icon={UserX} value={metrics24h.offersNotClicked} label="Unlinked Clicks" color="text-yellow-500" />
-                <StatCard icon={TrendingUp} value={metrics24h.completed} label="Completed" color="text-green-500" />
-                <StatCard icon={TrendingDown} value={metrics24h.reversed} label="Reversed" color="text-red-500" />
+                <StatCard icon={TrendingUp} value={metrics24h.completed} label="Completed" color="text-green-500" onClick={() => openCardDetail("completed")} />
+                <StatCard icon={TrendingDown} value={metrics24h.reversed} label="Reversed" color="text-red-500" onClick={() => openCardDetail("reversed")} />
                 
-                <StatCard icon={Shield} value={metrics24h.vpnCount} label="VPN/Proxy Detected" color="text-orange-500" />
-                <StatCard icon={AlertTriangle} value={metrics24h.highRisk} label="High Risk Clicks" color="text-red-500" />
+                <StatCard icon={Shield} value={metrics24h.vpnCount} label="VPN/Proxy Detected" color="text-orange-500" onClick={() => openCardDetail("vpn")} />
+                <StatCard icon={AlertTriangle} value={metrics24h.highRisk} label="High Risk Clicks" color="text-red-500" onClick={() => openCardDetail("highRisk")} />
                 <StatCard icon={Globe} value={metrics24h.countries} label="Countries Active" />
                 <StatCard icon={Clock} value={`${metrics24h.avgTimeSpent}s`} label="Avg Time Spent" />
                 
-                <StatCard icon={Gift} value={metrics24h.promoAdded} label="Promocodes Redeemed" />
-                <StatCard icon={Ticket} value={metrics24h.totalEarned} label="Points Earned" />
-                <StatCard icon={Eye} value={metrics24h.surveyPageVisits} label="Survey Page Visits" />
+                <StatCard icon={Gift} value={metrics24h.promoAdded} label="Promocodes Redeemed" onClick={() => openCardDetail("promoRedeemed")} />
+                <StatCard icon={Ticket} value={metrics24h.totalEarned} label="Points Earned" onClick={() => openCardDetail("pointsEarned")} />
+                <StatCard icon={Eye} value={metrics24h.surveyPageVisits} label="Survey Page Visits" onClick={() => openCardDetail("surveyPageVisits")} />
                 
-                <StatCard icon={Smartphone} value={metrics24h.devices.mobile} label="Mobile Clicks" />
-                <StatCard icon={Monitor} value={metrics24h.devices.desktop} label="Desktop Clicks" />
+                <StatCard icon={Smartphone} value={metrics24h.devices.mobile} label="Mobile Clicks" onClick={() => openCardDetail("mobileClicks")} />
+                <StatCard icon={Monitor} value={metrics24h.devices.desktop} label="Desktop Clicks" onClick={() => openCardDetail("desktopClicks")} />
               </div>
 
               {/* Country breakdown */}
