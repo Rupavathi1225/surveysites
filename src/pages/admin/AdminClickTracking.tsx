@@ -31,10 +31,11 @@ const AdminClickTracking = () => {
     if (!silent) setLoading(true);
     
     // First fetch all reference data
+    // Fetch ALL offers/surveys/providers (not just active) so we can resolve names for historical clicks
     const [offersRes, surveysRes, providersRes, profilesRes] = await Promise.all([
-      supabase.from("offers").select("id, title").eq("status", "active"),
-      supabase.from("survey_links").select("id, name").eq("status", "active"),
-      supabase.from("survey_providers").select("id, name, code").eq("status", "active"),
+      supabase.from("offers").select("id, title"),
+      supabase.from("survey_links").select("id, name"),
+      supabase.from("survey_providers").select("id, name, code"),
       supabase.from("profiles").select("id, username, email"),
     ]);
     
@@ -272,10 +273,12 @@ const AdminClickTracking = () => {
     // Regular offers and surveys
     clicks.forEach(c => {
       const key = c.offer_id || c.survey_link_id || "unknown";
+      if (key === "unknown") return; // Skip clicks with no offer or survey
       if (!map.has(key)) {
+        const resolvedName = c.offers?.title || c.survey_links?.name || null;
         map.set(key, {
           id: key,
-          name: c.offers?.title || c.survey_links?.name || "Unknown",
+          name: resolvedName || `Deleted (${key.substring(0, 8)}…)`,
           type: c.offer_id ? "Offer" : "Survey",
           totalClicks: 0,
           completed: 0,
