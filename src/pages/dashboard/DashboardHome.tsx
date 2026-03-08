@@ -405,7 +405,7 @@ const DashboardHome = () => {
                 return (
                   <div key={p.id} className="flex flex-col items-center gap-2">
                     <div 
-                      className="relative w-[180px] h-[120px] bg-white border border-border/30 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg"
+                      className="relative w-full aspect-[4/3] bg-card border border-border/50 rounded-xl p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:border-primary/30"
                       onClick={() => {
                         const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                         if (p.iframe_url || p.iframe_code) {
@@ -443,7 +443,7 @@ const DashboardHome = () => {
                       <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
                     </div>
                     {/* Name below card */}
-                    <span className="text-sm font-medium text-foreground text-center truncate w-[180px]">{p.name}</span>
+                    <span className="text-sm font-medium text-foreground text-center truncate w-full">{p.name}</span>
                   </div>
                 );
               })}
@@ -451,7 +451,7 @@ const DashboardHome = () => {
               {/* Show More Button */}
               <div
                 onClick={() => setShowAllWalls(true)}
-                className="relative w-[180px] h-[140px] bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30 flex flex-col items-center justify-center"
+                className="flex flex-col items-center justify-center aspect-[4/3] bg-card border border-border/50 rounded-xl p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:border-primary/30"
               >
                 <ChevronRight className="h-8 w-8 text-gray-300 mb-2" />
                 <span className="text-white font-semibold text-[16px] text-center">View All</span>
@@ -512,7 +512,7 @@ const DashboardHome = () => {
                 return (
                   <div key={p.id} className="flex flex-col items-center gap-2">
                     <div 
-                      className="relative w-[180px] h-[120px] bg-white border border-border/30 rounded-[12px] p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:shadow-lg"
+                      className="relative w-full aspect-[4/3] bg-card border border-border/50 rounded-xl p-4 cursor-pointer group hover:scale-105 transition-all duration-300 hover:border-primary/30"
                       onClick={() => {
                         const ru = (u: string) => u.replace(/USER_ID/g, profile?.username || 'anonymous').replace(/\{user_id\}/g, profile?.username || 'anonymous');
                         if (p.iframe_url || p.iframe_code) {
@@ -550,7 +550,7 @@ const DashboardHome = () => {
                       <div className="absolute inset-0 rounded-[12px] bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none"></div>
                     </div>
                     {/* Name below card */}
-                    <span className="text-sm font-medium text-foreground text-center truncate w-[180px]">{p.name}</span>
+                    <span className="text-sm font-medium text-foreground text-center truncate w-full">{p.name}</span>
                   </div>
                 );
               })}
