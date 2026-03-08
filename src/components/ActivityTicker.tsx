@@ -213,16 +213,12 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           {looped.map((item, i) => (
             <div
               key={`${item.id}-${i}`}
-              className="inline-flex items-center shrink-0 rounded-xl px-4 py-3 min-w-[240px] border border-foreground/5"
+              className="inline-flex items-center shrink-0 rounded-xl px-4 py-3 min-w-[200px] border border-foreground/5"
               style={{ background: boxGradient }}
             >
-              <div className="w-12 h-12 rounded-lg shrink-0 bg-white/10 flex items-center justify-center overflow-hidden mr-3">
-                {item.offerwallLogo ? (
-                  <img src={item.offerwallLogo} alt={item.offerwallName} className="w-full h-full object-contain" />
-                ) : (
-                  <span className="text-sm font-bold text-white/70">{item.offerwallName?.charAt(0) || "?"}</span>
-                )}
-              </div>
+              {item.offerwallLogo && (
+                <img src={item.offerwallLogo} alt={item.offerwallName} className="w-8 h-8 object-contain shrink-0 mr-2" />
+              )}
               <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold text-white truncate">{item.username}</span>
