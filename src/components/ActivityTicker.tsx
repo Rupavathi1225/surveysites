@@ -44,6 +44,19 @@ interface FeedSettings {
   feed_count_new_offers: number;
   feed_count_global_notifications: number;
   feed_count_feed_generator: number;
+  feed_size_offers: string;
+  feed_size_surveys: string;
+  feed_size_signups: string;
+  feed_size_withdrawals: string;
+  feed_size_logins: string;
+  feed_size_contests: string;
+  feed_size_referrals: string;
+  feed_size_promocodes: string;
+  feed_size_payment_completed: string;
+  feed_size_new_promocodes: string;
+  feed_size_new_offers: string;
+  feed_size_global_notifications: string;
+  feed_size_feed_generator: string;
 }
 
 const DEFAULT_SETTINGS: FeedSettings = {
@@ -77,6 +90,19 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_count_new_offers: 20,
   feed_count_global_notifications: 20,
   feed_count_feed_generator: 20,
+  feed_size_offers: "medium",
+  feed_size_surveys: "medium",
+  feed_size_signups: "medium",
+  feed_size_withdrawals: "medium",
+  feed_size_logins: "medium",
+  feed_size_contests: "medium",
+  feed_size_referrals: "medium",
+  feed_size_promocodes: "medium",
+  feed_size_payment_completed: "medium",
+  feed_size_new_promocodes: "medium",
+  feed_size_new_offers: "medium",
+  feed_size_global_notifications: "medium",
+  feed_size_feed_generator: "medium",
 };
 
 const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS);
@@ -129,6 +155,22 @@ const TYPE_TO_COUNT_KEY: Record<string, keyof FeedSettings> = {
   feed_generator: "feed_count_feed_generator",
 };
 
+const TYPE_TO_SIZE_KEY: Record<string, keyof FeedSettings> = {
+  offer: "feed_size_offers",
+  survey: "feed_size_surveys",
+  signup: "feed_size_signups",
+  withdrawal: "feed_size_withdrawals",
+  login: "feed_size_logins",
+  contest: "feed_size_contests",
+  referral: "feed_size_referrals",
+  promocode: "feed_size_promocodes",
+  payment_completed: "feed_size_payment_completed",
+  new_promocodes: "feed_size_new_promocodes",
+  new_offers: "feed_size_new_offers",
+  global_notifications: "feed_size_global_notifications",
+  feed_generator: "feed_size_feed_generator",
+};
+
 const ActivityTicker = ({ userId }: { userId?: string }) => {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [settings, setSettings] = useState<FeedSettings>(DEFAULT_SETTINGS);
@@ -177,6 +219,19 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_count_new_offers: getNum("feed_count_new_offers", 20),
           feed_count_global_notifications: getNum("feed_count_global_notifications", 20),
           feed_count_feed_generator: getNum("feed_count_feed_generator", 20),
+          feed_size_offers: getStr("feed_size_offers", "medium"),
+          feed_size_surveys: getStr("feed_size_surveys", "medium"),
+          feed_size_signups: getStr("feed_size_signups", "medium"),
+          feed_size_withdrawals: getStr("feed_size_withdrawals", "medium"),
+          feed_size_logins: getStr("feed_size_logins", "medium"),
+          feed_size_contests: getStr("feed_size_contests", "medium"),
+          feed_size_referrals: getStr("feed_size_referrals", "medium"),
+          feed_size_promocodes: getStr("feed_size_promocodes", "medium"),
+          feed_size_payment_completed: getStr("feed_size_payment_completed", "medium"),
+          feed_size_new_promocodes: getStr("feed_size_new_promocodes", "medium"),
+          feed_size_new_offers: getStr("feed_size_new_offers", "medium"),
+          feed_size_global_notifications: getStr("feed_size_global_notifications", "medium"),
+          feed_size_feed_generator: getStr("feed_size_feed_generator", "medium"),
         });
       }
     };
@@ -290,6 +345,19 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const scrollDuration = `${settings.feed_scroll_speed}s`;
   const boxGradient = `linear-gradient(135deg, ${settings.feed_box_color1}, ${settings.feed_box_color2})`;
 
+  const getBoxSize = (type: string) => {
+    const sizeKey = TYPE_TO_SIZE_KEY[type];
+    const size = sizeKey ? (settings[sizeKey] as string) : "medium";
+    switch (size) {
+      case "small":
+        return { minW: "min-w-[160px]", px: "px-3", py: "py-2", imgSize: "w-6 h-6", nameSize: "text-xs", amountSize: "text-sm", countrySize: "text-[9px]", offerSize: "text-[10px]" };
+      case "large":
+        return { minW: "min-w-[280px]", px: "px-5", py: "py-4", imgSize: "w-10 h-10", nameSize: "text-base", amountSize: "text-xl", countrySize: "text-xs", offerSize: "text-sm" };
+      default:
+        return { minW: "min-w-[200px]", px: "px-4", py: "py-3", imgSize: "w-8 h-8", nameSize: "text-sm", amountSize: "text-lg", countrySize: "text-xs", offerSize: "text-xs" };
+    }
+  };
+
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
       <div className="flex items-center gap-1.5 mb-2">
@@ -304,33 +372,36 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
       <div className="relative overflow-hidden">
         <div
-          className="flex gap-3 whitespace-nowrap ticker-scroll"
+          className="flex gap-3 whitespace-nowrap ticker-scroll items-stretch"
           style={{ width: "max-content", animationDuration: scrollDuration }}
         >
-          {looped.map((item, i) => (
-            <div
-              key={`${item.id}-${i}`}
-              className="inline-flex items-center shrink-0 rounded-xl px-4 py-3 min-w-[200px] border border-foreground/5"
-              style={{ background: boxGradient }}
-            >
-              {item.offerwallLogo && (
-                <img src={item.offerwallLogo} alt={item.offerwallName} className="w-8 h-8 object-contain shrink-0 mr-2" />
-              )}
-              <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-white truncate">{item.username}</span>
-                  <span className="text-[10px] text-white/50">• {getRelativeTime(item.created_at)}</span>
-                </div>
-                <span className="text-xs text-white/60 truncate">{item.offerwallName}</span>
-              </div>
-              <div className="shrink-0 text-right">
-                <span className="text-lg font-bold text-white whitespace-nowrap">{item.amount}</span>
-                {item.country && (
-                  <div className="text-xs text-white/50 whitespace-nowrap">{getCountryFlag(item.country)} {item.country}</div>
+          {looped.map((item, i) => {
+            const sz = getBoxSize(item.type);
+            return (
+              <div
+                key={`${item.id}-${i}`}
+                className={`inline-flex items-center shrink-0 rounded-xl ${sz.px} ${sz.py} ${sz.minW} border border-foreground/5 transition-all`}
+                style={{ background: boxGradient }}
+              >
+                {item.offerwallLogo && (
+                  <img src={item.offerwallLogo} alt={item.offerwallName} className={`${sz.imgSize} object-contain shrink-0 mr-2`} />
                 )}
+                <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`${sz.nameSize} font-semibold text-white truncate`}>{item.username}</span>
+                    <span className="text-[10px] text-white/50">• {getRelativeTime(item.created_at)}</span>
+                  </div>
+                  <span className={`${sz.offerSize} text-white/60 truncate`}>{item.offerwallName}</span>
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className={`${sz.amountSize} font-bold text-white whitespace-nowrap`}>{item.amount}</span>
+                  {item.country && (
+                    <div className={`${sz.countrySize} text-white/50 whitespace-nowrap`}>{getCountryFlag(item.country)} {item.country}</div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
