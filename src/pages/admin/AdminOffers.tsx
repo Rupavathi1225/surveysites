@@ -188,6 +188,7 @@ const AdminOffers = () => {
   // Duplicate groups state for Duplicates tab
   const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
   const [loadingDuplicates, setLoadingDuplicates] = useState(false);
+  const [selectedDuplicateOffers, setSelectedDuplicateOffers] = useState<Set<string>>(new Set());
 
 // Recycle bin multi-delete state
   const [deletingRecycleBin, setDeletingRecycleBin] = useState(false);
@@ -3215,20 +3216,45 @@ Expiry Date: ${o.expiry_date || "-"}`;
                 <p className="text-sm text-muted-foreground">Find and manage duplicate offers in your database</p>
               </div>
               <div className="flex gap-2 flex-wrap">
+                {selectedDuplicateOffers.size > 0 && (
+                  <Button 
+                    variant="destructive" 
+                    onClick={async () => {
+                      const toDelete = Array.from(selectedDuplicateOffers);
+                      if (!confirm(`Delete ${toDelete.length} selected duplicate offers?`)) return;
+                      try {
+                        const offerDataMap = new Map<string, any>();
+                        duplicateGroups.forEach(group => {
+                          group.offers.forEach((offer: any) => {
+                            if (selectedDuplicateOffers.has(offer.id)) {
+                              offerDataMap.set(offer.id, offer);
+                            }
+                          });
+                        });
+                        await moveMultipleToRecycleBin(toDelete, offerDataMap);
+                        toast({ title: "Delete Complete", description: `Moved ${toDelete.length} offers to recycle bin` });
+                        setSelectedDuplicateOffers(new Set());
+                        loadDuplicateGroups();
+                        load();
+                      } catch (e) {
+                        toast({ title: "Error", description: String(e), variant: "destructive" });
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete Selected ({selectedDuplicateOffers.size})
+                  </Button>
+                )}
                 {duplicateGroups.length > 0 && (
                   <Button 
                     variant="destructive" 
                     onClick={async () => {
-                      // Bulk delete all duplicates (keep first, delete rest)
                       const toDelete: string[] = [];
                       duplicateGroups.forEach(group => {
-                        // Keep the first offer, delete the rest
                         group.offers.slice(1).forEach((offer: any) => toDelete.push(offer.id));
                       });
                       if (toDelete.length === 0) return;
                       if (!confirm(`Delete ${toDelete.length} duplicate offers (keeping one from each group)?`)) return;
                       try {
-                        // Build offer data map for recycle bin
                         const offerDataMap = new Map<string, any>();
                         duplicateGroups.forEach(group => {
                           group.offers.slice(1).forEach((offer: any) => {
@@ -3237,6 +3263,7 @@ Expiry Date: ${o.expiry_date || "-"}`;
                         });
                         await moveMultipleToRecycleBin(toDelete, offerDataMap);
                         toast({ title: "Bulk Delete Complete", description: `Moved ${toDelete.length} duplicates to recycle bin` });
+                        setSelectedDuplicateOffers(new Set());
                         loadDuplicateGroups();
                         load();
                       } catch (e) {
@@ -3281,9 +3308,22 @@ Expiry Date: ${o.expiry_date || "-"}`;
                     <Card key={index} className="border-yellow-200">
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <Badge variant="outline" className="bg-yellow-50">
-                            Group #{index + 1}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={group.offers.every((o: any) => selectedDuplicateOffers.has(o.id))}
+                              onCheckedChange={(checked) => {
+                                const newSelected = new Set(selectedDuplicateOffers);
+                                group.offers.forEach((o: any) => {
+                                  if (checked) newSelected.add(o.id);
+                                  else newSelected.delete(o.id);
+                                });
+                                setSelectedDuplicateOffers(newSelected);
+                              }}
+                            />
+                            <Badge variant="outline" className="bg-yellow-50">
+                              Group #{index + 1}
+                            </Badge>
+                          </div>
                           <span className="text-sm text-muted-foreground">
                             {group.offers.length} duplicate(s)
                           </span>
@@ -3300,9 +3340,20 @@ Expiry Date: ${o.expiry_date || "-"}`;
                           <div className="space-y-2">
                             {group.offers.map((offer: any, offerIndex: number) => (
                               <div key={offer.id} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
-                                <div>
-                                  <span className="font-medium">{offer.title}</span>
-                                  <span className="text-muted-foreground ml-2">(ID: {offer.offer_id})</span>
+                                <div className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={selectedDuplicateOffers.has(offer.id)}
+                                    onCheckedChange={(checked) => {
+                                      const newSelected = new Set(selectedDuplicateOffers);
+                                      if (checked) newSelected.add(offer.id);
+                                      else newSelected.delete(offer.id);
+                                      setSelectedDuplicateOffers(newSelected);
+                                    }}
+                                  />
+                                  <div>
+                                    <span className="font-medium">{offer.title}</span>
+                                    <span className="text-muted-foreground ml-2">(ID: {offer.offer_id})</span>
+                                  </div>
                                 </div>
                                 <div className="flex gap-2">
                                   <Button size="sm" variant="outline" onClick={() => viewOfferDetails(offer)}>
@@ -3402,13 +3453,61 @@ Expiry Date: ${o.expiry_date || "-"}`;
                       disabled={processingBulkImport} 
                     />
                     <div className="text-center">
-                      <FileUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="font-medium">Drop CSV or click to upload</p>
+                      {processingBulkImport ? (
+                        <>
+                          <Loader2 className="h-8 w-8 mx-auto mb-2 text-primary animate-spin" />
+                          <p className="font-medium">Processing CSV...</p>
+                        </>
+                      ) : (
+                        <>
+                          <FileUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="font-medium">Drop CSV or click to upload</p>
+                        </>
+                      )}
                     </div>
                   </label>
                 </div>
-                {bulkImportPreview.length > 0 && (
+
+                {/* Upload Progress */}
+                {bulkUploading && (
                   <div className="mt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Importing offers...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
+
+                {/* Upload Summary */}
+                {uploadSummary && !bulkUploading && (
+                  <div className="mt-4 grid grid-cols-4 gap-2">
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold">{uploadSummary.total}</p>
+                      <p className="text-xs text-muted-foreground">Total</p>
+                    </CardContent></Card>
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold text-green-600">{uploadSummary.valid}</p>
+                      <p className="text-xs text-muted-foreground">Imported</p>
+                    </CardContent></Card>
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold text-yellow-600">{uploadSummary.duplicates}</p>
+                      <p className="text-xs text-muted-foreground">Duplicates</p>
+                    </CardContent></Card>
+                    <Card><CardContent className="p-3 text-center">
+                      <p className="text-xl font-bold text-red-600">{uploadSummary.invalid}</p>
+                      <p className="text-xs text-muted-foreground">Failed</p>
+                    </CardContent></Card>
+                  </div>
+                )}
+
+                {bulkImportPreview.length > 0 && !bulkUploading && (
+                  <div className="mt-4 space-y-2">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-sm text-green-800 font-medium">
+                        {bulkImportPreview.length} offers parsed successfully. {duplicateMatches.size > 0 ? `${duplicateMatches.size} duplicates detected.` : ''}
+                      </p>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Checkbox 
                         id="skip-duplicates" 
@@ -3433,13 +3532,103 @@ Expiry Date: ${o.expiry_date || "-"}`;
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">Check Missing Offers</h2>
-                <p className="text-sm text-muted-foreground">Upload CSV to find missing offers</p>
+                <h2 className="text-2xl font-bold">Missing Offers</h2>
+                <p className="text-sm text-muted-foreground">Upload CSV to find which offers are missing from your system</p>
               </div>
-              <Button onClick={handleCheckMissingOffers} disabled={processingBulkImport}>
-                <BarChart3 className="h-4 w-4 mr-2" /> Generate Report
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleCheckMissingOffers} disabled={processingBulkImport}>
+                  {processingBulkImport ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Upload CSV to Compare
+                </Button>
+                <Button onClick={() => loadMissingOffersReports()} variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+                </Button>
+              </div>
             </div>
+
+            {missingOffersReports.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-2" />
+                  <p>No missing offers reports yet.</p>
+                  <p className="text-xs mt-1">Upload a CSV file to compare against your existing offers.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {missingOffersReports.map((report: any) => (
+                  <Card key={report.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold">{report.report_name || 'Unnamed Report'}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(report.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">
+                            {report.report_data?.totalMissing || 0} missing / {report.report_data?.totalUploaded || 0} total
+                          </Badge>
+                          <Button 
+                            size="sm" 
+                            variant="destructive" 
+                            onClick={async () => {
+                              await deleteMissingOffersReport(report.id);
+                              loadMissingOffersReports();
+                              toast({ title: "Report deleted" });
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Summary Stats */}
+                      <div className="grid grid-cols-4 gap-2 mb-3">
+                        <div className="bg-blue-50 rounded p-2 text-center">
+                          <p className="text-lg font-bold">{report.report_data?.totalUploaded || 0}</p>
+                          <p className="text-xs text-muted-foreground">Uploaded</p>
+                        </div>
+                        <div className="bg-green-50 rounded p-2 text-center">
+                          <p className="text-lg font-bold text-green-600">{report.report_data?.totalFound || 0}</p>
+                          <p className="text-xs text-muted-foreground">Found</p>
+                        </div>
+                        <div className="bg-red-50 rounded p-2 text-center">
+                          <p className="text-lg font-bold text-red-600">{report.report_data?.totalMissing || 0}</p>
+                          <p className="text-xs text-muted-foreground">Missing</p>
+                        </div>
+                        <div className="bg-purple-50 rounded p-2 text-center">
+                          <p className="text-lg font-bold text-purple-600">{Math.round(report.report_data?.percentage || 0)}%</p>
+                          <p className="text-xs text-muted-foreground">Match Rate</p>
+                        </div>
+                      </div>
+
+                      {/* Missing Offers List */}
+                      {Array.isArray(report.missing_offers) && report.missing_offers.length > 0 && (
+                        <div className="border-t pt-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Missing Offers:</p>
+                          <div className="max-h-[200px] overflow-y-auto space-y-1">
+                            {report.missing_offers.map((offer: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between bg-red-50 p-2 rounded text-xs">
+                                <div className="flex-1">
+                                  <span className="font-medium">{offer.offerName || '-'}</span>
+                                  {offer.country && <span className="ml-2 text-muted-foreground">({offer.country})</span>}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {offer.platform && <Badge variant="outline" className="text-xs">{offer.platform}</Badge>}
+                                  <span className="font-medium">${offer.payout || 0}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
 
