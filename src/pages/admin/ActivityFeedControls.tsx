@@ -61,6 +61,11 @@ const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [boxSize, setBoxSize] = useState(DEFAULT_BOX_SIZE);
+  const [boxWidth, setBoxWidth] = useState(DEFAULT_BOX_WIDTH);
+  const [boxHeight, setBoxHeight] = useState(DEFAULT_BOX_HEIGHT);
+  const [boxPadding, setBoxPadding] = useState(DEFAULT_BOX_PADDING);
+  const [boxFontSize, setBoxFontSize] = useState(DEFAULT_BOX_FONT_SIZE);
+  const [boxBorderRadius, setBoxBorderRadius] = useState(DEFAULT_BOX_BORDER_RADIUS);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
