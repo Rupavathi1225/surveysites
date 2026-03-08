@@ -155,6 +155,22 @@ const TYPE_TO_COUNT_KEY: Record<string, keyof FeedSettings> = {
   feed_generator: "feed_count_feed_generator",
 };
 
+const TYPE_TO_SIZE_KEY: Record<string, keyof FeedSettings> = {
+  offer: "feed_size_offers",
+  survey: "feed_size_surveys",
+  signup: "feed_size_signups",
+  withdrawal: "feed_size_withdrawals",
+  login: "feed_size_logins",
+  contest: "feed_size_contests",
+  referral: "feed_size_referrals",
+  promocode: "feed_size_promocodes",
+  payment_completed: "feed_size_payment_completed",
+  new_promocodes: "feed_size_new_promocodes",
+  new_offers: "feed_size_new_offers",
+  global_notifications: "feed_size_global_notifications",
+  feed_generator: "feed_size_feed_generator",
+};
+
 const ActivityTicker = ({ userId }: { userId?: string }) => {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [settings, setSettings] = useState<FeedSettings>(DEFAULT_SETTINGS);
@@ -203,6 +219,19 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_count_new_offers: getNum("feed_count_new_offers", 20),
           feed_count_global_notifications: getNum("feed_count_global_notifications", 20),
           feed_count_feed_generator: getNum("feed_count_feed_generator", 20),
+          feed_size_offers: getStr("feed_size_offers", "medium"),
+          feed_size_surveys: getStr("feed_size_surveys", "medium"),
+          feed_size_signups: getStr("feed_size_signups", "medium"),
+          feed_size_withdrawals: getStr("feed_size_withdrawals", "medium"),
+          feed_size_logins: getStr("feed_size_logins", "medium"),
+          feed_size_contests: getStr("feed_size_contests", "medium"),
+          feed_size_referrals: getStr("feed_size_referrals", "medium"),
+          feed_size_promocodes: getStr("feed_size_promocodes", "medium"),
+          feed_size_payment_completed: getStr("feed_size_payment_completed", "medium"),
+          feed_size_new_promocodes: getStr("feed_size_new_promocodes", "medium"),
+          feed_size_new_offers: getStr("feed_size_new_offers", "medium"),
+          feed_size_global_notifications: getStr("feed_size_global_notifications", "medium"),
+          feed_size_feed_generator: getStr("feed_size_feed_generator", "medium"),
         });
       }
     };
