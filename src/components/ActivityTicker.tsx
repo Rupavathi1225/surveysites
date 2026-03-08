@@ -460,6 +460,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           source: "Redeemed a promocode",
           amount: "",
           icon: "promocode",
+          created_at: p.created_at,
         });
       });
 
