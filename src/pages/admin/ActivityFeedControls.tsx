@@ -5,7 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Save, RotateCcw, Gauge } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Activity, Save, RotateCcw, Gauge, Palette } from "lucide-react";
 import { toast } from "sonner";
 
 const FEED_TOGGLES = [
@@ -20,11 +22,17 @@ const FEED_TOGGLES = [
 ];
 
 const SPEED_KEY = "feed_scroll_speed";
-const DEFAULT_SPEED = 120; // seconds for full scroll
+const COLOR1_KEY = "feed_box_color1";
+const COLOR2_KEY = "feed_box_color2";
+const DEFAULT_SPEED = 120;
+const DEFAULT_COLOR1 = "#1e293b";
+const DEFAULT_COLOR2 = "#334155";
 
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
+  const [color1, setColor1] = useState(DEFAULT_COLOR1);
+  const [color2, setColor2] = useState(DEFAULT_COLOR2);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -34,7 +42,7 @@ const ActivityFeedControls = () => {
 
   const loadSettings = async () => {
     setLoading(true);
-    const keys = [...FEED_TOGGLES.map(t => t.key), SPEED_KEY];
+    const keys = [...FEED_TOGGLES.map(t => t.key), SPEED_KEY, COLOR1_KEY, COLOR2_KEY];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
 
     const settingsMap = new Map((data || []).map(s => [s.key, s.value]));
@@ -42,28 +50,19 @@ const ActivityFeedControls = () => {
     const newToggles: Record<string, boolean> = {};
     FEED_TOGGLES.forEach(t => {
       const val = settingsMap.get(t.key);
-      // Default: offers and surveys ON, rest OFF
       newToggles[t.key] = val !== undefined ? val === "true" : (t.key === "feed_show_offers" || t.key === "feed_show_surveys");
     });
     setToggles(newToggles);
 
-    const speedVal = settingsMap.get(SPEED_KEY);
-    setSpeed(speedVal ? parseInt(speedVal) : DEFAULT_SPEED);
+    setSpeed(parseInt(settingsMap.get(SPEED_KEY) || "") || DEFAULT_SPEED);
+    setColor1(settingsMap.get(COLOR1_KEY) || DEFAULT_COLOR1);
+    setColor2(settingsMap.get(COLOR2_KEY) || DEFAULT_COLOR2);
 
     setLoading(false);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-
-    // Upsert all toggle settings + speed
-    const allSettings = [
-      ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(toggles[t.key] ?? false) })),
-      { key: SPEED_KEY, value: String(speed) },
-    ];
-
+  const upsertSettings = async (allSettings: { key: string; value: string }[]) => {
     for (const setting of allSettings) {
-      // Check if exists
       const { data: existing } = await supabase
         .from("website_settings")
         .select("id")
@@ -76,18 +75,42 @@ const ActivityFeedControls = () => {
         await supabase.from("website_settings").insert({ key: setting.key, value: setting.value });
       }
     }
+  };
 
+  const handleSave = async () => {
+    setSaving(true);
+    const allSettings = [
+      ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(toggles[t.key] ?? false) })),
+      { key: SPEED_KEY, value: String(speed) },
+      { key: COLOR1_KEY, value: color1 },
+      { key: COLOR2_KEY, value: color2 },
+    ];
+    await upsertSettings(allSettings);
     setSaving(false);
     toast.success("Activity feed settings saved!");
   };
 
-  const handleReset = () => {
-    const newToggles: Record<string, boolean> = {};
+  const handleReset = async () => {
+    const defaultToggles: Record<string, boolean> = {};
     FEED_TOGGLES.forEach(t => {
-      newToggles[t.key] = t.key === "feed_show_offers" || t.key === "feed_show_surveys";
+      defaultToggles[t.key] = t.key === "feed_show_offers" || t.key === "feed_show_surveys";
     });
-    setToggles(newToggles);
+    setToggles(defaultToggles);
     setSpeed(DEFAULT_SPEED);
+    setColor1(DEFAULT_COLOR1);
+    setColor2(DEFAULT_COLOR2);
+
+    // Save defaults to DB
+    setSaving(true);
+    const allSettings = [
+      ...FEED_TOGGLES.map(t => ({ key: t.key, value: String(defaultToggles[t.key]) })),
+      { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
+      { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
+      { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
+    ];
+    await upsertSettings(allSettings);
+    setSaving(false);
+    toast.success("Activity feed settings reset to defaults!");
   };
 
   const getSpeedLabel = (s: number) => {
@@ -121,7 +144,7 @@ const ActivityFeedControls = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset}>
+          <Button variant="outline" size="sm" onClick={handleReset} disabled={saving}>
             <RotateCcw className="h-4 w-4 mr-1" /> Reset
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saving}>
@@ -137,7 +160,7 @@ const ActivityFeedControls = () => {
             <CardTitle className="text-base">Activity Type Visibility</CardTitle>
             <Badge variant="outline" className="text-xs">{enabledCount} of {FEED_TOGGLES.length} enabled</Badge>
           </div>
-          <p className="text-xs text-muted-foreground">Toggle which activity types appear in the live feed. Only enabled types will be visible to users.</p>
+          <p className="text-xs text-muted-foreground">Toggle which activity types appear in the live feed.</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,6 +180,72 @@ const ActivityFeedControls = () => {
         </CardContent>
       </Card>
 
+      {/* Box Color Control */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette className="h-5 w-5 text-primary" />
+            Ticker Box Colors
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Pick two colors to create a gradient background for each activity ticker box on the user dashboard</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">Color 1 (Start)</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={color1}
+                  onChange={(e) => setColor1(e.target.value)}
+                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+                />
+                <Input
+                  value={color1}
+                  onChange={(e) => setColor1(e.target.value)}
+                  className="flex-1 font-mono text-sm"
+                  placeholder="#1e293b"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">Color 2 (End)</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={color2}
+                  onChange={(e) => setColor2(e.target.value)}
+                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent"
+                />
+                <Input
+                  value={color2}
+                  onChange={(e) => setColor2(e.target.value)}
+                  className="flex-1 font-mono text-sm"
+                  placeholder="#334155"
+                />
+              </div>
+            </div>
+          </div>
+          {/* Live Preview */}
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+            <div
+              className="rounded-xl px-4 py-3 border border-foreground/5 flex items-center gap-3"
+              style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}
+            >
+              <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-foreground/70">P</span>
+              </div>
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-sm font-semibold text-white">SampleUser</span>
+                <span className="text-xs text-white/60">PrimeWall</span>
+              </div>
+              <span className="text-lg font-bold text-white">150 pts</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Scroll Speed Control */}
       <Card>
         <CardHeader className="pb-3">
@@ -164,7 +253,7 @@ const ActivityFeedControls = () => {
             <Gauge className="h-5 w-5 text-primary" />
             Scroll Speed
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Adjust how fast the activity ticker scrolls on the user dashboard</p>
+          <p className="text-xs text-muted-foreground">Adjust how fast the activity ticker scrolls</p>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -191,11 +280,10 @@ const ActivityFeedControls = () => {
         </CardContent>
       </Card>
 
-      {/* Preview Info */}
       <Card>
         <CardContent className="py-4">
           <p className="text-xs text-muted-foreground text-center">
-            Changes take effect immediately on the user dashboard after saving. The activity ticker will only display events matching the enabled types above.
+            Changes take effect immediately on the user dashboard after saving.
           </p>
         </CardContent>
       </Card>
