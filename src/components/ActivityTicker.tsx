@@ -97,6 +97,8 @@ const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS);
 
 function classifyEarning(desc: string, offerName: string, type: string): string {
   const text = `${desc} ${offerName} ${type}`.toLowerCase();
+  // Check feed_generator first since it's explicitly set
+  if (type === "feed_generator" || text.includes("feed generator")) return "feed_generator";
   if (text.includes("referral") || text.includes("affiliate")) return "referral";
   if (text.includes("contest") || text.includes("rank")) return "contest";
   if (text.includes("promo") && (text.includes("redeem") || text.includes("code"))) return "promocode";
