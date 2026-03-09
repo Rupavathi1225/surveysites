@@ -87,6 +87,8 @@ const ActivityFeedControls = () => {
   const [logoHeightPercent, setLogoHeightPercent] = useState(DEFAULT_LOGO_HEIGHT);
   const [usernameColor, setUsernameColor] = useState(DEFAULT_USERNAME_COLOR);
   const [pointsColor, setPointsColor] = useState(DEFAULT_POINTS_COLOR);
+  const [usernameFontSize, setUsernameFontSize] = useState(DEFAULT_USERNAME_FONT_SIZE);
+  const [pointsFontSize, setPointsFontSize] = useState(DEFAULT_POINTS_FONT_SIZE);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
