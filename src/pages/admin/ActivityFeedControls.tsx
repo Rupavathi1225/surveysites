@@ -46,6 +46,7 @@ const BOX_HEIGHT_KEY = "feed_box_height";
 const BOX_PADDING_KEY = "feed_box_padding";
 const BOX_FONT_SIZE_KEY = "feed_box_font_size";
 const BOX_BORDER_RADIUS_KEY = "feed_box_border_radius";
+const BOX_LOGO_SIZE_KEY = "feed_box_logo_size";
 const DEFAULT_SPEED = 120;
 const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
@@ -57,6 +58,7 @@ const DEFAULT_BOX_HEIGHT = "60";
 const DEFAULT_BOX_PADDING = "16";
 const DEFAULT_BOX_FONT_SIZE = "14";
 const DEFAULT_BOX_BORDER_RADIUS = "12";
+const DEFAULT_BOX_LOGO_SIZE = "44";
 
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
@@ -67,6 +69,7 @@ const ActivityFeedControls = () => {
   const [boxPadding, setBoxPadding] = useState(DEFAULT_BOX_PADDING);
   const [boxFontSize, setBoxFontSize] = useState(DEFAULT_BOX_FONT_SIZE);
   const [boxBorderRadius, setBoxBorderRadius] = useState(DEFAULT_BOX_BORDER_RADIUS);
+  const [boxLogoSize, setBoxLogoSize] = useState(DEFAULT_BOX_LOGO_SIZE);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
@@ -83,6 +86,7 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => t.countKey),
       SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY, BOX_SIZE_KEY,
       BOX_WIDTH_KEY, BOX_HEIGHT_KEY, BOX_PADDING_KEY, BOX_FONT_SIZE_KEY, BOX_BORDER_RADIUS_KEY,
+      BOX_LOGO_SIZE_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
     const m = new Map((data || []).map(s => [s.key, s.value]));
@@ -102,6 +106,7 @@ const ActivityFeedControls = () => {
     setBoxPadding(m.get(BOX_PADDING_KEY) || DEFAULT_BOX_PADDING);
     setBoxFontSize(m.get(BOX_FONT_SIZE_KEY) || DEFAULT_BOX_FONT_SIZE);
     setBoxBorderRadius(m.get(BOX_BORDER_RADIUS_KEY) || DEFAULT_BOX_BORDER_RADIUS);
+    setBoxLogoSize(m.get(BOX_LOGO_SIZE_KEY) || DEFAULT_BOX_LOGO_SIZE);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
@@ -133,6 +138,7 @@ const ActivityFeedControls = () => {
       { key: BOX_PADDING_KEY, value: boxPadding },
       { key: BOX_FONT_SIZE_KEY, value: boxFontSize },
       { key: BOX_BORDER_RADIUS_KEY, value: boxBorderRadius },
+      { key: BOX_LOGO_SIZE_KEY, value: boxLogoSize },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
       { key: COLOR2_KEY, value: color2 },
@@ -157,6 +163,7 @@ const ActivityFeedControls = () => {
     setBoxPadding(DEFAULT_BOX_PADDING);
     setBoxFontSize(DEFAULT_BOX_FONT_SIZE);
     setBoxBorderRadius(DEFAULT_BOX_BORDER_RADIUS);
+    setBoxLogoSize(DEFAULT_BOX_LOGO_SIZE);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -173,6 +180,7 @@ const ActivityFeedControls = () => {
       { key: BOX_PADDING_KEY, value: DEFAULT_BOX_PADDING },
       { key: BOX_FONT_SIZE_KEY, value: DEFAULT_BOX_FONT_SIZE },
       { key: BOX_BORDER_RADIUS_KEY, value: DEFAULT_BOX_BORDER_RADIUS },
+      { key: BOX_LOGO_SIZE_KEY, value: DEFAULT_BOX_LOGO_SIZE },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
@@ -262,9 +270,9 @@ const ActivityFeedControls = () => {
           <div className="flex items-center gap-4 flex-wrap">
             <Select value={boxSize} onValueChange={(v) => {
               setBoxSize(v);
-              if (v === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
-              if (v === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
-              if (v === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+              if (v === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); setBoxLogoSize("28"); }
+              if (v === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); setBoxLogoSize("44"); }
+              if (v === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); setBoxLogoSize("56"); }
             }}>
               <SelectTrigger className="w-full max-w-[200px]">
                 <SelectValue placeholder="Select size" />
@@ -289,9 +297,9 @@ const ActivityFeedControls = () => {
                   }}
                   onClick={() => {
                     setBoxSize(s.value);
-                    if (s.value === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
-                    if (s.value === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
-                    if (s.value === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+                    if (s.value === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); setBoxLogoSize("28"); }
+                    if (s.value === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); setBoxLogoSize("44"); }
+                    if (s.value === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); setBoxLogoSize("56"); }
                   }}
                 >
                   {s.label}
@@ -301,7 +309,7 @@ const ActivityFeedControls = () => {
           </div>
 
           {/* Manual custom fields - always visible */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-border">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 pt-2 border-t border-border">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Width (px)</Label>
               <Input type="number" min="100" max="500" value={boxWidth}
@@ -330,6 +338,12 @@ const ActivityFeedControls = () => {
               <Label className="text-xs text-muted-foreground">Border Radius (px)</Label>
               <Input type="number" min="0" max="30" value={boxBorderRadius}
                 onChange={(e) => { setBoxBorderRadius(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Logo Size (px)</Label>
+              <Input type="number" min="16" max="80" value={boxLogoSize}
+                onChange={(e) => { setBoxLogoSize(e.target.value); setBoxSize("custom"); }}
                 className="h-8 text-sm" />
             </div>
           </div>
