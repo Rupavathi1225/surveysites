@@ -38,6 +38,7 @@ const AdminNotifications = () => {
     selectedUsers: [] as string[],
     selectedOffers: [] as string[],
     selectedSurveyProviders: [] as string[],
+    selectedCountry: "",
     points: "50",
     count: 5,
     interval: 10,
@@ -145,33 +146,26 @@ const AdminNotifications = () => {
         }
 
         if (randomUser && selectedActivity) {
-          let message = '';
-          let notificationType = '';
+          const activityName = activityType === 'offer' ? selectedActivity.title : (selectedActivity.name || selectedActivity.title);
+          const username = randomUser.username || randomUser.email || "User";
+          const country = feedGeneratorForm.selectedCountry || "US";
           
-          if (activityType === 'offer') {
-            message = `${randomUser.username || randomUser.email} completed ${selectedActivity.title} and earned ${feedGeneratorForm.points} points`;
-            notificationType = "offer_completed";
-          } else if (activityType === 'survey_provider') {
-            message = `${randomUser.username || randomUser.email} completed survey from ${selectedActivity.name || selectedActivity.title} and earned ${feedGeneratorForm.points} points`;
-            notificationType = "survey_completed";
-          }
-          
-          console.log(`📝 Creating notification: ${message}`);
-          
-          const insertResult = await supabase.from("notifications").insert({
-            type: notificationType,
-            message: message,
-            is_global: true,
+          // Insert into earning_history for activity feed
+          const insertResult = await supabase.from("earning_history").insert({
             user_id: randomUser.id,
+            amount: parseFloat(feedGeneratorForm.points) || 0,
+            offer_name: activityName,
+            description: `Feed Generator: ${username} earned from ${activityName} [${country}]`,
+            status: "approved",
+            type: "feed_generator",
           });
 
           if (insertResult.error) {
-            console.error('❌ Error inserting notification:', insertResult.error);
+            console.error('❌ Error inserting feed activity:', insertResult.error);
           } else {
-            console.log('✅ Notification inserted successfully:', insertResult.data);
+            console.log('✅ Feed activity inserted successfully:', insertResult.data);
           }
           
-          console.log(`✅ Notification inserted:`, insertResult);
           generatedCount++;
         }
 
@@ -904,6 +898,40 @@ const extractAdminLogDetails = (message: string): { summary: string; details: st
                   (sp.name || sp.title || "").toLowerCase().includes(surveyProviderSearchTerm.toLowerCase())
                 ).length} providers
               </p>
+            </div>
+
+            {/* Country Dropdown */}
+            <div>
+              <Label className="text-sm font-medium">Country</Label>
+              <Select
+                value={feedGeneratorForm.selectedCountry}
+                onValueChange={(value) => setFeedGeneratorForm({ ...feedGeneratorForm, selectedCountry: value })}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select a country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="US">United States</SelectItem>
+                  <SelectItem value="GB">United Kingdom</SelectItem>
+                  <SelectItem value="CA">Canada</SelectItem>
+                  <SelectItem value="AU">Australia</SelectItem>
+                  <SelectItem value="DE">Germany</SelectItem>
+                  <SelectItem value="FR">France</SelectItem>
+                  <SelectItem value="IN">India</SelectItem>
+                  <SelectItem value="BR">Brazil</SelectItem>
+                  <SelectItem value="JP">Japan</SelectItem>
+                  <SelectItem value="MX">Mexico</SelectItem>
+                  <SelectItem value="ES">Spain</SelectItem>
+                  <SelectItem value="IT">Italy</SelectItem>
+                  <SelectItem value="NL">Netherlands</SelectItem>
+                  <SelectItem value="PH">Philippines</SelectItem>
+                  <SelectItem value="ID">Indonesia</SelectItem>
+                  <SelectItem value="PK">Pakistan</SelectItem>
+                  <SelectItem value="NG">Nigeria</SelectItem>
+                  <SelectItem value="ZA">South Africa</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Country to display on the activity feed</p>
             </div>
 
             {/* Points Input */}
