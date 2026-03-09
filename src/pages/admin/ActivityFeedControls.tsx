@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Activity, Save, RotateCcw, Gauge, Palette, Hash } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Activity, Save, RotateCcw, Gauge, Palette, Hash, Play, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const FEED_TOGGLES = [
@@ -60,6 +61,13 @@ const DEFAULT_BOX_FONT_SIZE = "14";
 const DEFAULT_BOX_BORDER_RADIUS = "12";
 const DEFAULT_BOX_LOGO_SIZE = "44";
 
+interface GeneratorEntry {
+  username: string;
+  amount: string;
+  offerwall: string;
+  country: string;
+}
+
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
@@ -76,6 +84,12 @@ const ActivityFeedControls = () => {
   const [color2, setColor2] = useState(DEFAULT_COLOR2);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Feed Generator state
+  const [generatorEntries, setGeneratorEntries] = useState<GeneratorEntry[]>([
+    { username: "", amount: "", offerwall: "", country: "" },
+  ]);
+  const [generatorRunning, setGeneratorRunning] = useState(false);
 
   useEffect(() => { loadSettings(); }, []);
 
@@ -533,6 +547,145 @@ const ActivityFeedControls = () => {
               <span>Normal (120s)</span>
               <span>🐢 Very Slow (240s)</span>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Feed Generator */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Play className="h-5 w-5 text-primary" />
+            Feed Generator
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Generate simulated activity items that appear in the live feed. Fill in at least one entry with all fields to enable the Run button.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {generatorEntries.map((entry, idx) => (
+            <div key={idx} className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end p-3 rounded-lg border border-border bg-accent/20">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Username</Label>
+                <Input
+                  placeholder="e.g. JohnDoe"
+                  value={entry.username}
+                  onChange={(e) => {
+                    const updated = [...generatorEntries];
+                    updated[idx].username = e.target.value;
+                    setGeneratorEntries(updated);
+                  }}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Amount (pts)</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 150"
+                  value={entry.amount}
+                  onChange={(e) => {
+                    const updated = [...generatorEntries];
+                    updated[idx].amount = e.target.value;
+                    setGeneratorEntries(updated);
+                  }}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Offerwall</Label>
+                <Input
+                  placeholder="e.g. PrimeWall"
+                  value={entry.offerwall}
+                  onChange={(e) => {
+                    const updated = [...generatorEntries];
+                    updated[idx].offerwall = e.target.value;
+                    setGeneratorEntries(updated);
+                  }}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Country</Label>
+                <Input
+                  placeholder="e.g. US"
+                  value={entry.country}
+                  onChange={(e) => {
+                    const updated = [...generatorEntries];
+                    updated[idx].country = e.target.value;
+                    setGeneratorEntries(updated);
+                  }}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                {generatorEntries.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => setGeneratorEntries(generatorEntries.filter((_, i) => i !== idx))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGeneratorEntries([...generatorEntries, { username: "", amount: "", offerwall: "", country: "" }])}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Add Entry
+            </Button>
+
+            <Button
+              size="sm"
+              disabled={generatorRunning || !generatorEntries.some(e => e.username && e.amount && e.offerwall && e.country)}
+              onClick={async () => {
+                const validEntries = generatorEntries.filter(e => e.username && e.amount && e.offerwall && e.country);
+                if (validEntries.length === 0) {
+                  toast.error("Please fill in all fields for at least one entry");
+                  return;
+                }
+
+                setGeneratorRunning(true);
+                try {
+                  // Get or create a placeholder user to attach earnings to
+                  const { data: adminUser } = await supabase.auth.getUser();
+                  const userId = adminUser?.user?.id;
+                  if (!userId) {
+                    toast.error("You must be logged in to generate feed items");
+                    setGeneratorRunning(false);
+                    return;
+                  }
+
+                  for (const entry of validEntries) {
+                    await supabase.from("earning_history").insert({
+                      user_id: userId,
+                      amount: parseFloat(entry.amount) || 0,
+                      offer_name: entry.offerwall,
+                      description: `Feed Generator: ${entry.username} earned from ${entry.offerwall}`,
+                      status: "approved",
+                      type: "feed_generator",
+                    });
+                  }
+
+                  toast.success(`Generated ${validEntries.length} feed item(s) successfully!`);
+                  setGeneratorEntries([{ username: "", amount: "", offerwall: "", country: "" }]);
+                } catch (err) {
+                  toast.error("Failed to generate feed items");
+                } finally {
+                  setGeneratorRunning(false);
+                }
+              }}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Play className="h-4 w-4 mr-1" /> {generatorRunning ? "Running..." : "Run Generator"}
+            </Button>
           </div>
         </CardContent>
       </Card>
