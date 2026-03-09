@@ -183,6 +183,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_box_padding: getStr("feed_box_padding", "16"),
           feed_box_font_size: getStr("feed_box_font_size", "14"),
           feed_box_border_radius: getStr("feed_box_border_radius", "12"),
+          feed_box_logo_size: getStr("feed_box_logo_size", "44"),
           feed_total_count: getNum("feed_total_count", 20),
           feed_count_offers: getNum("feed_count_offers", 20),
           feed_count_surveys: getNum("feed_count_surveys", 20),
