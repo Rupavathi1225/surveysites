@@ -69,6 +69,7 @@ const ActivityFeedControls = () => {
   const [boxPadding, setBoxPadding] = useState(DEFAULT_BOX_PADDING);
   const [boxFontSize, setBoxFontSize] = useState(DEFAULT_BOX_FONT_SIZE);
   const [boxBorderRadius, setBoxBorderRadius] = useState(DEFAULT_BOX_BORDER_RADIUS);
+  const [boxLogoSize, setBoxLogoSize] = useState(DEFAULT_BOX_LOGO_SIZE);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
