@@ -308,8 +308,42 @@ const ActivityFeedControls = () => {
             </div>
           </div>
 
-          {/* Manual custom fields - always visible */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 pt-2 border-t border-border">
+          {/* Font Size & Logo Size sliders - prominent */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border">
+            <div className="space-y-2 p-3 rounded-lg bg-accent/30 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-foreground">Font Size</Label>
+                <span className="text-sm font-bold text-primary">{boxFontSize}px</span>
+              </div>
+              <Slider
+                min={8} max={24} step={1}
+                value={[parseInt(boxFontSize) || 14]}
+                onValueChange={([v]) => { setBoxFontSize(String(v)); setBoxSize("custom"); }}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>8px (Small)</span><span>16px (Normal)</span><span>24px (Large)</span>
+              </div>
+            </div>
+            <div className="space-y-2 p-3 rounded-lg bg-accent/30 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-foreground">Logo Size</Label>
+                <span className="text-sm font-bold text-primary">{boxLogoSize}px</span>
+              </div>
+              <Slider
+                min={16} max={80} step={2}
+                value={[parseInt(boxLogoSize) || 44]}
+                onValueChange={([v]) => { setBoxLogoSize(String(v)); setBoxSize("custom"); }}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>16px (Tiny)</span><span>44px (Normal)</span><span>80px (Large)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Manual custom fields */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-border">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Width (px)</Label>
               <Input type="number" min="100" max="500" value={boxWidth}
@@ -329,28 +363,22 @@ const ActivityFeedControls = () => {
                 className="h-8 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Font Size (px)</Label>
-              <Input type="number" min="8" max="24" value={boxFontSize}
-                onChange={(e) => { setBoxFontSize(e.target.value); setBoxSize("custom"); }}
-                className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Border Radius (px)</Label>
               <Input type="number" min="0" max="30" value={boxBorderRadius}
                 onChange={(e) => { setBoxBorderRadius(e.target.value); setBoxSize("custom"); }}
                 className="h-8 text-sm" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Logo Size (px)</Label>
-              <Input type="number" min="16" max="80" value={boxLogoSize}
-                onChange={(e) => { setBoxLogoSize(e.target.value); setBoxSize("custom"); }}
+              <Label className="text-xs text-muted-foreground">Font Size (px)</Label>
+              <Input type="number" min="8" max="24" value={boxFontSize}
+                onChange={(e) => { setBoxFontSize(e.target.value); setBoxSize("custom"); }}
                 className="h-8 text-sm" />
             </div>
           </div>
 
           {/* Live preview with current values */}
           <div className="pt-2">
-            <p className="text-xs text-muted-foreground mb-2">Live Preview:</p>
+            <p className="text-xs text-muted-foreground mb-2">Live Preview (with sample logo):</p>
             <div
               className="inline-flex items-center border border-foreground/5"
               style={{
@@ -361,6 +389,13 @@ const ActivityFeedControls = () => {
                 background: `linear-gradient(135deg, ${color1}, ${color2})`,
               }}
             >
+              {/* Sample logo placeholder */}
+              <div
+                className="shrink-0 mr-2 rounded bg-white/20 flex items-center justify-center text-white/70 font-bold"
+                style={{ width: `${boxLogoSize}px`, height: `${boxLogoSize}px`, fontSize: `${Math.max(parseInt(boxLogoSize) / 3, 8)}px` }}
+              >
+                ★
+              </div>
               <div className="flex flex-col gap-0.5 flex-1 mr-3">
                 <span className="font-semibold text-white truncate" style={{ fontSize: `${boxFontSize}px` }}>SampleUser</span>
                 <span className="text-white/60 truncate" style={{ fontSize: `${Math.max(parseInt(boxFontSize) - 4, 8)}px` }}>PrimeWall</span>
