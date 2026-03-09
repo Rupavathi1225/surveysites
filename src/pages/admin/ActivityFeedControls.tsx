@@ -40,6 +40,8 @@ const SIZE_OPTIONS = [
 const SPEED_KEY = "feed_scroll_speed";
 const COLOR1_KEY = "feed_box_color1";
 const COLOR2_KEY = "feed_box_color2";
+const USERNAME_COLOR_KEY = "feed_username_color";
+const POINTS_COLOR_KEY = "feed_points_color";
 const TOTAL_COUNT_KEY = "feed_total_count";
 const BOX_SIZE_KEY = "feed_box_size";
 const BOX_WIDTH_KEY = "feed_box_width";
@@ -48,9 +50,13 @@ const BOX_PADDING_KEY = "feed_box_padding";
 const BOX_FONT_SIZE_KEY = "feed_box_font_size";
 const BOX_BORDER_RADIUS_KEY = "feed_box_border_radius";
 const BOX_LOGO_SIZE_KEY = "feed_box_logo_size";
+const BOX_LOGO_WIDTH_KEY = "feed_box_logo_width";
+const BOX_LOGO_HEIGHT_KEY = "feed_box_logo_height";
 const DEFAULT_SPEED = 120;
 const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
+const DEFAULT_USERNAME_COLOR = "#ffffff";
+const DEFAULT_POINTS_COLOR = "#ffffff";
 const DEFAULT_TOTAL_COUNT = "20";
 const DEFAULT_PER_TYPE_COUNT = "20";
 const DEFAULT_BOX_SIZE = "medium";
@@ -60,6 +66,8 @@ const DEFAULT_BOX_PADDING = "16";
 const DEFAULT_BOX_FONT_SIZE = "14";
 const DEFAULT_BOX_BORDER_RADIUS = "12";
 const DEFAULT_BOX_LOGO_SIZE = "44";
+const DEFAULT_LOGO_WIDTH = "40";
+const DEFAULT_LOGO_HEIGHT = "10";
 
 interface GeneratorEntry {
   username: string;
@@ -78,6 +86,10 @@ const ActivityFeedControls = () => {
   const [boxFontSize, setBoxFontSize] = useState(DEFAULT_BOX_FONT_SIZE);
   const [boxBorderRadius, setBoxBorderRadius] = useState(DEFAULT_BOX_BORDER_RADIUS);
   const [boxLogoSize, setBoxLogoSize] = useState(DEFAULT_BOX_LOGO_SIZE);
+  const [logoWidthPercent, setLogoWidthPercent] = useState(DEFAULT_LOGO_WIDTH);
+  const [logoHeightPercent, setLogoHeightPercent] = useState(DEFAULT_LOGO_HEIGHT);
+  const [usernameColor, setUsernameColor] = useState(DEFAULT_USERNAME_COLOR);
+  const [pointsColor, setPointsColor] = useState(DEFAULT_POINTS_COLOR);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
@@ -100,7 +112,7 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => t.countKey),
       SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY, BOX_SIZE_KEY,
       BOX_WIDTH_KEY, BOX_HEIGHT_KEY, BOX_PADDING_KEY, BOX_FONT_SIZE_KEY, BOX_BORDER_RADIUS_KEY,
-      BOX_LOGO_SIZE_KEY,
+      BOX_LOGO_SIZE_KEY, BOX_LOGO_WIDTH_KEY, BOX_LOGO_HEIGHT_KEY, USERNAME_COLOR_KEY, POINTS_COLOR_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
     const m = new Map((data || []).map(s => [s.key, s.value]));
@@ -121,6 +133,10 @@ const ActivityFeedControls = () => {
     setBoxFontSize(m.get(BOX_FONT_SIZE_KEY) || DEFAULT_BOX_FONT_SIZE);
     setBoxBorderRadius(m.get(BOX_BORDER_RADIUS_KEY) || DEFAULT_BOX_BORDER_RADIUS);
     setBoxLogoSize(m.get(BOX_LOGO_SIZE_KEY) || DEFAULT_BOX_LOGO_SIZE);
+    setLogoWidthPercent(m.get(BOX_LOGO_WIDTH_KEY) || DEFAULT_LOGO_WIDTH);
+    setLogoHeightPercent(m.get(BOX_LOGO_HEIGHT_KEY) || DEFAULT_LOGO_HEIGHT);
+    setUsernameColor(m.get(USERNAME_COLOR_KEY) || DEFAULT_USERNAME_COLOR);
+    setPointsColor(m.get(POINTS_COLOR_KEY) || DEFAULT_POINTS_COLOR);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
@@ -153,6 +169,10 @@ const ActivityFeedControls = () => {
       { key: BOX_FONT_SIZE_KEY, value: boxFontSize },
       { key: BOX_BORDER_RADIUS_KEY, value: boxBorderRadius },
       { key: BOX_LOGO_SIZE_KEY, value: boxLogoSize },
+      { key: BOX_LOGO_WIDTH_KEY, value: logoWidthPercent },
+      { key: BOX_LOGO_HEIGHT_KEY, value: logoHeightPercent },
+      { key: USERNAME_COLOR_KEY, value: usernameColor },
+      { key: POINTS_COLOR_KEY, value: pointsColor },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
       { key: COLOR2_KEY, value: color2 },
@@ -178,6 +198,10 @@ const ActivityFeedControls = () => {
     setBoxFontSize(DEFAULT_BOX_FONT_SIZE);
     setBoxBorderRadius(DEFAULT_BOX_BORDER_RADIUS);
     setBoxLogoSize(DEFAULT_BOX_LOGO_SIZE);
+    setLogoWidthPercent(DEFAULT_LOGO_WIDTH);
+    setLogoHeightPercent(DEFAULT_LOGO_HEIGHT);
+    setUsernameColor(DEFAULT_USERNAME_COLOR);
+    setPointsColor(DEFAULT_POINTS_COLOR);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -195,6 +219,10 @@ const ActivityFeedControls = () => {
       { key: BOX_FONT_SIZE_KEY, value: DEFAULT_BOX_FONT_SIZE },
       { key: BOX_BORDER_RADIUS_KEY, value: DEFAULT_BOX_BORDER_RADIUS },
       { key: BOX_LOGO_SIZE_KEY, value: DEFAULT_BOX_LOGO_SIZE },
+      { key: BOX_LOGO_WIDTH_KEY, value: DEFAULT_LOGO_WIDTH },
+      { key: BOX_LOGO_HEIGHT_KEY, value: DEFAULT_LOGO_HEIGHT },
+      { key: USERNAME_COLOR_KEY, value: DEFAULT_USERNAME_COLOR },
+      { key: POINTS_COLOR_KEY, value: DEFAULT_POINTS_COLOR },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
@@ -502,10 +530,10 @@ const ActivityFeedControls = () => {
             <div className="rounded-xl px-4 py-3 border border-foreground/5 flex items-center gap-3"
               style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}>
               <div className="flex flex-col gap-0.5 flex-1">
-                <span className="text-sm font-semibold text-white">SampleUser</span>
-                <span className="text-xs text-white/60">PrimeWall</span>
+                <span className="text-sm font-semibold" style={{ color: usernameColor }}>SampleUser</span>
+                <span className="text-xs" style={{ color: `${usernameColor}99` }}>PrimeWall</span>
               </div>
-              <span className="text-lg font-bold text-white">150 pts</span>
+              <span className="text-lg font-bold" style={{ color: pointsColor }}>150 pts</span>
             </div>
           </div>
           <div className="mt-4 flex justify-end">
@@ -519,6 +547,150 @@ const ActivityFeedControls = () => {
               toast.success("Ticker box colors applied!");
             }}>
               <Palette className="h-4 w-4 mr-1" /> Apply Colors
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Username & Points Color Control */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette className="h-5 w-5 text-primary" />
+            Text Colors
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Customize the username and points text colors</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">Username Color</Label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
+                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                <Input value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
+                  className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">Points Color</Label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
+                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                <Input value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
+                  className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+            <div className="rounded-xl px-4 py-3 border border-foreground/5 flex items-center gap-3"
+              style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}>
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-sm font-semibold" style={{ color: usernameColor }}>SampleUser</span>
+                <span className="text-xs" style={{ color: `${usernameColor}99` }}>PrimeWall</span>
+              </div>
+              <span className="text-lg font-bold" style={{ color: pointsColor }}>150 pts</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" disabled={saving} onClick={async () => {
+              setSaving(true);
+              await upsertSettings([
+                { key: USERNAME_COLOR_KEY, value: usernameColor },
+                { key: POINTS_COLOR_KEY, value: pointsColor },
+              ]);
+              setSaving(false);
+              toast.success("Text colors applied!");
+            }}>
+              <Palette className="h-4 w-4 mr-1" /> Apply Text Colors
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Logo Size Control */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Hash className="h-5 w-5 text-primary" />
+            Logo Size (Percentage)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Control logo width and height as a percentage of the ticker box dimensions</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 p-3 rounded-lg bg-accent/30 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-foreground">Width (Horizontal %)</Label>
+                <span className="text-sm font-bold text-primary">{logoWidthPercent}%</span>
+              </div>
+              <Slider
+                min={10} max={80} step={5}
+                value={[parseInt(logoWidthPercent) || 40]}
+                onValueChange={([v]) => setLogoWidthPercent(String(v))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>10%</span><span>40% (Default)</span><span>80%</span>
+              </div>
+            </div>
+            <div className="space-y-2 p-3 rounded-lg bg-accent/30 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-foreground">Height (Vertical %)</Label>
+                <span className="text-sm font-bold text-primary">{logoHeightPercent}%</span>
+              </div>
+              <Slider
+                min={5} max={100} step={5}
+                value={[parseInt(logoHeightPercent) || 10]}
+                onValueChange={([v]) => setLogoHeightPercent(String(v))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>5%</span><span>10% (Default)</span><span>100%</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-2">Preview (with sample logo):</p>
+            <div
+              className="inline-flex items-center border border-foreground/5"
+              style={{
+                minWidth: `${boxWidth}px`,
+                minHeight: `${boxHeight}px`,
+                padding: `${boxPadding}px`,
+                borderRadius: `${boxBorderRadius}px`,
+                background: `linear-gradient(135deg, ${color1}, ${color2})`,
+              }}
+            >
+              <div
+                className="shrink-0 mr-2 rounded bg-white/20 flex items-center justify-center text-white/70 font-bold"
+                style={{ 
+                  width: `${Math.round((parseInt(boxWidth) * parseInt(logoWidthPercent)) / 100)}px`, 
+                  height: `${Math.round((parseInt(boxHeight) * parseInt(logoHeightPercent)) / 100)}px`,
+                  fontSize: `${Math.max(8, Math.round((parseInt(boxHeight) * parseInt(logoHeightPercent)) / 300))}px`
+                }}
+              >
+                ★
+              </div>
+              <div className="flex flex-col gap-0.5 flex-1 mr-3">
+                <span className="font-semibold truncate" style={{ fontSize: `${boxFontSize}px`, color: usernameColor }}>SampleUser</span>
+                <span className="truncate" style={{ fontSize: `${Math.max(parseInt(boxFontSize) - 4, 8)}px`, color: `${usernameColor}99` }}>PrimeWall</span>
+              </div>
+              <span className="font-bold whitespace-nowrap" style={{ fontSize: `${Math.min(parseInt(boxFontSize) + 4, 24)}px`, color: pointsColor }}>150 pts</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" disabled={saving} onClick={async () => {
+              setSaving(true);
+              await upsertSettings([
+                { key: BOX_LOGO_WIDTH_KEY, value: logoWidthPercent },
+                { key: BOX_LOGO_HEIGHT_KEY, value: logoHeightPercent },
+              ]);
+              setSaving(false);
+              toast.success("Logo size applied!");
+            }}>
+              <Hash className="h-4 w-4 mr-1" /> Apply Logo Size
             </Button>
           </div>
         </CardContent>
@@ -668,7 +840,7 @@ const ActivityFeedControls = () => {
                       user_id: userId,
                       amount: parseFloat(entry.amount) || 0,
                       offer_name: entry.offerwall,
-                      description: `Feed Generator: ${entry.username} earned from ${entry.offerwall}`,
+                      description: `Feed Generator: ${entry.username} earned from ${entry.offerwall} [${entry.country}]`,
                       status: "approved",
                       type: "feed_generator",
                     });

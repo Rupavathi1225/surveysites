@@ -37,6 +37,10 @@ interface FeedSettings {
   feed_box_font_size: string;
   feed_box_border_radius: string;
   feed_box_logo_size: string;
+  feed_box_logo_width: string;
+  feed_box_logo_height: string;
+  feed_username_color: string;
+  feed_points_color: string;
   feed_total_count: number;
   feed_count_offers: number;
   feed_count_surveys: number;
@@ -66,7 +70,7 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_show_new_promocodes: false,
   feed_show_new_offers: false,
   feed_show_global_notifications: false,
-  feed_show_feed_generator: false,
+  feed_show_feed_generator: true,
   feed_scroll_speed: 30,
   feed_box_color1: "#1e293b",
   feed_box_color2: "#334155",
@@ -77,6 +81,10 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_box_font_size: "14",
   feed_box_border_radius: "12",
   feed_box_logo_size: "44",
+  feed_box_logo_width: "40",
+  feed_box_logo_height: "10",
+  feed_username_color: "#ffffff",
+  feed_points_color: "#ffffff",
   feed_total_count: 20,
   feed_count_offers: 20,
   feed_count_surveys: 20,
@@ -97,6 +105,8 @@ const SETTING_KEYS = Object.keys(DEFAULT_SETTINGS);
 
 function classifyEarning(desc: string, offerName: string, type: string): string {
   const text = `${desc} ${offerName} ${type}`.toLowerCase();
+  // Check feed_generator first since it's explicitly set
+  if (type === "feed_generator" || text.includes("feed generator")) return "feed_generator";
   if (text.includes("referral") || text.includes("affiliate")) return "referral";
   if (text.includes("contest") || text.includes("rank")) return "contest";
   if (text.includes("promo") && (text.includes("redeem") || text.includes("code"))) return "promocode";
@@ -173,7 +183,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_show_new_promocodes: getBool("feed_show_new_promocodes", false),
           feed_show_new_offers: getBool("feed_show_new_offers", false),
           feed_show_global_notifications: getBool("feed_show_global_notifications", false),
-          feed_show_feed_generator: getBool("feed_show_feed_generator", false),
+          feed_show_feed_generator: getBool("feed_show_feed_generator", true),
           feed_scroll_speed: getNum("feed_scroll_speed", 120),
           feed_box_color1: getStr("feed_box_color1", DEFAULT_SETTINGS.feed_box_color1),
           feed_box_color2: getStr("feed_box_color2", DEFAULT_SETTINGS.feed_box_color2),
@@ -184,6 +194,10 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_box_font_size: getStr("feed_box_font_size", "14"),
           feed_box_border_radius: getStr("feed_box_border_radius", "12"),
           feed_box_logo_size: getStr("feed_box_logo_size", "44"),
+          feed_box_logo_width: getStr("feed_box_logo_width", "40"),
+          feed_box_logo_height: getStr("feed_box_logo_height", "10"),
+          feed_username_color: getStr("feed_username_color", "#ffffff"),
+          feed_points_color: getStr("feed_points_color", "#ffffff"),
           feed_total_count: getNum("feed_total_count", 20),
           feed_count_offers: getNum("feed_count_offers", 20),
           feed_count_surveys: getNum("feed_count_surveys", 20),
@@ -237,11 +251,23 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         const matchedProvider = providerList.find(sp => searchText.includes(sp.name.toLowerCase()));
         const itemType = classifyEarning(e.description || "", e.offer_name || "", e.type || "");
 
+        // For feed_generator items, parse username and country from description
+        let displayUsername = prof?.name || "User";
+        let displayCountry = prof?.country || "";
+        
+        if (itemType === "feed_generator" && e.description) {
+          // Parse format: "Feed Generator: Username earned from Offerwall [Country]"
+          const usernameMatch = e.description.match(/Feed Generator:\s*([^\s]+)\s*earned/);
+          const countryMatch = e.description.match(/\[([^\]]+)\]$/);
+          if (usernameMatch) displayUsername = usernameMatch[1];
+          if (countryMatch) displayCountry = countryMatch[1];
+        }
+
         return {
           id: e.id,
-          username: prof?.name || "User",
+          username: displayUsername,
           amount: `${(e.amount || 0).toFixed(0)} pts`,
-          country: prof?.country || "",
+          country: displayCountry,
           offerwallName: matchedProvider?.name || e.offer_name || "",
           offerwallLogo: matchedProvider?.image_url || "",
           created_at: e.created_at || "",
@@ -324,8 +350,15 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const fs = parseInt(settings.feed_box_font_size) || 14;
   const br = parseInt(settings.feed_box_border_radius) || 12;
   const imgSz = parseInt(settings.feed_box_logo_size) || 44;
+  const logoWidthPercent = parseInt(settings.feed_box_logo_width) || 40;
+  const logoHeightPercent = parseInt(settings.feed_box_logo_height) || 10;
+  const usernameColor = settings.feed_username_color || "#ffffff";
+  const pointsColor = settings.feed_points_color || "#ffffff";
   const amountFs = Math.min(fs + 4, 24);
   const subFs = Math.max(fs - 4, 8);
+  // Calculate logo dimensions based on percentages
+  const logoWidth = Math.round((w * logoWidthPercent) / 100);
+  const logoHeight = Math.round((h * logoHeightPercent) / 100);
 
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
@@ -360,17 +393,17 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 {item.offerwallLogo && (
                   <img src={item.offerwallLogo} alt={item.offerwallName}
                     className="object-contain shrink-0 mr-2"
-                    style={{ width: `${imgSz}px`, height: `${imgSz}px` }} />
+                    style={{ width: `${logoWidth}px`, height: `${logoHeight}px` }} />
                 )}
                 <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-white truncate" style={{ fontSize: `${fs}px` }}>{item.username}</span>
-                    <span className="text-white/50" style={{ fontSize: `${subFs}px` }}>• {getRelativeTime(item.created_at)}</span>
+                    <span className="font-semibold truncate" style={{ fontSize: `${fs}px`, color: usernameColor }}>{item.username}</span>
+                    <span style={{ fontSize: `${subFs}px`, color: `${usernameColor}80` }}>• {getRelativeTime(item.created_at)}</span>
                   </div>
-                  <span className="text-white/60 truncate" style={{ fontSize: `${subFs}px` }}>{item.offerwallName}</span>
+                  <span className="truncate" style={{ fontSize: `${subFs}px`, color: `${usernameColor}99` }}>{item.offerwallName}</span>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className="font-bold text-white whitespace-nowrap" style={{ fontSize: `${amountFs}px` }}>{item.amount}</span>
+                  <span className="font-bold whitespace-nowrap" style={{ fontSize: `${amountFs}px`, color: pointsColor }}>{item.amount}</span>
                   {item.country && (
                     <div className="flex items-center justify-end" style={{ marginTop: '2px' }}>
                       <img
