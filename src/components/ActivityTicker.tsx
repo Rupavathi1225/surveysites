@@ -338,8 +338,15 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const fs = parseInt(settings.feed_box_font_size) || 14;
   const br = parseInt(settings.feed_box_border_radius) || 12;
   const imgSz = parseInt(settings.feed_box_logo_size) || 44;
+  const logoWidthPercent = parseInt(settings.feed_box_logo_width) || 40;
+  const logoHeightPercent = parseInt(settings.feed_box_logo_height) || 10;
+  const usernameColor = settings.feed_username_color || "#ffffff";
+  const pointsColor = settings.feed_points_color || "#ffffff";
   const amountFs = Math.min(fs + 4, 24);
   const subFs = Math.max(fs - 4, 8);
+  // Calculate logo dimensions based on percentages
+  const logoWidth = Math.round((w * logoWidthPercent) / 100);
+  const logoHeight = Math.round((h * logoHeightPercent) / 100);
 
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-2 px-3">
