@@ -41,6 +41,8 @@ interface FeedSettings {
   feed_box_logo_height: string;
   feed_username_color: string;
   feed_points_color: string;
+  feed_username_font_size: string;
+  feed_points_font_size: string;
   feed_total_count: number;
   feed_count_offers: number;
   feed_count_surveys: number;
