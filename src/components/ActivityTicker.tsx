@@ -320,7 +320,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const pad = parseInt(settings.feed_box_padding) || 16;
   const fs = parseInt(settings.feed_box_font_size) || 14;
   const br = parseInt(settings.feed_box_border_radius) || 12;
-  const imgSz = Math.max(Math.round(fs * 1.8), 20);
+  const imgSz = Math.max(Math.round(fs * 2.5), 32);
   const amountFs = Math.min(fs + 4, 24);
   const subFs = Math.max(fs - 4, 8);
 
