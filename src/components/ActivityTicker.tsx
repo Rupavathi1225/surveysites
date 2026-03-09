@@ -87,6 +87,8 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_box_logo_height: "10",
   feed_username_color: "#ffffff",
   feed_points_color: "#ffffff",
+  feed_username_font_size: "14",
+  feed_points_font_size: "18",
   feed_total_count: 20,
   feed_count_offers: 20,
   feed_count_surveys: 20,
