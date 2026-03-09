@@ -168,6 +168,8 @@ const ActivityFeedControls = () => {
       { key: BOX_LOGO_HEIGHT_KEY, value: logoHeightPercent },
       { key: USERNAME_COLOR_KEY, value: usernameColor },
       { key: POINTS_COLOR_KEY, value: pointsColor },
+      { key: USERNAME_FONT_SIZE_KEY, value: usernameFontSize },
+      { key: POINTS_FONT_SIZE_KEY, value: pointsFontSize },
       { key: SPEED_KEY, value: String(speed) },
       { key: COLOR1_KEY, value: color1 },
       { key: COLOR2_KEY, value: color2 },
