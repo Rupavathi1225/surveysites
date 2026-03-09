@@ -270,9 +270,9 @@ const ActivityFeedControls = () => {
           <div className="flex items-center gap-4 flex-wrap">
             <Select value={boxSize} onValueChange={(v) => {
               setBoxSize(v);
-              if (v === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
-              if (v === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
-              if (v === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+              if (v === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); setBoxLogoSize("28"); }
+              if (v === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); setBoxLogoSize("44"); }
+              if (v === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); setBoxLogoSize("56"); }
             }}>
               <SelectTrigger className="w-full max-w-[200px]">
                 <SelectValue placeholder="Select size" />
