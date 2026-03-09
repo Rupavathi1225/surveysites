@@ -308,7 +308,9 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
     return countryToCode[lower] || "xx";
   };
 
-  const scrollDuration = `${settings.feed_scroll_speed}s`;
+  // Speed value: higher = faster. Convert to duration: items count affects base duration
+  const baseDuration = Math.max(5, Math.round((items.length * 3) * (100 / Math.max(settings.feed_scroll_speed, 10))));
+  const scrollDuration = `${baseDuration}s`;
   const boxGradient = `linear-gradient(135deg, ${settings.feed_box_color1}, ${settings.feed_box_color2})`;
 
   const w = parseInt(settings.feed_box_width) || 200;
