@@ -381,17 +381,17 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 {item.offerwallLogo && (
                   <img src={item.offerwallLogo} alt={item.offerwallName}
                     className="object-contain shrink-0 mr-2"
-                    style={{ width: `${imgSz}px`, height: `${imgSz}px` }} />
+                    style={{ width: `${logoWidth}px`, height: `${logoHeight}px` }} />
                 )}
                 <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-white truncate" style={{ fontSize: `${fs}px` }}>{item.username}</span>
-                    <span className="text-white/50" style={{ fontSize: `${subFs}px` }}>• {getRelativeTime(item.created_at)}</span>
+                    <span className="font-semibold truncate" style={{ fontSize: `${fs}px`, color: usernameColor }}>{item.username}</span>
+                    <span style={{ fontSize: `${subFs}px`, color: `${usernameColor}80` }}>• {getRelativeTime(item.created_at)}</span>
                   </div>
-                  <span className="text-white/60 truncate" style={{ fontSize: `${subFs}px` }}>{item.offerwallName}</span>
+                  <span className="truncate" style={{ fontSize: `${subFs}px`, color: `${usernameColor}99` }}>{item.offerwallName}</span>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className="font-bold text-white whitespace-nowrap" style={{ fontSize: `${amountFs}px` }}>{item.amount}</span>
+                  <span className="font-bold whitespace-nowrap" style={{ fontSize: `${amountFs}px`, color: pointsColor }}>{item.amount}</span>
                   {item.country && (
                     <div className="flex items-center justify-end" style={{ marginTop: '2px' }}>
                       <img
