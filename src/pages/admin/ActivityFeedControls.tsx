@@ -69,13 +69,6 @@ const DEFAULT_BOX_LOGO_SIZE = "44";
 const DEFAULT_LOGO_WIDTH = "40";
 const DEFAULT_LOGO_HEIGHT = "10";
 
-interface GeneratorEntry {
-  username: string;
-  amount: string;
-  offerwall: string;
-  country: string;
-}
-
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
