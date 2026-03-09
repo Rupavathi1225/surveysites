@@ -146,33 +146,26 @@ const AdminNotifications = () => {
         }
 
         if (randomUser && selectedActivity) {
-          let message = '';
-          let notificationType = '';
+          const activityName = activityType === 'offer' ? selectedActivity.title : (selectedActivity.name || selectedActivity.title);
+          const username = randomUser.username || randomUser.email || "User";
+          const country = feedGeneratorForm.selectedCountry || "US";
           
-          if (activityType === 'offer') {
-            message = `${randomUser.username || randomUser.email} completed ${selectedActivity.title} and earned ${feedGeneratorForm.points} points`;
-            notificationType = "offer_completed";
-          } else if (activityType === 'survey_provider') {
-            message = `${randomUser.username || randomUser.email} completed survey from ${selectedActivity.name || selectedActivity.title} and earned ${feedGeneratorForm.points} points`;
-            notificationType = "survey_completed";
-          }
-          
-          console.log(`📝 Creating notification: ${message}`);
-          
-          const insertResult = await supabase.from("notifications").insert({
-            type: notificationType,
-            message: message,
-            is_global: true,
+          // Insert into earning_history for activity feed
+          const insertResult = await supabase.from("earning_history").insert({
             user_id: randomUser.id,
+            amount: parseFloat(feedGeneratorForm.points) || 0,
+            offer_name: activityName,
+            description: `Feed Generator: ${username} earned from ${activityName} [${country}]`,
+            status: "approved",
+            type: "feed_generator",
           });
 
           if (insertResult.error) {
-            console.error('❌ Error inserting notification:', insertResult.error);
+            console.error('❌ Error inserting feed activity:', insertResult.error);
           } else {
-            console.log('✅ Notification inserted successfully:', insertResult.data);
+            console.log('✅ Feed activity inserted successfully:', insertResult.data);
           }
           
-          console.log(`✅ Notification inserted:`, insertResult);
           generatedCount++;
         }
 
