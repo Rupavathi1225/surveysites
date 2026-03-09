@@ -1,0 +1,1 @@
+UPDATE website_settings SET value = 'true' WHERE key = 'feed_show_feed_generator'
