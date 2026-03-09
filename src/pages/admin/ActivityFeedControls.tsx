@@ -112,7 +112,7 @@ const ActivityFeedControls = () => {
       ...FEED_TOGGLES.map(t => t.countKey),
       SPEED_KEY, COLOR1_KEY, COLOR2_KEY, TOTAL_COUNT_KEY, BOX_SIZE_KEY,
       BOX_WIDTH_KEY, BOX_HEIGHT_KEY, BOX_PADDING_KEY, BOX_FONT_SIZE_KEY, BOX_BORDER_RADIUS_KEY,
-      BOX_LOGO_SIZE_KEY,
+      BOX_LOGO_SIZE_KEY, BOX_LOGO_WIDTH_KEY, BOX_LOGO_HEIGHT_KEY, USERNAME_COLOR_KEY, POINTS_COLOR_KEY,
     ];
     const { data } = await supabase.from("website_settings").select("key, value").in("key", keys);
     const m = new Map((data || []).map(s => [s.key, s.value]));
