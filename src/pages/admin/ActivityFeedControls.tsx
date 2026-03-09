@@ -86,6 +86,10 @@ const ActivityFeedControls = () => {
   const [boxFontSize, setBoxFontSize] = useState(DEFAULT_BOX_FONT_SIZE);
   const [boxBorderRadius, setBoxBorderRadius] = useState(DEFAULT_BOX_BORDER_RADIUS);
   const [boxLogoSize, setBoxLogoSize] = useState(DEFAULT_BOX_LOGO_SIZE);
+  const [logoWidthPercent, setLogoWidthPercent] = useState(DEFAULT_LOGO_WIDTH);
+  const [logoHeightPercent, setLogoHeightPercent] = useState(DEFAULT_LOGO_HEIGHT);
+  const [usernameColor, setUsernameColor] = useState(DEFAULT_USERNAME_COLOR);
+  const [pointsColor, setPointsColor] = useState(DEFAULT_POINTS_COLOR);
   const [totalCount, setTotalCount] = useState(DEFAULT_TOTAL_COUNT);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [color1, setColor1] = useState(DEFAULT_COLOR1);
