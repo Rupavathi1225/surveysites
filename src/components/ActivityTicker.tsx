@@ -276,7 +276,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
   if (items.length === 0) return null;
 
-  const looped = [...items, ...items, ...items, ...items];
+  const looped = [...items, ...items];
 
   const getRelativeTime = (d: string) => {
     if (!d) return "";
