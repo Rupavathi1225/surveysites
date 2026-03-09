@@ -291,6 +291,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const getCountryFlag = (country: string) => {
     if (!country) return "";
     const countryFlags: Record<string, string> = {
+      // Full names
       india: "🇮🇳", "united states": "🇺🇸", usa: "🇺🇸", uk: "🇬🇧", "united kingdom": "🇬🇧",
       canada: "🇨🇦", australia: "🇦🇺", germany: "🇩🇪", france: "🇫🇷", brazil: "🇧🇷",
       japan: "🇯🇵", china: "🇨🇳", russia: "🇷🇺", mexico: "🇲🇽", spain: "🇪🇸",
@@ -301,8 +302,16 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       nigeria: "🇳🇬", "south africa": "🇿🇦", egypt: "🇪🇬", kenya: "🇰🇪",
       argentina: "🇦🇷", colombia: "🇨🇴", chile: "🇨🇱", peru: "🇵🇪",
       "saudi arabia": "🇸🇦", uae: "🇦🇪", "united arab emirates": "🇦🇪", israel: "🇮🇱",
+      // ISO 2-letter codes
+      in: "🇮🇳", us: "🇺🇸", gb: "🇬🇧", ca: "🇨🇦", au: "🇦🇺", de: "🇩🇪", fr: "🇫🇷",
+      br: "🇧🇷", jp: "🇯🇵", cn: "🇨🇳", ru: "🇷🇺", mx: "🇲🇽", es: "🇪🇸", it: "🇮🇹",
+      nl: "🇳🇱", se: "🇸🇪", no: "🇳🇴", dk: "🇩🇰", fi: "🇫🇮", pl: "🇵🇱", tr: "🇹🇷",
+      kr: "🇰🇷", id: "🇮🇩", ph: "🇵🇭", th: "🇹🇭", vn: "🇻🇳", my: "🇲🇾", sg: "🇸🇬",
+      pk: "🇵🇰", bd: "🇧🇩", lk: "🇱🇰", np: "🇳🇵", ng: "🇳🇬", za: "🇿🇦", eg: "🇪🇬",
+      ke: "🇰🇪", ar: "🇦🇷", co: "🇨🇴", cl: "🇨🇱", pe: "🇵🇪", sa: "🇸🇦", ae: "🇦🇪",
+      il: "🇮🇱",
     };
-    return countryFlags[country.toLowerCase()] || "🌍";
+    return countryFlags[country.toLowerCase().trim()] || "🌍";
   };
 
   const scrollDuration = `${settings.feed_scroll_speed}s`;
