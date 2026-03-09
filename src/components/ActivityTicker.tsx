@@ -251,11 +251,23 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         const matchedProvider = providerList.find(sp => searchText.includes(sp.name.toLowerCase()));
         const itemType = classifyEarning(e.description || "", e.offer_name || "", e.type || "");
 
+        // For feed_generator items, parse username and country from description
+        let displayUsername = prof?.name || "User";
+        let displayCountry = prof?.country || "";
+        
+        if (itemType === "feed_generator" && e.description) {
+          // Parse format: "Feed Generator: Username earned from Offerwall [Country]"
+          const usernameMatch = e.description.match(/Feed Generator:\s*([^\s]+)\s*earned/);
+          const countryMatch = e.description.match(/\[([^\]]+)\]$/);
+          if (usernameMatch) displayUsername = usernameMatch[1];
+          if (countryMatch) displayCountry = countryMatch[1];
+        }
+
         return {
           id: e.id,
-          username: prof?.name || "User",
+          username: displayUsername,
           amount: `${(e.amount || 0).toFixed(0)} pts`,
-          country: prof?.country || "",
+          country: displayCountry,
           offerwallName: matchedProvider?.name || e.offer_name || "",
           offerwallLogo: matchedProvider?.image_url || "",
           created_at: e.created_at || "",
