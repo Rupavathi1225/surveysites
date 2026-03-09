@@ -297,9 +297,9 @@ const ActivityFeedControls = () => {
                   }}
                   onClick={() => {
                     setBoxSize(s.value);
-                    if (s.value === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); }
-                    if (s.value === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); }
-                    if (s.value === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); }
+                    if (s.value === "small") { setBoxWidth("160"); setBoxHeight("44"); setBoxPadding("12"); setBoxFontSize("12"); setBoxBorderRadius("8"); setBoxLogoSize("28"); }
+                    if (s.value === "medium") { setBoxWidth("200"); setBoxHeight("60"); setBoxPadding("16"); setBoxFontSize("14"); setBoxBorderRadius("12"); setBoxLogoSize("44"); }
+                    if (s.value === "large") { setBoxWidth("280"); setBoxHeight("76"); setBoxPadding("20"); setBoxFontSize("16"); setBoxBorderRadius("16"); setBoxLogoSize("56"); }
                   }}
                 >
                   {s.label}
