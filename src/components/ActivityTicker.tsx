@@ -203,12 +203,14 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
 
   useEffect(() => {
     const fetchAll = async () => {
-      // Fetch more than needed so we can apply per-type limits
+      // Only fetch recent activity (last 48 hours)
+      const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
       const fetchLimit = Math.max(settings.feed_total_count * 3, 100);
       const { data: earnings } = await supabase
         .from("earning_history")
         .select("id, amount, offer_name, user_id, description, created_at, status, type")
         .eq("status", "approved")
+        .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(fetchLimit);
 
