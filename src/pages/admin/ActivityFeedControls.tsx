@@ -180,6 +180,7 @@ const ActivityFeedControls = () => {
       { key: BOX_PADDING_KEY, value: DEFAULT_BOX_PADDING },
       { key: BOX_FONT_SIZE_KEY, value: DEFAULT_BOX_FONT_SIZE },
       { key: BOX_BORDER_RADIUS_KEY, value: DEFAULT_BOX_BORDER_RADIUS },
+      { key: BOX_LOGO_SIZE_KEY, value: DEFAULT_BOX_LOGO_SIZE },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
