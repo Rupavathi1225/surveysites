@@ -199,6 +199,8 @@ const ActivityFeedControls = () => {
     setLogoHeightPercent(DEFAULT_LOGO_HEIGHT);
     setUsernameColor(DEFAULT_USERNAME_COLOR);
     setPointsColor(DEFAULT_POINTS_COLOR);
+    setUsernameFontSize(DEFAULT_USERNAME_FONT_SIZE);
+    setPointsFontSize(DEFAULT_POINTS_FONT_SIZE);
     setTotalCount(DEFAULT_TOTAL_COUNT);
     setSpeed(DEFAULT_SPEED);
     setColor1(DEFAULT_COLOR1);
@@ -220,6 +222,8 @@ const ActivityFeedControls = () => {
       { key: BOX_LOGO_HEIGHT_KEY, value: DEFAULT_LOGO_HEIGHT },
       { key: USERNAME_COLOR_KEY, value: DEFAULT_USERNAME_COLOR },
       { key: POINTS_COLOR_KEY, value: DEFAULT_POINTS_COLOR },
+      { key: USERNAME_FONT_SIZE_KEY, value: DEFAULT_USERNAME_FONT_SIZE },
+      { key: POINTS_FONT_SIZE_KEY, value: DEFAULT_POINTS_FONT_SIZE },
       { key: SPEED_KEY, value: String(DEFAULT_SPEED) },
       { key: COLOR1_KEY, value: DEFAULT_COLOR1 },
       { key: COLOR2_KEY, value: DEFAULT_COLOR2 },
