@@ -66,7 +66,7 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_show_new_offers: false,
   feed_show_global_notifications: false,
   feed_show_feed_generator: false,
-  feed_scroll_speed: 120,
+  feed_scroll_speed: 30,
   feed_box_color1: "#1e293b",
   feed_box_color2: "#334155",
   feed_box_size: "medium",
