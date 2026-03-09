@@ -840,7 +840,7 @@ const ActivityFeedControls = () => {
                       user_id: userId,
                       amount: parseFloat(entry.amount) || 0,
                       offer_name: entry.offerwall,
-                      description: `Feed Generator: ${entry.username} earned from ${entry.offerwall}`,
+                      description: `Feed Generator: ${entry.username} earned from ${entry.offerwall} [${entry.country}]`,
                       status: "approved",
                       type: "feed_generator",
                     });
