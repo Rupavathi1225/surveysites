@@ -530,10 +530,10 @@ const ActivityFeedControls = () => {
             <div className="rounded-xl px-4 py-3 border border-foreground/5 flex items-center gap-3"
               style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}>
               <div className="flex flex-col gap-0.5 flex-1">
-                <span className="text-sm font-semibold text-white">SampleUser</span>
-                <span className="text-xs text-white/60">PrimeWall</span>
+                <span className="text-sm font-semibold" style={{ color: usernameColor }}>SampleUser</span>
+                <span className="text-xs" style={{ color: `${usernameColor}99` }}>PrimeWall</span>
               </div>
-              <span className="text-lg font-bold text-white">150 pts</span>
+              <span className="text-lg font-bold" style={{ color: pointsColor }}>150 pts</span>
             </div>
           </div>
           <div className="mt-4 flex justify-end">
@@ -547,6 +547,150 @@ const ActivityFeedControls = () => {
               toast.success("Ticker box colors applied!");
             }}>
               <Palette className="h-4 w-4 mr-1" /> Apply Colors
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Username & Points Color Control */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Palette className="h-5 w-5 text-primary" />
+            Text Colors
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Customize the username and points text colors</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">Username Color</Label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
+                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                <Input value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
+                  className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm text-foreground">Points Color</Label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
+                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                <Input value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
+                  className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-2">Preview:</p>
+            <div className="rounded-xl px-4 py-3 border border-foreground/5 flex items-center gap-3"
+              style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}>
+              <div className="flex flex-col gap-0.5 flex-1">
+                <span className="text-sm font-semibold" style={{ color: usernameColor }}>SampleUser</span>
+                <span className="text-xs" style={{ color: `${usernameColor}99` }}>PrimeWall</span>
+              </div>
+              <span className="text-lg font-bold" style={{ color: pointsColor }}>150 pts</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" disabled={saving} onClick={async () => {
+              setSaving(true);
+              await upsertSettings([
+                { key: USERNAME_COLOR_KEY, value: usernameColor },
+                { key: POINTS_COLOR_KEY, value: pointsColor },
+              ]);
+              setSaving(false);
+              toast.success("Text colors applied!");
+            }}>
+              <Palette className="h-4 w-4 mr-1" /> Apply Text Colors
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Logo Size Control */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Hash className="h-5 w-5 text-primary" />
+            Logo Size (Percentage)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">Control logo width and height as a percentage of the ticker box dimensions</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 p-3 rounded-lg bg-accent/30 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-foreground">Width (Horizontal %)</Label>
+                <span className="text-sm font-bold text-primary">{logoWidthPercent}%</span>
+              </div>
+              <Slider
+                min={10} max={80} step={5}
+                value={[parseInt(logoWidthPercent) || 40]}
+                onValueChange={([v]) => setLogoWidthPercent(String(v))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>10%</span><span>40% (Default)</span><span>80%</span>
+              </div>
+            </div>
+            <div className="space-y-2 p-3 rounded-lg bg-accent/30 border border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-foreground">Height (Vertical %)</Label>
+                <span className="text-sm font-bold text-primary">{logoHeightPercent}%</span>
+              </div>
+              <Slider
+                min={5} max={100} step={5}
+                value={[parseInt(logoHeightPercent) || 10]}
+                onValueChange={([v]) => setLogoHeightPercent(String(v))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>5%</span><span>10% (Default)</span><span>100%</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs text-muted-foreground mb-2">Preview (with sample logo):</p>
+            <div
+              className="inline-flex items-center border border-foreground/5"
+              style={{
+                minWidth: `${boxWidth}px`,
+                minHeight: `${boxHeight}px`,
+                padding: `${boxPadding}px`,
+                borderRadius: `${boxBorderRadius}px`,
+                background: `linear-gradient(135deg, ${color1}, ${color2})`,
+              }}
+            >
+              <div
+                className="shrink-0 mr-2 rounded bg-white/20 flex items-center justify-center text-white/70 font-bold"
+                style={{ 
+                  width: `${Math.round((parseInt(boxWidth) * parseInt(logoWidthPercent)) / 100)}px`, 
+                  height: `${Math.round((parseInt(boxHeight) * parseInt(logoHeightPercent)) / 100)}px`,
+                  fontSize: `${Math.max(8, Math.round((parseInt(boxHeight) * parseInt(logoHeightPercent)) / 300))}px`
+                }}
+              >
+                ★
+              </div>
+              <div className="flex flex-col gap-0.5 flex-1 mr-3">
+                <span className="font-semibold truncate" style={{ fontSize: `${boxFontSize}px`, color: usernameColor }}>SampleUser</span>
+                <span className="truncate" style={{ fontSize: `${Math.max(parseInt(boxFontSize) - 4, 8)}px`, color: `${usernameColor}99` }}>PrimeWall</span>
+              </div>
+              <span className="font-bold whitespace-nowrap" style={{ fontSize: `${Math.min(parseInt(boxFontSize) + 4, 24)}px`, color: pointsColor }}>150 pts</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button size="sm" disabled={saving} onClick={async () => {
+              setSaving(true);
+              await upsertSettings([
+                { key: BOX_LOGO_WIDTH_KEY, value: logoWidthPercent },
+                { key: BOX_LOGO_HEIGHT_KEY, value: logoHeightPercent },
+              ]);
+              setSaving(false);
+              toast.success("Logo size applied!");
+            }}>
+              <Hash className="h-4 w-4 mr-1" /> Apply Logo Size
             </Button>
           </div>
         </CardContent>
