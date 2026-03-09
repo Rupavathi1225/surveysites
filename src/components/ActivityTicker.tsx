@@ -404,13 +404,13 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 )}
                 <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold truncate" style={{ fontSize: `${fs}px`, color: usernameColor }}>{item.username}</span>
+                    <span className="font-semibold truncate" style={{ fontSize: `${usernameFontSize}px`, color: usernameColor }}>{item.username}</span>
                     <span style={{ fontSize: `${subFs}px`, color: `${usernameColor}80` }}>• {getRelativeTime(item.created_at)}</span>
                   </div>
                   <span className="truncate" style={{ fontSize: `${subFs}px`, color: `${usernameColor}99` }}>{item.offerwallName}</span>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className="font-bold whitespace-nowrap" style={{ fontSize: `${amountFs}px`, color: pointsColor }}>{item.amount}</span>
+                  <span className="font-bold whitespace-nowrap" style={{ fontSize: `${pointsFontSize}px`, color: pointsColor }}>{item.amount}</span>
                   {item.country && (
                     <div className="flex items-center justify-end" style={{ marginTop: '2px' }}>
                       <img
