@@ -360,8 +360,9 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const logoHeightPercent = parseInt(settings.feed_box_logo_height) || 10;
   const usernameColor = settings.feed_username_color || "#ffffff";
   const pointsColor = settings.feed_points_color || "#ffffff";
-  const amountFs = Math.min(fs + 4, 24);
-  const subFs = Math.max(fs - 4, 8);
+  const usernameFontSize = parseInt(settings.feed_username_font_size) || 14;
+  const pointsFontSize = parseInt(settings.feed_points_font_size) || 18;
+  const subFs = Math.max(usernameFontSize - 4, 8);
   // Calculate logo dimensions based on percentages
   const logoWidth = Math.round((w * logoWidthPercent) / 100);
   const logoHeight = Math.round((h * logoHeightPercent) / 100);
