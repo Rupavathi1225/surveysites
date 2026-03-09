@@ -900,6 +900,40 @@ const extractAdminLogDetails = (message: string): { summary: string; details: st
               </p>
             </div>
 
+            {/* Country Dropdown */}
+            <div>
+              <Label className="text-sm font-medium">Country</Label>
+              <Select
+                value={feedGeneratorForm.selectedCountry}
+                onValueChange={(value) => setFeedGeneratorForm({ ...feedGeneratorForm, selectedCountry: value })}
+              >
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select a country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="US">United States</SelectItem>
+                  <SelectItem value="GB">United Kingdom</SelectItem>
+                  <SelectItem value="CA">Canada</SelectItem>
+                  <SelectItem value="AU">Australia</SelectItem>
+                  <SelectItem value="DE">Germany</SelectItem>
+                  <SelectItem value="FR">France</SelectItem>
+                  <SelectItem value="IN">India</SelectItem>
+                  <SelectItem value="BR">Brazil</SelectItem>
+                  <SelectItem value="JP">Japan</SelectItem>
+                  <SelectItem value="MX">Mexico</SelectItem>
+                  <SelectItem value="ES">Spain</SelectItem>
+                  <SelectItem value="IT">Italy</SelectItem>
+                  <SelectItem value="NL">Netherlands</SelectItem>
+                  <SelectItem value="PH">Philippines</SelectItem>
+                  <SelectItem value="ID">Indonesia</SelectItem>
+                  <SelectItem value="PK">Pakistan</SelectItem>
+                  <SelectItem value="NG">Nigeria</SelectItem>
+                  <SelectItem value="ZA">South Africa</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Country to display on the activity feed</p>
+            </div>
+
             {/* Points Input */}
             <div>
               <Label className="text-sm font-medium">Points</Label>
