@@ -309,7 +309,7 @@ const ActivityFeedControls = () => {
           </div>
 
           {/* Manual custom fields - always visible */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-border">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 pt-2 border-t border-border">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Width (px)</Label>
               <Input type="number" min="100" max="500" value={boxWidth}
@@ -338,6 +338,12 @@ const ActivityFeedControls = () => {
               <Label className="text-xs text-muted-foreground">Border Radius (px)</Label>
               <Input type="number" min="0" max="30" value={boxBorderRadius}
                 onChange={(e) => { setBoxBorderRadius(e.target.value); setBoxSize("custom"); }}
+                className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Logo Size (px)</Label>
+              <Input type="number" min="16" max="80" value={boxLogoSize}
+                onChange={(e) => { setBoxLogoSize(e.target.value); setBoxSize("custom"); }}
                 className="h-8 text-sm" />
             </div>
           </div>
