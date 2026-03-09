@@ -113,36 +113,37 @@ const AdminNotifications = () => {
         const selectedOffers = feedGeneratorForm.selectedOffers;
         const selectedSurveyProviders = feedGeneratorForm.selectedSurveyProviders;
         
-        const randomUser = selectedUsers.length > 0 
-          ? users.find(u => selectedUsers.includes(u.id))
+        // Randomly pick from selected users
+        const matchingUsers = users.filter(u => selectedUsers.includes(u.id));
+        const randomUser = matchingUsers.length > 0 
+          ? matchingUsers[Math.floor(Math.random() * matchingUsers.length)]
           : users[Math.floor(Math.random() * users.length)];
         
         // Randomly choose between offer and survey provider
         let selectedActivity = null;
         let activityType = '';
         
-        if (selectedOffers.length > 0 && selectedSurveyProviders.length > 0) {
-          // Both available, randomly choose
+        const matchingOffers = offers.filter(o => selectedOffers.includes(o.id));
+        const matchingProviders = surveyProviders.filter(sp => selectedSurveyProviders.includes(sp.id));
+        
+        if (matchingOffers.length > 0 && matchingProviders.length > 0) {
           if (Math.random() > 0.5) {
-            selectedActivity = offers.find(o => selectedOffers.includes(o.id));
+            selectedActivity = matchingOffers[Math.floor(Math.random() * matchingOffers.length)];
             activityType = 'offer';
           } else {
-            selectedActivity = surveyProviders.find(sp => selectedSurveyProviders.includes(sp.id));
+            selectedActivity = matchingProviders[Math.floor(Math.random() * matchingProviders.length)];
             activityType = 'survey_provider';
           }
-        } else if (selectedOffers.length > 0) {
-          // Only offers available
-          selectedActivity = offers.find(o => selectedOffers.includes(o.id));
+        } else if (matchingOffers.length > 0) {
+          selectedActivity = matchingOffers[Math.floor(Math.random() * matchingOffers.length)];
           activityType = 'offer';
-        } else if (selectedSurveyProviders.length > 0) {
-          // Only survey providers available
-          selectedActivity = surveyProviders.find(sp => selectedSurveyProviders.includes(sp.id));
+        } else if (matchingProviders.length > 0) {
+          selectedActivity = matchingProviders[Math.floor(Math.random() * matchingProviders.length)];
           activityType = 'survey_provider';
         } else {
-          // Random selection from all available
           const allActivities = [...offers, ...surveyProviders];
           selectedActivity = allActivities[Math.floor(Math.random() * allActivities.length)];
-          activityType = offers.some(o => o.id === selectedActivity.id) ? 'offer' : 'survey_provider';
+          activityType = offers.some(o => o.id === selectedActivity?.id) ? 'offer' : 'survey_provider';
         }
 
         if (randomUser && selectedActivity) {
