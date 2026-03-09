@@ -106,6 +106,7 @@ const ActivityFeedControls = () => {
     setBoxPadding(m.get(BOX_PADDING_KEY) || DEFAULT_BOX_PADDING);
     setBoxFontSize(m.get(BOX_FONT_SIZE_KEY) || DEFAULT_BOX_FONT_SIZE);
     setBoxBorderRadius(m.get(BOX_BORDER_RADIUS_KEY) || DEFAULT_BOX_BORDER_RADIUS);
+    setBoxLogoSize(m.get(BOX_LOGO_SIZE_KEY) || DEFAULT_BOX_LOGO_SIZE);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
