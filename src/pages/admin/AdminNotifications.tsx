@@ -38,6 +38,7 @@ const AdminNotifications = () => {
     selectedUsers: [] as string[],
     selectedOffers: [] as string[],
     selectedSurveyProviders: [] as string[],
+    selectedCountry: "",
     points: "50",
     count: 5,
     interval: 10,
