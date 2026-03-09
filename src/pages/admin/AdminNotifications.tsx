@@ -94,11 +94,6 @@ const AdminNotifications = () => {
 
   // Feed Generator Functions
   const generateFeedActivity = async () => {
-    if (!feedGeneratorEnabled) {
-      toast({ title: "Feed Generator Disabled", description: "Enable Feed Generator to run", variant: "destructive" });
-      return;
-    }
-
     if (feedGeneratorForm.selectedUsers.length === 0 && feedGeneratorForm.selectedOffers.length === 0 && feedGeneratorForm.selectedSurveyProviders.length === 0) {
       toast({ title: "Selection Required", description: "Select a user, offer, or survey provider", variant: "destructive" });
       return;
