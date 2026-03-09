@@ -61,6 +61,13 @@ const DEFAULT_BOX_FONT_SIZE = "14";
 const DEFAULT_BOX_BORDER_RADIUS = "12";
 const DEFAULT_BOX_LOGO_SIZE = "44";
 
+interface GeneratorEntry {
+  username: string;
+  amount: string;
+  offerwall: string;
+  country: string;
+}
+
 const ActivityFeedControls = () => {
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, string>>({});
@@ -77,6 +84,12 @@ const ActivityFeedControls = () => {
   const [color2, setColor2] = useState(DEFAULT_COLOR2);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Feed Generator state
+  const [generatorEntries, setGeneratorEntries] = useState<GeneratorEntry[]>([
+    { username: "", amount: "", offerwall: "", country: "" },
+  ]);
+  const [generatorRunning, setGeneratorRunning] = useState(false);
 
   useEffect(() => { loadSettings(); }, []);
 
