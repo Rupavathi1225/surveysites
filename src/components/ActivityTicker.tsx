@@ -365,7 +365,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 <div className="shrink-0 text-right">
                   <span className="font-bold text-white whitespace-nowrap" style={{ fontSize: `${amountFs}px` }}>{item.amount}</span>
                   {item.country && (
-                    <div className="flex items-center justify-end gap-1.5 text-white/50 whitespace-nowrap" style={{ fontSize: `${Math.max(subFs - 1, 8)}px` }}>
+                    <div className="flex items-center justify-end" style={{ marginTop: '2px' }}>
                       <img
                         src={`https://flagcdn.com/20x15/${getCountryCode(item.country)}.png`}
                         alt={item.country}
@@ -373,7 +373,6 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                         style={{ width: `${Math.max(subFs + 4, 16)}px`, height: `${Math.max(subFs, 12)}px` }}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
-                      <span>{item.country}</span>
                     </div>
                   )}
                 </div>
