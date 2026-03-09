@@ -982,7 +982,7 @@ const extractAdminLogDetails = (message: string): { summary: string; details: st
               </Button>
               <Button 
                 onClick={generateFeedActivity}
-                disabled={!feedGeneratorEnabled || isGenerating}
+                disabled={isGenerating || (feedGeneratorForm.selectedUsers.length === 0 && feedGeneratorForm.selectedOffers.length === 0 && feedGeneratorForm.selectedSurveyProviders.length === 0)}
                 className="min-w-[120px]"
               >
                 {isGenerating ? (
