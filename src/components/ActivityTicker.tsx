@@ -41,6 +41,8 @@ interface FeedSettings {
   feed_box_logo_height: string;
   feed_username_color: string;
   feed_points_color: string;
+  feed_username_font_size: string;
+  feed_points_font_size: string;
   feed_total_count: number;
   feed_count_offers: number;
   feed_count_surveys: number;
@@ -85,6 +87,8 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_box_logo_height: "10",
   feed_username_color: "#ffffff",
   feed_points_color: "#ffffff",
+  feed_username_font_size: "14",
+  feed_points_font_size: "18",
   feed_total_count: 20,
   feed_count_offers: 20,
   feed_count_surveys: 20,
@@ -198,6 +202,8 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_box_logo_height: getStr("feed_box_logo_height", "10"),
           feed_username_color: getStr("feed_username_color", "#ffffff"),
           feed_points_color: getStr("feed_points_color", "#ffffff"),
+          feed_username_font_size: getStr("feed_username_font_size", "14"),
+          feed_points_font_size: getStr("feed_points_font_size", "18"),
           feed_total_count: getNum("feed_total_count", 20),
           feed_count_offers: getNum("feed_count_offers", 20),
           feed_count_surveys: getNum("feed_count_surveys", 20),
@@ -354,8 +360,9 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const logoHeightPercent = parseInt(settings.feed_box_logo_height) || 10;
   const usernameColor = settings.feed_username_color || "#ffffff";
   const pointsColor = settings.feed_points_color || "#ffffff";
-  const amountFs = Math.min(fs + 4, 24);
-  const subFs = Math.max(fs - 4, 8);
+  const usernameFontSize = parseInt(settings.feed_username_font_size) || 14;
+  const pointsFontSize = parseInt(settings.feed_points_font_size) || 18;
+  const subFs = Math.max(usernameFontSize - 4, 8);
   // Calculate logo dimensions based on percentages
   const logoWidth = Math.round((w * logoWidthPercent) / 100);
   const logoHeight = Math.round((h * logoHeightPercent) / 100);
@@ -397,13 +404,13 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 )}
                 <div className="flex flex-col min-w-0 flex-1 gap-0.5 mr-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold truncate" style={{ fontSize: `${fs}px`, color: usernameColor }}>{item.username}</span>
+                    <span className="font-semibold truncate" style={{ fontSize: `${usernameFontSize}px`, color: usernameColor }}>{item.username}</span>
                     <span style={{ fontSize: `${subFs}px`, color: `${usernameColor}80` }}>• {getRelativeTime(item.created_at)}</span>
                   </div>
                   <span className="truncate" style={{ fontSize: `${subFs}px`, color: `${usernameColor}99` }}>{item.offerwallName}</span>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className="font-bold whitespace-nowrap" style={{ fontSize: `${amountFs}px`, color: pointsColor }}>{item.amount}</span>
+                  <span className="font-bold whitespace-nowrap" style={{ fontSize: `${pointsFontSize}px`, color: pointsColor }}>{item.amount}</span>
                   {item.country && (
                     <div className="flex items-center justify-end" style={{ marginTop: '2px' }}>
                       <img
