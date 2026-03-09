@@ -288,30 +288,24 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
     return `${Math.floor(h / 24)}d`;
   };
 
-  const getCountryFlag = (country: string) => {
-    if (!country) return "";
-    const countryFlags: Record<string, string> = {
-      // Full names
-      india: "🇮🇳", "united states": "🇺🇸", usa: "🇺🇸", uk: "🇬🇧", "united kingdom": "🇬🇧",
-      canada: "🇨🇦", australia: "🇦🇺", germany: "🇩🇪", france: "🇫🇷", brazil: "🇧🇷",
-      japan: "🇯🇵", china: "🇨🇳", russia: "🇷🇺", mexico: "🇲🇽", spain: "🇪🇸",
-      italy: "🇮🇹", netherlands: "🇳🇱", sweden: "🇸🇪", norway: "🇳🇴", denmark: "🇩🇰",
-      finland: "🇫🇮", poland: "🇵🇱", turkey: "🇹🇷", "south korea": "🇰🇷", indonesia: "🇮🇩",
-      philippines: "🇵🇭", thailand: "🇹🇭", vietnam: "🇻🇳", malaysia: "🇲🇾", singapore: "🇸🇬",
-      pakistan: "🇵🇰", bangladesh: "🇧🇩", "sri lanka": "🇱🇰", nepal: "🇳🇵",
-      nigeria: "🇳🇬", "south africa": "🇿🇦", egypt: "🇪🇬", kenya: "🇰🇪",
-      argentina: "🇦🇷", colombia: "🇨🇴", chile: "🇨🇱", peru: "🇵🇪",
-      "saudi arabia": "🇸🇦", uae: "🇦🇪", "united arab emirates": "🇦🇪", israel: "🇮🇱",
-      // ISO 2-letter codes
-      in: "🇮🇳", us: "🇺🇸", gb: "🇬🇧", ca: "🇨🇦", au: "🇦🇺", de: "🇩🇪", fr: "🇫🇷",
-      br: "🇧🇷", jp: "🇯🇵", cn: "🇨🇳", ru: "🇷🇺", mx: "🇲🇽", es: "🇪🇸", it: "🇮🇹",
-      nl: "🇳🇱", se: "🇸🇪", no: "🇳🇴", dk: "🇩🇰", fi: "🇫🇮", pl: "🇵🇱", tr: "🇹🇷",
-      kr: "🇰🇷", id: "🇮🇩", ph: "🇵🇭", th: "🇹🇭", vn: "🇻🇳", my: "🇲🇾", sg: "🇸🇬",
-      pk: "🇵🇰", bd: "🇧🇩", lk: "🇱🇰", np: "🇳🇵", ng: "🇳🇬", za: "🇿🇦", eg: "🇪🇬",
-      ke: "🇰🇪", ar: "🇦🇷", co: "🇨🇴", cl: "🇨🇱", pe: "🇵🇪", sa: "🇸🇦", ae: "🇦🇪",
-      il: "🇮🇱",
+  const getCountryCode = (country: string): string => {
+    if (!country) return "xx";
+    const countryToCode: Record<string, string> = {
+      india: "in", "united states": "us", usa: "us", uk: "gb", "united kingdom": "gb",
+      canada: "ca", australia: "au", germany: "de", france: "fr", brazil: "br",
+      japan: "jp", china: "cn", russia: "ru", mexico: "mx", spain: "es",
+      italy: "it", netherlands: "nl", sweden: "se", norway: "no", denmark: "dk",
+      finland: "fi", poland: "pl", turkey: "tr", "south korea": "kr", indonesia: "id",
+      philippines: "ph", thailand: "th", vietnam: "vn", malaysia: "my", singapore: "sg",
+      pakistan: "pk", bangladesh: "bd", "sri lanka": "lk", nepal: "np",
+      nigeria: "ng", "south africa": "za", egypt: "eg", kenya: "ke",
+      argentina: "ar", colombia: "co", chile: "cl", peru: "pe",
+      "saudi arabia": "sa", uae: "ae", "united arab emirates": "ae", israel: "il",
     };
-    return countryFlags[country.toLowerCase().trim()] || "🌍";
+    const lower = country.toLowerCase().trim();
+    // If it's already a 2-letter code, return it
+    if (lower.length === 2) return lower;
+    return countryToCode[lower] || "xx";
   };
 
   const scrollDuration = `${settings.feed_scroll_speed}s`;
