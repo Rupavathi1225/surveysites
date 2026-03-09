@@ -89,13 +89,6 @@ const ActivityFeedControls = () => {
   const [color2, setColor2] = useState(DEFAULT_COLOR2);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Feed Generator state
-  const [generatorEntries, setGeneratorEntries] = useState<GeneratorEntry[]>([
-    { username: "", amount: "", offerwall: "", country: "" },
-  ]);
-  const [generatorRunning, setGeneratorRunning] = useState(false);
-
   useEffect(() => { loadSettings(); }, []);
 
   const loadSettings = async () => {
