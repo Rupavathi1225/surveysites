@@ -130,6 +130,8 @@ const ActivityFeedControls = () => {
     setLogoHeightPercent(m.get(BOX_LOGO_HEIGHT_KEY) || DEFAULT_LOGO_HEIGHT);
     setUsernameColor(m.get(USERNAME_COLOR_KEY) || DEFAULT_USERNAME_COLOR);
     setPointsColor(m.get(POINTS_COLOR_KEY) || DEFAULT_POINTS_COLOR);
+    setUsernameFontSize(m.get(USERNAME_FONT_SIZE_KEY) || DEFAULT_USERNAME_FONT_SIZE);
+    setPointsFontSize(m.get(POINTS_FONT_SIZE_KEY) || DEFAULT_POINTS_FONT_SIZE);
     setTotalCount(m.get(TOTAL_COUNT_KEY) || DEFAULT_TOTAL_COUNT);
     setSpeed(parseInt(m.get(SPEED_KEY) || "") || DEFAULT_SPEED);
     setColor1(m.get(COLOR1_KEY) || DEFAULT_COLOR1);
