@@ -40,6 +40,8 @@ const SIZE_OPTIONS = [
 const SPEED_KEY = "feed_scroll_speed";
 const COLOR1_KEY = "feed_box_color1";
 const COLOR2_KEY = "feed_box_color2";
+const USERNAME_COLOR_KEY = "feed_username_color";
+const POINTS_COLOR_KEY = "feed_points_color";
 const TOTAL_COUNT_KEY = "feed_total_count";
 const BOX_SIZE_KEY = "feed_box_size";
 const BOX_WIDTH_KEY = "feed_box_width";
@@ -48,9 +50,13 @@ const BOX_PADDING_KEY = "feed_box_padding";
 const BOX_FONT_SIZE_KEY = "feed_box_font_size";
 const BOX_BORDER_RADIUS_KEY = "feed_box_border_radius";
 const BOX_LOGO_SIZE_KEY = "feed_box_logo_size";
+const BOX_LOGO_WIDTH_KEY = "feed_box_logo_width";
+const BOX_LOGO_HEIGHT_KEY = "feed_box_logo_height";
 const DEFAULT_SPEED = 120;
 const DEFAULT_COLOR1 = "#1e293b";
 const DEFAULT_COLOR2 = "#334155";
+const DEFAULT_USERNAME_COLOR = "#ffffff";
+const DEFAULT_POINTS_COLOR = "#ffffff";
 const DEFAULT_TOTAL_COUNT = "20";
 const DEFAULT_PER_TYPE_COUNT = "20";
 const DEFAULT_BOX_SIZE = "medium";
@@ -60,6 +66,8 @@ const DEFAULT_BOX_PADDING = "16";
 const DEFAULT_BOX_FONT_SIZE = "14";
 const DEFAULT_BOX_BORDER_RADIUS = "12";
 const DEFAULT_BOX_LOGO_SIZE = "44";
+const DEFAULT_LOGO_WIDTH = "40";
+const DEFAULT_LOGO_HEIGHT = "10";
 
 interface GeneratorEntry {
   username: string;
