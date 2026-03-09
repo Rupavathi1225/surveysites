@@ -553,33 +553,67 @@ const ActivityFeedControls = () => {
         </CardContent>
       </Card>
 
-      {/* Username & Points Color Control */}
+      {/* Username & Points Color & Font Size Control */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Palette className="h-5 w-5 text-primary" />
-            Text Colors
+            Text Styling
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Customize the username and points text colors</p>
+          <p className="text-xs text-muted-foreground">Customize the username and points text colors and font sizes</p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label className="text-sm text-foreground">Username Color</Label>
-              <div className="flex items-center gap-3">
-                <input type="color" value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
-                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
-                <Input value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
-                  className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-foreground">Username Color</Label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
+                    className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                  <Input value={usernameColor} onChange={(e) => setUsernameColor(e.target.value)}
+                    className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-foreground">Username Font Size</Label>
+                  <span className="text-sm font-bold text-primary">{usernameFontSize}px</span>
+                </div>
+                <Slider
+                  min={10} max={24} step={1}
+                  value={[parseInt(usernameFontSize) || 14]}
+                  onValueChange={([v]) => setUsernameFontSize(String(v))}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>10px</span><span>14px</span><span>24px</span>
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm text-foreground">Points Color</Label>
-              <div className="flex items-center gap-3">
-                <input type="color" value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
-                  className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
-                <Input value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
-                  className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm text-foreground">Points Color</Label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
+                    className="w-12 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
+                  <Input value={pointsColor} onChange={(e) => setPointsColor(e.target.value)}
+                    className="flex-1 font-mono text-sm" placeholder="#ffffff" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-foreground">Points Font Size</Label>
+                  <span className="text-sm font-bold text-primary">{pointsFontSize}px</span>
+                </div>
+                <Slider
+                  min={12} max={32} step={1}
+                  value={[parseInt(pointsFontSize) || 18]}
+                  onValueChange={([v]) => setPointsFontSize(String(v))}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>12px</span><span>18px</span><span>32px</span>
+                </div>
               </div>
             </div>
           </div>
@@ -588,10 +622,10 @@ const ActivityFeedControls = () => {
             <div className="rounded-xl px-4 py-3 border border-foreground/5 flex items-center gap-3"
               style={{ background: `linear-gradient(135deg, ${color1}, ${color2})` }}>
               <div className="flex flex-col gap-0.5 flex-1">
-                <span className="text-sm font-semibold" style={{ color: usernameColor }}>SampleUser</span>
-                <span className="text-xs" style={{ color: `${usernameColor}99` }}>PrimeWall</span>
+                <span className="font-semibold" style={{ color: usernameColor, fontSize: `${usernameFontSize}px` }}>SampleUser</span>
+                <span style={{ color: `${usernameColor}99`, fontSize: `${Math.max(parseInt(usernameFontSize) - 4, 8)}px` }}>PrimeWall</span>
               </div>
-              <span className="text-lg font-bold" style={{ color: pointsColor }}>150 pts</span>
+              <span className="font-bold" style={{ color: pointsColor, fontSize: `${pointsFontSize}px` }}>150 pts</span>
             </div>
           </div>
           <div className="mt-4 flex justify-end">
@@ -600,11 +634,13 @@ const ActivityFeedControls = () => {
               await upsertSettings([
                 { key: USERNAME_COLOR_KEY, value: usernameColor },
                 { key: POINTS_COLOR_KEY, value: pointsColor },
+                { key: USERNAME_FONT_SIZE_KEY, value: usernameFontSize },
+                { key: POINTS_FONT_SIZE_KEY, value: pointsFontSize },
               ]);
               setSaving(false);
-              toast.success("Text colors applied!");
+              toast.success("Text styling applied!");
             }}>
-              <Palette className="h-4 w-4 mr-1" /> Apply Text Colors
+              <Palette className="h-4 w-4 mr-1" /> Apply Text Styling
             </Button>
           </div>
         </CardContent>
