@@ -77,12 +77,12 @@ const DEFAULT_SETTINGS: FeedSettings = {
   feed_box_color1: "#1e293b",
   feed_box_color2: "#334155",
   feed_box_size: "medium",
-  feed_box_width: "360",
-  feed_box_height: "90",
+  feed_box_width: "340",
+  feed_box_height: "100",
   feed_box_padding: "16",
   feed_box_font_size: "14",
   feed_box_border_radius: "10",
-  feed_box_logo_size: "44",
+  feed_box_logo_size: "40",
   feed_box_logo_width: "40",
   feed_box_logo_height: "40",
   feed_username_color: "#ffffff",
@@ -199,12 +199,12 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           feed_box_color1: getStr("feed_box_color1", DEFAULT_SETTINGS.feed_box_color1),
           feed_box_color2: getStr("feed_box_color2", DEFAULT_SETTINGS.feed_box_color2),
           feed_box_size: getStr("feed_box_size", "medium"),
-          feed_box_width: getStr("feed_box_width", "360"),
-          feed_box_height: getStr("feed_box_height", "90"),
+          feed_box_width: getStr("feed_box_width", "340"),
+          feed_box_height: getStr("feed_box_height", "100"),
           feed_box_padding: getStr("feed_box_padding", "16"),
           feed_box_font_size: getStr("feed_box_font_size", "14"),
           feed_box_border_radius: getStr("feed_box_border_radius", "10"),
-          feed_box_logo_size: getStr("feed_box_logo_size", "44"),
+          feed_box_logo_size: getStr("feed_box_logo_size", "40"),
           feed_box_logo_width: getStr("feed_box_logo_width", "40"),
           feed_box_logo_height: getStr("feed_box_logo_height", "40"),
           feed_username_color: getStr("feed_username_color", "#ffffff"),
@@ -302,10 +302,10 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
       setItems(sliced);
       itemsRef.current = sliced;
       
-      // Initialize display items with first 3 items
+      // Initialize display items with first 5 items
       if (sliced.length > 0) {
         const initialItems = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 5; i++) {
           initialItems.push(sliced[i % sliced.length]);
         }
         setDisplayItems(initialItems);
@@ -354,7 +354,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
         
         // Create new display items starting from nextIndex
         const nextDisplayItems = [];
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 5; i++) {
           const idx = (nextIndex + i) % items.length;
           nextDisplayItems.push(items[idx]);
         }
@@ -452,11 +452,11 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
     return countryToCode[lower] || "xx";
   };
 
-  const w = parseInt(settings.feed_box_width) || 360;
-  const h = parseInt(settings.feed_box_height) || 90;
+  const w = parseInt(settings.feed_box_width) || 340;
+  const h = parseInt(settings.feed_box_height) || 100;
   const pad = parseInt(settings.feed_box_padding) || 16;
   const br = parseInt(settings.feed_box_border_radius) || 10;
-  const logoSize = parseInt(settings.feed_box_logo_size) || 44;
+  const logoSize = parseInt(settings.feed_box_logo_size) || 40;
   const usernameColor = settings.feed_username_color || "#ffffff";
   const pointsColor = settings.feed_points_color || "#fbbf24";
   const usernameFontSize = parseInt(settings.feed_username_font_size) || 14;
@@ -487,90 +487,78 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
             willChange: 'transform'
           }}
         >
-          {displayItems.map((item, index) => (
-            <div
-              key={`${item.id}-${index}`}
-              className="inline-flex items-center shrink-0 border border-foreground/5 shadow-sm hover:shadow-md transition-shadow"
-              style={{
-                background: boxGradient,
-                width: `${w}px`,
-                height: `${h}px`,
-                padding: `${pad}px`,
-                borderRadius: `${br}px`,
-              }}
-            >
-              {item.offerwallLogo ? (
-                <img 
-                  src={item.offerwallLogo} 
-                  alt={item.offerwallName}
-                  className="object-contain shrink-0 mr-3 rounded"
-                  style={{ width: `${logoSize}px`, height: `${logoSize}px` }} 
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              ) : (
-                <div 
-                  className="shrink-0 mr-3 rounded bg-white/10 flex items-center justify-center"
-                  style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
-                >
-                  <span className="text-lg text-white/50">💰</span>
-                </div>
-              )}
-              
-              <div className="flex flex-col min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 w-full">
-                  <span 
-                    className="font-medium" 
-                    style={{ 
-                      fontSize: `${usernameFontSize}px`, 
-                      color: usernameColor,
-                      whiteSpace: 'nowrap'
-                    }}
-                    title={item.username}
+          {displayItems.map((item, index) => {
+            // Calculate time only for bottom placement
+            const timeString = getRelativeTime(item.created_at);
+            
+            return (
+              <div
+                key={`${item.id}-${index}`}
+                className="inline-flex items-center shrink-0 border border-foreground/5 shadow-sm hover:shadow-md transition-shadow"
+                style={{
+                  background: boxGradient,
+                  width: `${w}px`,
+                  height: `${h}px`,
+                  padding: `${pad}px`,
+                  borderRadius: `${br}px`,
+                }}
+              >
+                {/* Logo/Icon on the left */}
+                {item.offerwallLogo ? (
+                  <img 
+                    src={item.offerwallLogo} 
+                    alt={item.offerwallName}
+                    className="object-contain shrink-0 mr-3 rounded"
+                    style={{ width: `${logoSize}px`, height: `${logoSize}px` }} 
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div 
+                    className="shrink-0 mr-3 rounded bg-white/10 flex items-center justify-center"
+                    style={{ width: `${logoSize}px`, height: `${logoSize}px` }}
                   >
-                    {item.username}
-                  </span>
-                  <span 
-                    className="shrink-0 opacity-70" 
-                    style={{ fontSize: `${subFs}px`, color: usernameColor }}
-                  >
-                    • {getRelativeTime(item.created_at)}
-                  </span>
-                </div>
-                
-                <span 
-                  className="opacity-80 mt-0.5" 
-                  style={{ 
-                    fontSize: `${subFs}px`, 
-                    color: usernameColor,
-                    whiteSpace: 'nowrap'
-                  }}
-                  title={item.offerwallName}
-                >
-                  {item.offerwallName}
-                </span>
-              </div>
-              
-              <div className="shrink-0 text-right ml-2 flex flex-col items-end">
-                <span 
-                  className="font-bold whitespace-nowrap" 
-                  style={{ fontSize: `${pointsFontSize}px`, color: pointsColor }}
-                >
-                  {item.amount}
-                </span>
-                {item.country && (
-                  <div className="flex items-center justify-end mt-0.5">
-                    <img
-                      src={`https://flagcdn.com/20x15/${getCountryCode(item.country)}.png`}
-                      alt={item.country}
-                      className="inline-block object-contain rounded-sm"
-                      style={{ width: '18px', height: '12px' }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
+                    <span className="text-lg text-white/50">💰</span>
                   </div>
                 )}
+                
+                {/* Main Content Area - 3 lines stacked vertically */}
+                <div className="flex flex-col min-w-0 flex-1">
+                  {/* Line 1: Username only - NO TIME HERE */}
+                  <div className="font-medium truncate" style={{ fontSize: `${usernameFontSize}px`, color: usernameColor }}>
+                    {item.username}
+                  </div>
+                  
+                  {/* Line 2: Offerwall name */}
+                  <div className="opacity-80 truncate mt-1" style={{ fontSize: `${subFs}px`, color: usernameColor }}>
+                    {item.offerwallName}
+                  </div>
+                  
+                  {/* Line 3: Time and Country flag together - TIME ONLY HERE */}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="opacity-60 text-xs" style={{ color: usernameColor }}>
+                      {timeString}
+                    </span>
+                    {item.country && (
+                      <img
+                        src={`https://flagcdn.com/20x15/${getCountryCode(item.country)}.png`}
+                        alt={item.country}
+                        className="inline-block object-contain rounded-sm"
+                        style={{ width: '16px', height: '12px' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Points on the right - vertically centered */}
+                <div className="shrink-0 text-right ml-2">
+                  <span className="font-bold whitespace-nowrap" style={{ fontSize: `${pointsFontSize}px`, color: pointsColor }}>
+                    {item.amount}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

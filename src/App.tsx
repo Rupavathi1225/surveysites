@@ -11,6 +11,7 @@ import DashboardHome from "./pages/dashboard/DashboardHome";
 import BalanceHistory from "./pages/dashboard/BalanceHistory";
 import UpdateAccount from "./pages/dashboard/UpdateAccount";
 import Inbox from "./pages/dashboard/Inbox";
+import UserChat from "./pages/dashboard/UserChat";
 import Affiliates from "./pages/dashboard/Affiliates";
 import Withdrawal from "./pages/dashboard/Withdrawal";
 import ConvertPoints from "./pages/dashboard/ConvertPoints";
@@ -42,6 +43,10 @@ import AdminOffers from "./pages/admin/AdminOffers";
 import ApiImport from "./pages/admin/ApiImport";
 import UserGeneration from "./pages/admin/UserGeneration";
 import AdminChats from "./pages/admin/AdminChats";
+import AdminInbox from "./pages/admin/AdminInbox";
+import EnhancedAdminInbox from "./pages/admin/EnhancedAdminInbox";
+import AdminConversationInbox from "./pages/admin/AdminConversationInbox";
+import AdminMessageCreate from "./pages/admin/messages/create";
 import AdminClickTracking from "./pages/admin/AdminClickTracking";
 import DownwardPartners from "./pages/admin/DownwardPartners";
 import PostbackLogs from "./pages/admin/PostbackLogs";
@@ -87,6 +92,7 @@ const App = () => (
           <Route path="/dashboard/balance-history" element={<DashboardPage><BalanceHistory /></DashboardPage>} />
           <Route path="/dashboard/update-account" element={<DashboardPage><UpdateAccount /></DashboardPage>} />
           <Route path="/dashboard/inbox" element={<DashboardPage><Inbox /></DashboardPage>} />
+          <Route path="/dashboard/chat" element={<DashboardPage><UserChat /></DashboardPage>} />
           <Route path="/dashboard/affiliates" element={<DashboardPage><Affiliates /></DashboardPage>} />
           <Route path="/dashboard/withdrawal" element={<DashboardPage><Withdrawal /></DashboardPage>} />
           <Route path="/dashboard/convert-points" element={<DashboardPage><ConvertPoints /></DashboardPage>} />
@@ -121,6 +127,9 @@ const App = () => (
           <Route path="/admin/offers" element={<AdminPage><AdminOffers /></AdminPage>} />
           <Route path="/admin/api-import" element={<AdminPage><ApiImport /></AdminPage>} />
           <Route path="/admin/chats" element={<AdminPage><AdminChats /></AdminPage>} />
+          <Route path="/admin/inbox" element={<AdminPage><EnhancedAdminInbox /></AdminPage>} />
+          <Route path="/admin/messages/create" element={<AdminPage><AdminMessageCreate /></AdminPage>} />
+          <Route path="/admin/conversations" element={<AdminPage><AdminConversationInbox /></AdminPage>} />
           <Route path="/admin/click-tracking" element={<AdminPage><AdminClickTracking /></AdminPage>} />
           <Route path="/admin/downward-partners" element={<AdminPage><DownwardPartners /></AdminPage>} />
           <Route path="/admin/postback-logs" element={<AdminPage><PostbackLogs /></AdminPage>} />

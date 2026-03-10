@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import MessagePopup from "@/components/MessagePopup";
 
 interface NavGroup {
   label: string;
@@ -65,6 +66,7 @@ const navGroups: NavGroup[] = [
     icon: MessageSquare,
     items: [
       { to: "/dashboard/inbox", icon: Mail, label: "Inbox" },
+      { to: "/dashboard/chat", icon: MessageSquare, label: "Live Chat" },
       { to: "/dashboard/news", icon: Newspaper, label: "News" },
       { to: "/dashboard/support", icon: Headphones, label: "Support Ticket" },
     ],
@@ -162,15 +164,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Sidebar - NO gap when closed */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-40 w-56 bg-sidebar border-r border-sidebar-border transform transition-all duration-300 overflow-y-auto",
+        "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-sidebar border-r border-sidebar-border transform transition-all duration-300 overflow-y-auto",
         sidebarOpen ? "translate-x-0" : "-translate-x-full",
         sidebarClosed ? "lg:-translate-x-full lg:w-0 lg:border-0" : "lg:translate-x-0"
       )}>
         <div className="p-4 pb-2">
           <div className="flex items-center justify-between">
             <Link to="/dashboard" className="flex items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              <span className="text-sm font-bold text-primary">SurveyForever</span>
+              <Globe className="h-10 w-10 text-primary" />
+              <span className="text-xl font-bold text-primary">SurveyForever</span>
             </Link>
             <button onClick={closeSidebar} className="p-1 rounded-md hover:bg-accent/50 transition-colors" title="Close Sidebar">
               <X className="h-4 w-4" />
@@ -347,6 +349,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </DialogContent>
       </Dialog>
+      <MessagePopup userRole="user" />
     </div>
   );
 }

@@ -271,6 +271,25 @@
   100% { transform: translateX(-50%); }
 }
 
+@keyframes slideRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  5% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  95% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
 .animate-ticker {
   animation: ticker-scroll 120s linear infinite;
 }

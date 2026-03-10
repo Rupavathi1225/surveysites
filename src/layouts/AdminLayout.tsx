@@ -4,8 +4,9 @@ import {
   LayoutDashboard, BarChart3, Link2, FileText, Trophy, History,
   Wallet, Users, FileStack, CreditCard, Lock, UserCog, Settings,
   ShieldCheck, Bell, Activity, LogOut, Home, ChevronDown, MessageSquare,
-  UserPlus, Gift, Newspaper, Tag, Package, Download
+  UserPlus, Gift, Newspaper, Tag, Package, Download, Mail
 } from "lucide-react";
+import MessagePopup from "@/components/MessagePopup";
 
 interface DropdownGroup {
   label: string;
@@ -41,11 +42,14 @@ const dropdownGroups: DropdownGroup[] = [
       { to: "/admin/login-logs", icon: Activity, label: "Login Logs" },
       { to: "/admin/notifications", icon: Bell, label: "Notifications" },
       { to: "/admin/chats", icon: MessageSquare, label: "Chats" },
+      { to: "/admin/inbox", icon: Mail, label: "Inbox" },
+      { to: "/admin/conversations", icon: Users, label: "User Conversations" },
       { to: "/admin/click-tracking", icon: Activity, label: "Click Tracking" },
       { to: "/admin/postback-logs", icon: Activity, label: "Postback Logs" },
       { to: "/admin/test-postback", icon: Activity, label: "Test Postback" },
       { to: "/admin/downward-partners", icon: Activity, label: "Downward Partners" },
       { to: "/admin/sub-admins", icon: ShieldCheck, label: "Subadmins" },
+      { to: "/admin/activity-feed", icon: Activity, label: "Activity Feed" },
     ],
   },
   {
@@ -166,6 +170,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="p-6 animate-fade-in">{children}</main>
+      <MessagePopup userRole="admin" />
     </div>
   );
 }

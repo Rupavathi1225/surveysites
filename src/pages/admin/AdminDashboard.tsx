@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ActivityTicker from "@/components/ActivityTicker";
+import MessagePopup from "@/components/MessagePopup";
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -455,6 +456,9 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Message Popup for Admin Notifications */}
+      <MessagePopup userRole="admin" />
     </div>
   );
 };
