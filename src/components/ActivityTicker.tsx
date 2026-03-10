@@ -464,6 +464,12 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
   const subFs = usernameFontSize - 2;
   const boxGradient = `linear-gradient(135deg, ${settings.feed_box_color1}, ${settings.feed_box_color2})`;
 
+  // Calculate available width for username after accounting for other elements
+  const logoWidth = logoSize + 12; // logo + margin
+  const pointsWidth = 70; // Approximate width for points and time
+  const flagWidth = 20; // Width for flag
+  const availableWidthForText = w - (pad * 2) - logoWidth - pointsWidth - flagWidth - 20; // 20px buffer
+
   return (
     <div className="w-full overflow-hidden bg-card/60 border border-border rounded-lg py-3 px-4">
       <div className="flex items-center gap-2 mb-3">
@@ -516,33 +522,25 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 </div>
               )}
               
-              <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex flex-col flex-1 min-w-0" style={{ maxWidth: `${availableWidthForText}px` }}>
                 <div className="flex items-center gap-1.5 w-full">
                   <span 
-                    className="font-medium" 
+                    className="font-medium whitespace-nowrap" 
                     style={{ 
                       fontSize: `${usernameFontSize}px`, 
                       color: usernameColor,
-                      whiteSpace: 'nowrap'
                     }}
                     title={item.username}
                   >
                     {item.username}
                   </span>
-                  <span 
-                    className="shrink-0 opacity-70" 
-                    style={{ fontSize: `${subFs}px`, color: usernameColor }}
-                  >
-                    • {getRelativeTime(item.created_at)}
-                  </span>
                 </div>
                 
                 <span 
-                  className="opacity-80 mt-0.5" 
+                  className="opacity-80 mt-0.5 whitespace-nowrap" 
                   style={{ 
                     fontSize: `${subFs}px`, 
                     color: usernameColor,
-                    whiteSpace: 'nowrap'
                   }}
                   title={item.offerwallName}
                 >
@@ -550,15 +548,15 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 </span>
               </div>
               
-              <div className="shrink-0 text-right ml-2 flex flex-col items-end">
+              <div className="shrink-0 text-right ml-auto flex flex-col items-end">
                 <span 
                   className="font-bold whitespace-nowrap" 
                   style={{ fontSize: `${pointsFontSize}px`, color: pointsColor }}
                 >
                   {item.amount}
                 </span>
-                {item.country && (
-                  <div className="flex items-center justify-end mt-0.5">
+                <div className="flex items-center justify-end mt-0.5 gap-1">
+                  {item.country && (
                     <img
                       src={`https://flagcdn.com/20x15/${getCountryCode(item.country)}.png`}
                       alt={item.country}
@@ -566,8 +564,14 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                       style={{ width: '18px', height: '12px' }}
                       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
-                  </div>
-                )}
+                  )}
+                  <span 
+                    className="shrink-0 opacity-70 whitespace-nowrap" 
+                    style={{ fontSize: `${subFs}px`, color: usernameColor }}
+                  >
+                    {getRelativeTime(item.created_at)}
+                  </span>
+                </div>
               </div>
             </div>
           ))}

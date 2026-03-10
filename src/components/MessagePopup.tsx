@@ -245,61 +245,67 @@ const MessagePopup = ({ userRole }: MessagePopupProps) => {
   }
 
   return (
-    <div className="fixed top-4 right-4 z-50 max-w-sm">
-      <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-2xl border-0">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Bell className="h-6 w-6 animate-pulse" />
-                <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center p-0">
-                  {unreadCount}
-                </Badge>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+      <div className="relative z-50 max-w-md w-full mx-4">
+        <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-2xl border-0 transform transition-all duration-300 scale-100 animate-in">
+          <CardContent className="p-8">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Bell className="h-8 w-8 animate-pulse" />
+                  <Badge className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center p-0">
+                    {unreadCount}
+                  </Badge>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">New Messages</h3>
+                  <p className="text-sm opacity-90">
+                    You have {unreadCount} unread {unreadCount === 1 ? 'message' : 'messages'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">New Messages</h3>
-                <p className="text-sm opacity-90">
-                  You have {unreadCount} unread {unreadCount === 1 ? 'message' : 'messages'}
-                </p>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClose}
+                className="text-white hover:bg-white/20 p-1 h-8 w-8 rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="text-white hover:bg-white/20 p-1 h-6 w-6"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
 
-          <div className="space-y-2">
-            <div className="bg-white/10 rounded p-3 mb-3">
-              <p className="text-sm font-medium">You have received a new message!</p>
-              <p className="text-xs opacity-75 mt-1">Click below to view your messages</p>
+            <div className="space-y-6">
+              <div className="bg-white/10 rounded-lg p-5 mb-6">
+                <p className="text-base font-medium mb-3">You have received a new message!</p>
+                <p className="text-sm opacity-75">Click below to view your messages</p>
+              </div>
+              
+              <div className="text-sm opacity-75 flex items-center gap-2 mb-6">
+                <ExternalLink className="h-4 w-4" />
+                Auto-redirecting in 3 seconds...
+              </div>
+              
+              <div className="flex flex-col gap-4">
+                <Button
+                  onClick={handleViewMessages}
+                  className="w-full bg-white text-blue-600 hover:bg-gray-100 font-medium py-4 text-base"
+                >
+                  <Mail className="h-5 w-5 mr-2" />
+                  View Messages
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="w-full border-white text-white hover:bg-white/20 py-4 text-base"
+                >
+                  Dismiss
+                </Button>
+              </div>
             </div>
-            
-            <div className="text-xs opacity-75 flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" />
-              Auto-redirecting in 3 seconds...
-            </div>
-            <Button
-              onClick={handleViewMessages}
-              className="w-full bg-white text-blue-600 hover:bg-gray-100 font-medium"
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              View Messages
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              className="w-full border-white text-white hover:bg-white/20"
-            >
-              Dismiss
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
