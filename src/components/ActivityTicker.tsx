@@ -496,7 +496,7 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
           {displayItems.map((item, index) => (
             <div
               key={`${item.id}-${index}`}
-              className="inline-flex items-center shrink-0 border border-foreground/5 shadow-sm hover:shadow-md transition-shadow"
+              className="inline-flex items-center shrink-0 border border-foreground/5 shadow-sm hover:shadow-md transition-shadow relative"
               style={{
                 background: boxGradient,
                 width: `${w}px`,
@@ -522,13 +522,15 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                 </div>
               )}
               
-              <div className="flex flex-col flex-1 min-w-0" style={{ maxWidth: `${availableWidthForText}px` }}>
+              <div className="flex flex-col min-w-0 flex-1" style={{ minHeight: '40px' }}>
                 <div className="flex items-center gap-1.5 w-full">
                   <span 
-                    className="font-medium whitespace-nowrap" 
+                    className="font-medium truncate" 
                     style={{ 
                       fontSize: `${usernameFontSize}px`, 
                       color: usernameColor,
+                      lineHeight: '1.2',
+                      maxWidth: '120px'
                     }}
                     title={item.username}
                   >
@@ -536,42 +538,47 @@ const ActivityTicker = ({ userId }: { userId?: string }) => {
                   </span>
                 </div>
                 
-                <span 
-                  className="opacity-80 mt-0.5 whitespace-nowrap" 
-                  style={{ 
-                    fontSize: `${subFs}px`, 
-                    color: usernameColor,
-                  }}
-                  title={item.offerwallName}
-                >
-                  {item.offerwallName}
-                </span>
+                <div className="mt-0.5">
+                  <span 
+                    className="opacity-80" 
+                    style={{ 
+                      fontSize: `${subFs}px`, 
+                      color: usernameColor,
+                      whiteSpace: 'nowrap',
+                      lineHeight: '1.2'
+                    }}
+                    title={item.offerwallName}
+                  >
+                    {item.offerwallName}
+                  </span>
+                </div>
               </div>
               
-              <div className="shrink-0 text-right ml-auto flex flex-col items-end">
+              <div className="absolute top-2 right-2 flex flex-col items-end">
                 <span 
-                  className="font-bold whitespace-nowrap" 
+                  className="font-bold shrink-0" 
                   style={{ fontSize: `${pointsFontSize}px`, color: pointsColor }}
                 >
                   {item.amount}
                 </span>
-                <div className="flex items-center justify-end mt-0.5 gap-1">
-                  {item.country && (
-                    <img
-                      src={`https://flagcdn.com/20x15/${getCountryCode(item.country)}.png`}
-                      alt={item.country}
-                      className="inline-block object-contain rounded-sm"
-                      style={{ width: '18px', height: '12px' }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  )}
-                  <span 
-                    className="shrink-0 opacity-70 whitespace-nowrap" 
-                    style={{ fontSize: `${subFs}px`, color: usernameColor }}
-                  >
-                    {getRelativeTime(item.created_at)}
-                  </span>
-                </div>
+              </div>
+              
+              <div className="absolute bottom-2 right-2 flex items-center justify-end gap-1">
+                {item.country && (
+                  <img
+                    src={`https://flagcdn.com/20x15/${getCountryCode(item.country)}.png`}
+                    alt={item.country}
+                    className="inline-block object-contain rounded-sm"
+                    style={{ width: '18px', height: '12px' }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                )}
+                <span 
+                  className="shrink-0 opacity-70" 
+                  style={{ fontSize: `${subFs}px`, color: usernameColor }}
+                >
+                  {getRelativeTime(item.created_at)}
+                </span>
               </div>
             </div>
           ))}
