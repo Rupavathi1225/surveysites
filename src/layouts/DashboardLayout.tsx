@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
-  LogOut, Shield, Globe, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus, Copy, PanelLeftClose,
+  LogOut, Shield, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus, Copy, PanelLeftClose,
   TrendingUp, Network, MessageSquare, Headphones
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -171,7 +171,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="p-4 pb-2">
           <div className="flex items-center justify-between">
             <Link to="/dashboard" className="flex items-center gap-2">
-              <Globe className="h-10 w-10 text-primary" />
+              <img src="/logo-icon.png" className="h-10 w-10 object-contain" alt="SurveyForever Logo" />
               <span className="text-xl font-bold text-primary">SurveyForever</span>
             </Link>
             <button onClick={closeSidebar} className="p-1 rounded-md hover:bg-accent/50 transition-colors" title="Close Sidebar">
@@ -282,7 +282,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Main content - NO margin when sidebar closed */}
       <main className={cn(
-        "flex-1 overflow-auto transition-all duration-300",
+        "flex-1 overflow-auto transition-all duration-300 flex flex-col min-h-screen",
         sidebarClosed ? "lg:ml-0" : ""
       )}>
         <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-2 flex items-center gap-2 overflow-x-auto">
@@ -328,9 +328,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
           </div>
         </header>
-        <div className="p-4 md:p-6 animate-fade-in">
+        <div className="p-4 md:p-6 animate-fade-in flex-1">
           {children}
         </div>
+        <footer className="border-t border-border py-4 px-6 bg-card/20 flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto">
+          <div className="flex items-center gap-2">
+            <img src="/logo-icon.png" className="h-6 w-6 object-contain" alt="SurveyForever Logo" />
+            <span className="text-xs font-semibold text-primary">SurveyForever</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">© {new Date().getFullYear()} SurveyForever. All rights reserved.</p>
+          <div className="flex gap-3 text-[10px] text-muted-foreground">
+            <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">Privacy Policy</Link>
+          </div>
+        </footer>
       </main>
 
       {/* Auth Prompt Dialog */}

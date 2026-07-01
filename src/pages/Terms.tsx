@@ -1,4 +1,3 @@
-import { Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -6,7 +5,7 @@ const Terms = () => (
   <div className="min-h-screen bg-background">
     <header className="sticky top-0 z-20 bg-card border-b border-border px-6 py-3 flex items-center justify-between">
       <Link to="/auth" className="flex items-center gap-2">
-        <Globe className="h-5 w-5 text-primary" />
+        <img src="/logo-icon.png" className="h-5 w-5 object-contain" alt="SurveyForever Logo" />
         <span className="text-base font-bold text-primary">SurveyForever</span>
       </Link>
       <Link to="/auth">

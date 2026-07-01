@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { LogIn, UserPlus, Mail, Lock, User, Globe, X } from "lucide-react";
+import { LogIn, UserPlus, Mail, Lock, User, X } from "lucide-react";
 import AuthBackgroundDashboard from "@/components/AuthBackgroundDashboard";
 
 const Auth = () => {
@@ -122,7 +122,7 @@ const Auth = () => {
     <div>
       <div className="text-center mb-4">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Globe className="h-7 w-7 text-primary" />
+          <img src="/logo-icon.png" className="h-8 w-8 object-contain" alt="SurveyForever Logo" />
           <span className="text-xl font-bold text-primary">SurveyForever</span>
         </div>
         <h2 className="text-lg font-semibold">{isLogin ? "Welcome Back" : "Create Account"}</h2>
