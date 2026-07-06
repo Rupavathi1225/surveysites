@@ -205,7 +205,7 @@ const Landing = () => {
                 <div className="h-10 w-10 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-bold text-sm">JL</div>
                 <div>
                   <p className="font-semibold text-sm leading-tight text-gray-900">Jessica L.</p>
-                  <p className="text-xs text-gray-500">Member since 2025 · Florida</p>
+                  <p className="text-xs text-gray-500">Paid Surveys · Florida</p>
                 </div>
               </div>
               <span className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold px-2.5 py-1">+$180/mo</span>
@@ -257,7 +257,7 @@ const Landing = () => {
           <div className="text-center max-w-2xl mx-auto mb-14">
             <p className="text-xs font-bold tracking-widest text-primary uppercase mb-3">Simple Process</p>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Three steps to your first payout</h2>
-            <p className="mt-4 text-sm text-gray-600 leading-relaxed">No resumes, no complicated setup — just sign up, share feedback, and cash out.</p>
+            <p className="mt-4 text-sm text-gray-600 leading-relaxed">No resumes, no interviews — just share your opinion and get rewarded.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step) => (
