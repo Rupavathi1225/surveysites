@@ -10,7 +10,7 @@
 
   :root {
 
-    /* New Professional Color Scheme */
+    /* New Professional Color Scheme (SurveyMonkey inspired Green) */
 
     --background: 215 28% 17%;
 
@@ -30,13 +30,13 @@
 
 
 
-    --primary: 262 83% 58%;
+    --primary: 155 100% 35%; /* SurveyMonkey brand green */
 
     --primary-foreground: 0 0% 100%;
 
 
 
-    --secondary: 217 71% 53%;
+    --secondary: 155 45% 20%; /* Darker forest green */
 
     --secondary-foreground: 0 0% 100%;
 
@@ -64,11 +64,11 @@
 
     --input: 215 28% 25%;
 
-    --ring: 262 83% 58%;
+    --ring: 155 100% 35%;
 
 
 
-    --radius: 0.75rem;
+    --radius: 0.5rem; /* Shaper, more professional corners */
 
 
 
@@ -76,7 +76,7 @@
 
     --sidebar-foreground: 0 0% 100%;
 
-    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary: 155 100% 35%;
 
     --sidebar-primary-foreground: 0 0% 100%;
 
@@ -86,11 +86,11 @@
 
     --sidebar-border: 215 28% 25%;
 
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-ring: 155 100% 35%;
 
 
 
-    --success: 160 84% 39%;
+    --success: 155 100% 35%;
 
     --success-foreground: 0 0% 100%;
 
@@ -122,7 +122,7 @@
 
     @apply bg-background text-foreground;
 
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
 
   }
 

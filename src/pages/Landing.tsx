@@ -131,31 +131,31 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gray-100/80 backdrop-blur-md border-b border-gray-200/50">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo-icon.png" className="h-8 w-8 object-contain" alt="SurveyForever Logo" />
-            <span className="text-lg font-bold">
+            <span className="text-lg font-bold tracking-tight">
               <span className="text-gray-900">Survey</span>
-              <span className="text-primary">Forever</span>
+              <span className="text-primary font-extrabold">Forever</span>
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-            <a href="#features" className="hover:text-gray-900 transition-colors">Features</a>
-            <a href="#how" className="hover:text-gray-900 transition-colors">How It Works</a>
-            <a href="#faq" className="hover:text-gray-900 transition-colors">FAQ</a>
-            <Link to="/terms" className="hover:text-gray-900 transition-colors">Terms</Link>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-gray-600">
+            <a href="#features" className="hover:text-primary transition-colors">Features</a>
+            <a href="#how" className="hover:text-primary transition-colors">How It Works</a>
+            <a href="#faq" className="hover:text-primary transition-colors">FAQ</a>
+            <Link to="/terms" className="hover:text-primary transition-colors">Terms</Link>
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Link to="/auth">
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-gray-900 hover:bg-gray-200/50 hover:text-gray-900">
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded font-semibold">
                 Sign In
               </Button>
             </Link>
             <Link to="/auth">
-              <Button size="sm" className="gap-1">
+              <Button size="sm" className="gap-1 rounded bg-primary hover:bg-primary/95 text-white font-semibold px-4">
                 Get Started <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -164,51 +164,51 @@ const Landing = () => {
       </header>
 
       {/* Hero */}
-      <section className="relative">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative bg-white pt-12 pb-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-12 grid lg:grid-cols-2 gap-12 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary mb-6">
-              <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+            <div className="inline-flex items-center gap-2 border border-emerald-200/80 bg-emerald-50/60 px-3 py-1 rounded text-xs font-semibold text-emerald-800 mb-6">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#00b368] animate-pulse" />
               1,000+ Paid Surveys & Offers — Updated Daily
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight text-gray-900">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight text-gray-900">
               Get Paid for{" "}
-              <span className="text-gradient">Surveys,</span> App Testing & Rewards.
+              <span className="text-primary font-black">Surveys</span>, App Testing & Rewards.
             </h1>
-            <p className="mt-6 text-lg text-gray-600 max-w-xl">
+            <p className="mt-6 text-base text-gray-600 max-w-xl leading-relaxed">
               Share your opinion, test apps, and complete simple offers to earn real cash
               and gift cards from home. 100% free to join — no experience needed.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link to="/auth">
-                <Button size="lg" className="w-full sm:w-auto gap-2">
+                <Button size="lg" className="w-full sm:w-auto gap-2 rounded bg-primary hover:bg-primary/95 text-white px-8 font-semibold">
                   Start Earning <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <a href="#how">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-white text-gray-900 border-gray-300 hover:bg-gray-50 hover:text-gray-900">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900 rounded px-8 font-semibold">
                   See How It Works
                 </Button>
               </a>
             </div>
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-gray-600">
-              <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-success" /> Safe & Secure</span>
-              <span className="flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-success" /> 100% Free</span>
-              <span className="flex items-center gap-1.5"><Zap className="h-4 w-4 text-warning" /> Instant Access</span>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-gray-500">
+              <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-primary" /> Safe & Secure</span>
+              <span className="flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-primary" /> 100% Free</span>
+              <span className="flex items-center gap-1.5"><Zap className="h-4 w-4 text-amber-500" /> Instant Access</span>
             </div>
           </div>
 
           {/* Hero card */}
-          <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-200/60">
-            <div className="flex items-center justify-between mb-5">
+          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-md">
+            <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground font-bold">JL</div>
+                <div className="h-10 w-10 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-bold text-sm">JL</div>
                 <div>
-                  <p className="font-semibold leading-tight text-gray-900">Jessica L.</p>
-                  <p className="text-xs text-gray-500">Paid Surveys · Florida</p>
+                  <p className="font-semibold text-sm leading-tight text-gray-900">Jessica L.</p>
+                  <p className="text-xs text-gray-500">Member since 2025 · Florida</p>
                 </div>
               </div>
-              <span className="rounded-full bg-success/15 text-success text-sm font-semibold px-3 py-1">+$180/mo</span>
+              <span className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold px-2.5 py-1">+$180/mo</span>
             </div>
             <div className="space-y-3">
               {[
@@ -216,22 +216,22 @@ const Landing = () => {
                 { icon: Smartphone, t: "App Testing", s: "10–15 min each", v: "$5–$15/test" },
                 { icon: Gift, t: "Gift Card Offers", s: "Free to enter", v: "Win $50–$500" },
               ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between rounded-xl border border-gray-200/60 bg-gray-50/50 p-3">
+                <div key={i} className="flex items-center justify-between rounded border border-gray-100 bg-gray-50/50 p-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="h-8 w-8 rounded bg-emerald-50 text-emerald-700 flex items-center justify-center">
                       <item.icon className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium leading-tight text-gray-900">{item.t}</p>
-                      <p className="text-xs text-gray-500">{item.s}</p>
+                      <p className="text-xs font-semibold leading-tight text-gray-900">{item.t}</p>
+                      <p className="text-[10px] text-gray-500">{item.s}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-primary">{item.v}</span>
+                  <span className="text-xs font-bold text-[#00b368]">{item.v}</span>
                 </div>
               ))}
             </div>
-            <Link to="/auth">
-              <Button className="w-full mt-5 gap-2" size="lg">
+            <Link to="/auth" className="block mt-5">
+              <Button className="w-full gap-2 rounded bg-primary hover:bg-primary/95 text-white font-semibold" size="lg">
                 Unlock Paid Surveys <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -239,12 +239,12 @@ const Landing = () => {
         </div>
 
         {/* Stats bar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-8">
-          <div className="grid grid-cols-3 gap-4 border-y border-gray-200/50 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-4">
+          <div className="grid grid-cols-3 gap-4 border-y border-gray-200/80 py-6">
             {stats.map((s) => (
               <div key={s.label} className="text-center sm:text-left">
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{s.value}</p>
-                <p className="text-xs sm:text-sm text-gray-500">{s.label}</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-gray-950">{s.value}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">{s.label}</p>
               </div>
             ))}
           </div>
@@ -252,23 +252,21 @@ const Landing = () => {
       </section>
 
       {/* How It Works */}
-      <section id="how" className="py-20 bg-gray-100">
+      <section id="how" className="py-20 bg-gray-50/50 border-y border-gray-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <p className="text-sm font-semibold tracking-widest text-primary uppercase mb-3">Simple Process</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Three steps to your first payout</h2>
-            <p className="mt-4 text-gray-600">No resumes, no interviews — just share your opinion and get rewarded.</p>
+            <p className="text-xs font-bold tracking-widest text-primary uppercase mb-3">Simple Process</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Three steps to your first payout</h2>
+            <p className="mt-4 text-sm text-gray-600 leading-relaxed">No resumes, no complicated setup — just sign up, share feedback, and cash out.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step) => (
-              <div key={step.no} className="bg-white rounded-2xl p-8 text-center border border-gray-200/60 shadow-sm">
-                <div className="mx-auto h-14 w-14 rounded-xl bg-gradient-primary flex items-center justify-center text-primary-foreground text-lg font-bold mb-5">
-                  {step.no}
+              <div key={step.no} className="bg-white rounded-lg p-8 text-center border border-gray-200/60 relative shadow-sm">
+                <span className="absolute top-4 right-6 text-4xl font-black text-gray-100">{step.no}</span>
+                <div className="mx-auto h-12 w-12 rounded bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#00b368] mb-6">
+                  <step.icon className="h-6 w-6" />
                 </div>
-                <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
-                  <step.icon className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-gray-900">{step.title}</h3>
+                <h3 className="text-lg font-bold mb-3 text-gray-900">{step.title}</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">{step.desc}</p>
               </div>
             ))}
@@ -277,26 +275,26 @@ const Landing = () => {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-20 bg-gray-100">
+      <section id="features" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-6 items-end mb-12">
             <div>
-              <p className="text-sm font-semibold tracking-widest text-primary uppercase mb-3">Explore Ways to Earn</p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Paid surveys, app tests, rewards & more.</h2>
+              <p className="text-xs font-bold tracking-widest text-primary uppercase mb-3">Explore Ways to Earn</p>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Paid surveys, app tests, rewards & more.</h2>
             </div>
-            <p className="text-gray-600 lg:text-right">
+            <p className="text-sm text-gray-600 lg:text-right leading-relaxed max-w-lg ml-auto">
               New paid surveys and offers added every day — there's always a fresh way to earn on SurveyForever.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {features.map((f) => (
-              <div key={f.title} className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-200/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/30">
-                <div className="h-11 w-11 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <div key={f.title} className="bg-white rounded-lg p-5 flex items-center gap-4 border border-gray-200/80 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/50">
+                <div className="h-11 w-11 shrink-0 rounded bg-emerald-50 border border-emerald-100 flex items-center justify-center text-primary">
                   <f.icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-semibold leading-tight text-gray-900">{f.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{f.sub}</p>
+                  <p className="font-bold text-sm leading-tight text-gray-900">{f.title}</p>
+                  <p className="text-xs text-gray-500 mt-1">{f.sub}</p>
                 </div>
               </div>
             ))}
@@ -305,38 +303,38 @@ const Landing = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-gray-100">
+      <section className="py-20 bg-gray-50/50 border-y border-gray-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-6 items-end mb-12">
             <div>
-              <p className="text-sm font-semibold tracking-widest text-primary uppercase mb-3">Real Stories</p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Real people earning with their opinion</h2>
+              <p className="text-xs font-bold tracking-widest text-primary uppercase mb-3">Real Stories</p>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Real people earning with their opinion</h2>
             </div>
-            <p className="text-gray-600 lg:text-right">15,000+ members are already earning with SurveyForever.</p>
+            <p className="text-sm text-gray-600 lg:text-right">15,000+ members are already earning with SurveyForever.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t) => (
               <div
                 key={t.name}
-                className={`rounded-2xl p-6 border ${
+                className={`rounded-lg p-6 border ${
                   t.featured
-                    ? "bg-primary text-primary-foreground border-transparent"
-                    : "bg-white border-gray-200/60"
-                }`}
+                    ? "bg-emerald-50/60 border-emerald-300/80"
+                    : "bg-white border-gray-200"
+                } shadow-sm`}
               >
                 <div className="flex gap-1 mb-4">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className={`h-4 w-4 ${t.featured ? "fill-primary-foreground text-primary-foreground" : "fill-warning text-warning"}`} />
+                    <Star key={i} className="h-4 w-4 fill-amber-500 text-amber-500" />
                   ))}
                 </div>
-                <p className={`text-sm leading-relaxed ${t.featured ? "text-primary-foreground/90" : "text-gray-600"}`}>"{t.quote}"</p>
-                <div className="flex items-center gap-3 mt-6">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${t.featured ? "bg-primary-foreground/20 text-primary-foreground" : "bg-gradient-primary text-primary-foreground"}`}>
+                <p className="text-sm leading-relaxed text-gray-700">"{t.quote}"</p>
+                <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100">
+                  <div className="h-8 w-8 rounded bg-emerald-50 border border-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-800">
                     {t.initials}
                   </div>
                   <div>
-                    <p className={`font-semibold text-sm leading-tight ${t.featured ? "text-primary-foreground" : "text-gray-900"}`}>{t.name}</p>
-                    <p className={`text-xs ${t.featured ? "text-primary-foreground/80" : "text-gray-500"}`}>{t.loc}</p>
+                    <p className="font-bold text-xs text-gray-900">{t.name}</p>
+                    <p className="text-[10px] text-gray-500">{t.loc}</p>
                   </div>
                 </div>
               </div>
@@ -346,17 +344,17 @@ const Landing = () => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-20 bg-gray-100">
+      <section id="faq" className="py-20 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <p className="text-sm font-semibold tracking-widest text-primary uppercase mb-3">FAQ</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900">Frequently asked questions</h2>
+            <p className="text-xs font-bold tracking-widest text-primary uppercase mb-3">FAQ</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">Frequently asked questions</h2>
           </div>
           <Accordion type="single" collapsible className="space-y-3">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`} className="bg-white rounded-xl border border-gray-200/60 px-5 shadow-sm">
-                <AccordionTrigger className="text-left font-medium text-gray-900 hover:no-underline">{faq.q}</AccordionTrigger>
-                <AccordionContent className="text-gray-600">{faq.a}</AccordionContent>
+              <AccordionItem key={i} value={`item-${i}`} className="bg-white rounded-lg border border-gray-200 px-5 shadow-sm">
+                <AccordionTrigger className="text-left font-bold text-sm text-gray-900 hover:no-underline">{faq.q}</AccordionTrigger>
+                <AccordionContent className="text-sm text-gray-600 leading-relaxed">{faq.a}</AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
@@ -364,44 +362,44 @@ const Landing = () => {
       </section>
 
       {/* CTA */}
-      <section className="pb-20 px-4 sm:px-6 bg-gray-100">
-        <div className="max-w-7xl mx-auto rounded-3xl bg-primary p-10 sm:p-14 grid lg:grid-cols-2 gap-8 items-center">
+      <section className="pb-20 px-4 sm:px-6 bg-white">
+        <div className="max-w-7xl mx-auto rounded-lg bg-[#0B3B24] p-10 sm:p-14 grid lg:grid-cols-2 gap-8 items-center border border-[#09301D] shadow-lg">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground">Get paid for what you think.</h2>
-            <p className="mt-4 text-primary-foreground/90 max-w-lg">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">Get paid for what you think.</h2>
+            <p className="mt-4 text-sm text-emerald-100/90 max-w-lg leading-relaxed">
               Join 15,000+ members who take paid surveys, test apps, and earn real rewards in their spare time.
             </p>
           </div>
           <div className="lg:text-right">
             <Link to="/auth">
-              <Button size="lg" variant="secondary" className="gap-2">
+              <Button size="lg" className="gap-2 rounded bg-white hover:bg-gray-100 text-[#0B3B24] px-8 font-semibold">
                 Start Earning Now <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <p className="mt-3 text-sm text-primary-foreground/80">No credit card · No commitment</p>
+            <p className="mt-3 text-xs text-emerald-200/80">No credit card · No commitment</p>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200/50 py-12 bg-gray-100">
+      <footer className="border-t border-gray-200 py-12 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo-icon.png" className="h-7 w-7 object-contain" alt="SurveyForever Logo" />
-            <span className="text-base font-bold">
+            <span className="text-base font-bold tracking-tight">
               <span className="text-gray-900">Survey</span>
               <span className="text-primary">Forever</span>
             </span>
           </Link>
-          <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600">
-            <Link to="/auth" className="hover:text-gray-900 transition-colors">Sign In</Link>
-            <Link to="/auth" className="hover:text-gray-900 transition-colors">Get Started</Link>
-            <Link to="/terms" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-gray-900 transition-colors">Terms & Conditions</Link>
+          <nav className="flex flex-wrap items-center justify-center gap-6 text-xs font-semibold text-gray-500">
+            <Link to="/auth" className="hover:text-primary transition-colors">Sign In</Link>
+            <Link to="/auth" className="hover:text-primary transition-colors">Get Started</Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">Terms & Conditions</Link>
           </nav>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 pt-6 border-t border-gray-200/50">
-          <p className="text-xs text-gray-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 pt-6 border-t border-gray-200">
+          <p className="text-[11px] text-gray-500 leading-relaxed">
             © {new Date().getFullYear()} SurveyForever. All rights reserved. Complete surveys and offers to earn real rewards online.
           </p>
         </div>
