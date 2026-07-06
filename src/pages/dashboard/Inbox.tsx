@@ -129,7 +129,7 @@ const Inbox = () => {
         
         // Fallback to direct insert
         const result = await supabase.from("inbox_messages").insert(messageData).select();
-        data = result.data;
+        data = result.data as any;
         error = result.error;
       }
 
