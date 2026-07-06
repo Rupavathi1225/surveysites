@@ -1,5 +1,6 @@
 import { ReactNode, useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, BarChart3, Link2, FileText, Trophy, History,
   Wallet, Users, FileStack, CreditCard, Lock, UserCog, Settings,
@@ -138,6 +139,12 @@ function NavDropdown({ group, pathname }: { group: DropdownGroup; pathname: stri
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,7 +155,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Link to="/dashboard" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               <Home className="h-4 w-4" /> User Dashboard
             </Link>
-            <button onClick={() => navigate("/auth")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <button onClick={handleLogout} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" /> Logout
             </button>
           </div>

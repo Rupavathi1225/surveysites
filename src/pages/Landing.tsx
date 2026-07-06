@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import AuthModal from "@/components/AuthModal";
 import {
   Accordion,
   AccordionContent,
@@ -28,6 +29,13 @@ import {
 const Landing = () => {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authTab, setAuthTab] = useState<"login" | "signup">("login");
+
+  const openAuth = (tab: "login" | "signup") => {
+    setAuthTab(tab);
+    setAuthOpen(true);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -149,16 +157,12 @@ const Landing = () => {
             <Link to="/terms" className="hover:text-primary transition-colors">Terms</Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/auth">
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded font-semibold">
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/auth">
-              <Button size="sm" className="gap-1 rounded bg-primary hover:bg-primary/95 text-white font-semibold px-4">
-                Get Started <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" onClick={() => openAuth("login")} className="hidden sm:inline-flex text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded font-semibold">
+              Sign In
+            </Button>
+            <Button size="sm" onClick={() => openAuth("signup")} className="gap-1 rounded bg-primary hover:bg-primary/95 text-white font-semibold px-4">
+              Get Started <ArrowRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </header>
@@ -180,11 +184,9 @@ const Landing = () => {
               and gift cards from home. 100% free to join — no experience needed.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <Link to="/auth">
-                <Button size="lg" className="w-full sm:w-auto gap-2 rounded bg-primary hover:bg-primary/95 text-white px-8 font-semibold">
-                  Start Earning <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+              <Button size="lg" onClick={() => openAuth("signup")} className="w-full sm:w-auto gap-2 rounded bg-primary hover:bg-primary/95 text-white px-8 font-semibold">
+                Start Earning <ArrowRight className="h-4 w-4" />
+              </Button>
               <a href="#how">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900 rounded px-8 font-semibold">
                   See How It Works
@@ -347,11 +349,9 @@ const Landing = () => {
             </p>
           </div>
           <div className="lg:text-right">
-            <Link to="/auth">
-              <Button size="lg" className="gap-2 rounded bg-white hover:bg-gray-100 text-[#0B3B24] px-8 font-semibold">
-                Start Earning Now <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button size="lg" onClick={() => openAuth("signup")} className="gap-2 rounded bg-white hover:bg-gray-100 text-[#0B3B24] px-8 font-semibold">
+              Start Earning Now <ArrowRight className="h-4 w-4" />
+            </Button>
             <p className="mt-3 text-xs text-emerald-200/80">No credit card · No commitment</p>
           </div>
         </div>
@@ -368,8 +368,8 @@ const Landing = () => {
             </span>
           </Link>
           <nav className="flex flex-wrap items-center justify-center gap-6 text-xs font-semibold text-gray-500">
-            <Link to="/auth" className="hover:text-primary transition-colors">Sign In</Link>
-            <Link to="/auth" className="hover:text-primary transition-colors">Get Started</Link>
+            <button onClick={() => openAuth("login")} className="hover:text-primary transition-colors">Sign In</button>
+            <button onClick={() => openAuth("signup")} className="hover:text-primary transition-colors">Get Started</button>
             <Link to="/terms" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-primary transition-colors">Terms & Conditions</Link>
           </nav>
@@ -380,6 +380,7 @@ const Landing = () => {
           </p>
         </div>
       </footer>
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} defaultTab={authTab} />
     </div>
   );
 };
