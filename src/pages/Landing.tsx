@@ -198,43 +198,19 @@ const Landing = () => {
             </div>
           </div>
 
-          {/* Hero card */}
-          <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-md">
-            <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-bold text-sm">JL</div>
-                <div>
-                  <p className="font-semibold text-sm leading-tight text-gray-900">Jessica L.</p>
-                  <p className="text-xs text-gray-500">Paid Surveys · Florida</p>
-                </div>
-              </div>
-              <span className="rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold px-2.5 py-1">+$180/mo</span>
+          {/* Hero mockup illustration */}
+          <div className="relative flex justify-center lg:justify-end">
+            <div className="relative w-full max-w-lg">
+              {/* Decorative background gradients for depth */}
+              <div className="absolute -top-8 -left-8 w-72 h-72 bg-emerald-50 rounded-full filter blur-3xl opacity-75 -z-10" />
+              <div className="absolute -bottom-8 -right-8 w-72 h-72 bg-slate-50 rounded-full filter blur-3xl opacity-75 -z-10" />
+              
+              <img 
+                src="/survey_hero_mockup.png" 
+                alt="Survey Platform Mockup" 
+                className="w-full h-auto object-contain rounded-lg border border-gray-200/80 shadow-md"
+              />
             </div>
-            <div className="space-y-3">
-              {[
-                { icon: ClipboardList, t: "Paid Surveys", s: "5–20 min each", v: "$1–$5 each" },
-                { icon: Smartphone, t: "App Testing", s: "10–15 min each", v: "$5–$15/test" },
-                { icon: Gift, t: "Gift Card Offers", s: "Free to enter", v: "Win $50–$500" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between rounded border border-gray-100 bg-gray-50/50 p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                      <item.icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold leading-tight text-gray-900">{item.t}</p>
-                      <p className="text-[10px] text-gray-500">{item.s}</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-[#00b368]">{item.v}</span>
-                </div>
-              ))}
-            </div>
-            <Link to="/auth" className="block mt-5">
-              <Button className="w-full gap-2 rounded bg-primary hover:bg-primary/95 text-white font-semibold" size="lg">
-                Unlock Paid Surveys <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
           </div>
         </div>
 
