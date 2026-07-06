@@ -335,7 +335,7 @@ const Landing = () => {
                     {t.initials}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm leading-tight ${t.featured ? 'text-primary-foreground' : 'text-gray-900'}">{t.name}</p>
+                    <p className={`font-semibold text-sm leading-tight ${t.featured ? "text-primary-foreground" : "text-gray-900"}`}>{t.name}</p>
                     <p className={`text-xs ${t.featured ? "text-primary-foreground/80" : "text-gray-500"}`}>{t.loc}</p>
                   </div>
                 </div>
