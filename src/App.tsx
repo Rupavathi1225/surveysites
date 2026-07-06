@@ -54,6 +54,7 @@ import TestPostback from "./pages/admin/TestPostback";
 import ActivityFeedControls from "./pages/admin/ActivityFeedControls";
 import NotFound from "./pages/NotFound";
 import Terms from "./pages/Terms";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
