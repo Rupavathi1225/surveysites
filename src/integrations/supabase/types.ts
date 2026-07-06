@@ -1375,6 +1375,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sent_messages: {
+        Row: {
+          created_at: string | null
+          from_name: string
+          id: string
+          is_read: boolean | null
+          message: string
+          subject: string
+          to_name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          from_name?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          subject: string
+          to_name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          from_name?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          subject?: string
+          to_name?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sent_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_settings: {
         Row: {
           id: string
@@ -1448,6 +1492,10 @@ export type Database = {
       finalize_ended_contests: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_admin_or_subadmin: { Args: never; Returns: boolean }
+      send_message_to_admin: {
+        Args: { p_message: string; p_subject: string; p_user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
