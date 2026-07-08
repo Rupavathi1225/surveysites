@@ -103,7 +103,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/terms" element={<Terms />} />
-          <Route path="/dashboard" element={<DashboardPage><DashboardHome /></DashboardPage>} />
+          <Route path="/dashboard" element={<DashboardPage gated><DashboardHome /></DashboardPage>} />
           <Route path="/dashboard/balance-history" element={<DashboardPage><BalanceHistory /></DashboardPage>} />
           <Route path="/dashboard/update-account" element={<DashboardPage><UpdateAccount /></DashboardPage>} />
           <Route path="/dashboard/inbox" element={<DashboardPage><Inbox /></DashboardPage>} />
