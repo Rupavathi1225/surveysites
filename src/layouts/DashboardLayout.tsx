@@ -145,10 +145,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setSidebarClosed(false);
   };
 
+  const isLocked = (to: string) => !qualified && !isAdminOrSubAdmin && GATED_PATHS.has(to);
+
   const handleNavClick = (e: React.MouseEvent, to: string) => {
     if (!user) {
       e.preventDefault();
       setShowAuthPrompt(true);
+    } else if (isLocked(to)) {
+      e.preventDefault();
+      setSidebarOpen(false);
+      navigate("/dashboard");
     } else {
       setSidebarOpen(false);
     }
