@@ -75,8 +75,19 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const DashboardPage = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><DashboardLayout>{children}</DashboardLayout></ProtectedRoute>
+function QualificationGate({ children }: { children: React.ReactNode }) {
+  const { loading, completed } = useQualification();
+  if (loading) return <div className="flex items-center justify-center py-20"><p className="text-muted-foreground text-sm">Loading...</p></div>;
+  if (!completed) return <QualificationSurvey />;
+  return <>{children}</>;
+}
+
+const DashboardPage = ({ children, gated }: { children: React.ReactNode; gated?: boolean }) => (
+  <ProtectedRoute>
+    <QualificationProvider>
+      <DashboardLayout>{gated ? <QualificationGate>{children}</QualificationGate> : children}</DashboardLayout>
+    </QualificationProvider>
+  </ProtectedRoute>
 );
 const AdminPage = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute><AdminRoute><AdminLayout>{children}</AdminLayout></AdminRoute></ProtectedRoute>
