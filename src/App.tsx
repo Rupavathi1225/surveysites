@@ -111,11 +111,11 @@ const App = () => (
           <Route path="/dashboard/affiliates" element={<DashboardPage><Affiliates /></DashboardPage>} />
           <Route path="/dashboard/withdrawal" element={<DashboardPage><Withdrawal /></DashboardPage>} />
           <Route path="/dashboard/convert-points" element={<DashboardPage><ConvertPoints /></DashboardPage>} />
-          <Route path="/dashboard/daily-surveys" element={<DashboardPage><DailySurveys /></DashboardPage>} />
-          <Route path="/dashboard/offers" element={<DashboardPage><Offers /></DashboardPage>} />
-          <Route path="/dashboard/offerwalls" element={<DashboardPage><Offerwalls /></DashboardPage>} />
-          <Route path="/dashboard/offerwall/:slug" element={<DashboardPage><OfferwallViewer /></DashboardPage>} />
-          <Route path="/dashboard/contest" element={<DashboardPage><Contest /></DashboardPage>} />
+          <Route path="/dashboard/daily-surveys" element={<DashboardPage gated><DailySurveys /></DashboardPage>} />
+          <Route path="/dashboard/offers" element={<DashboardPage gated><Offers /></DashboardPage>} />
+          <Route path="/dashboard/offerwalls" element={<DashboardPage gated><Offerwalls /></DashboardPage>} />
+          <Route path="/dashboard/offerwall/:slug" element={<DashboardPage gated><OfferwallViewer /></DashboardPage>} />
+          <Route path="/dashboard/contest" element={<DashboardPage gated><Contest /></DashboardPage>} />
           <Route path="/dashboard/news" element={<DashboardPage><News /></DashboardPage>} />
           <Route path="/dashboard/promocode" element={<DashboardPage><Promocode /></DashboardPage>} />
           <Route path="/dashboard/withdrawal-history" element={<DashboardPage><WithdrawalHistory /></DashboardPage>} />
