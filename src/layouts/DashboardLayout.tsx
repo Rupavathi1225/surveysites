@@ -76,8 +76,17 @@ const navGroups: NavGroup[] = [
 
 let sessionTrackedThisLoad = false;
 
+const GATED_PATHS = new Set([
+  "/dashboard",
+  "/dashboard/daily-surveys",
+  "/dashboard/offers",
+  "/dashboard/offerwalls",
+  "/dashboard/contest",
+]);
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { profile, user, signOut, isAdminOrSubAdmin } = useAuth();
+  const { completed: qualified } = useQualification();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
