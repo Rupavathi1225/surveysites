@@ -361,6 +361,31 @@ const Landing = () => {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 py-12 bg-gray-50/50">
+        {/* Telegram CTA */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-10">
+          <div className="rounded-xl bg-white border border-gray-200/80 shadow-sm p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-center sm:text-left">
+              <div className="h-11 w-11 shrink-0 rounded-full bg-[#229ED9]/10 flex items-center justify-center text-[#229ED9]">
+                <Send className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-gray-900">Get Survey Updates on Telegram</p>
+                <p className="text-xs text-gray-500 mt-0.5">Join our channel for fresh surveys, offers & payout news.</p>
+              </div>
+            </div>
+            <a
+              href={SOCIAL_LINKS.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto"
+            >
+              <Button size="sm" className="w-full sm:w-auto gap-2 rounded bg-[#229ED9] hover:bg-[#1c8ec2] text-white font-semibold px-5">
+                <Send className="h-4 w-4" /> Join our Telegram Channel
+              </Button>
+            </a>
+          </div>
+        </div>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo-icon.png" className="h-7 w-7 object-contain" alt="SurveyForever Logo" />
