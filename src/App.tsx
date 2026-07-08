@@ -52,9 +52,12 @@ import DownwardPartners from "./pages/admin/DownwardPartners";
 import PostbackLogs from "./pages/admin/PostbackLogs";
 import TestPostback from "./pages/admin/TestPostback";
 import ActivityFeedControls from "./pages/admin/ActivityFeedControls";
+import AdminQualification from "./pages/admin/AdminQualification";
 import NotFound from "./pages/NotFound";
 import Terms from "./pages/Terms";
 import Landing from "./pages/Landing";
+import { QualificationProvider, useQualification } from "./hooks/useQualification";
+import QualificationSurvey from "./components/QualificationSurvey";
 
 const queryClient = new QueryClient();
 
