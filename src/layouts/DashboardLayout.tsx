@@ -7,7 +7,7 @@ import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
   LogOut, Shield, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus, Copy, PanelLeftClose,
-  TrendingUp, Network, MessageSquare, Headphones
+  TrendingUp, Network, MessageSquare, Headphones, Lock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
