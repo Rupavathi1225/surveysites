@@ -5,7 +5,7 @@ import {
   LayoutDashboard, BarChart3, Link2, FileText, Trophy, History,
   Wallet, Users, FileStack, CreditCard, Lock, UserCog, Settings,
   ShieldCheck, Bell, Activity, LogOut, Home, ChevronDown, MessageSquare,
-  UserPlus, Gift, Newspaper, Tag, Package, Download, Mail
+  UserPlus, Gift, Newspaper, Tag, Package, Download, Mail, ClipboardList
 } from "lucide-react";
 import MessagePopup from "@/components/MessagePopup";
 
@@ -60,6 +60,7 @@ const dropdownGroups: DropdownGroup[] = [
       { to: "/admin/news", icon: Newspaper, label: "News" },
       { to: "/admin/promocodes", icon: Tag, label: "Promocodes" },
       { to: "/admin/pages", icon: FileStack, label: "Pages" },
+      { to: "/admin/qualification", icon: ClipboardList, label: "Qualification Surveys" },
       { to: "/admin/payment-methods", icon: CreditCard, label: "Payment Methods" },
     ],
   },

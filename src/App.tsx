@@ -52,9 +52,12 @@ import DownwardPartners from "./pages/admin/DownwardPartners";
 import PostbackLogs from "./pages/admin/PostbackLogs";
 import TestPostback from "./pages/admin/TestPostback";
 import ActivityFeedControls from "./pages/admin/ActivityFeedControls";
+import AdminQualification from "./pages/admin/AdminQualification";
 import NotFound from "./pages/NotFound";
 import Terms from "./pages/Terms";
 import Landing from "./pages/Landing";
+import { QualificationProvider, useQualification } from "./hooks/useQualification";
+import QualificationSurvey from "./components/QualificationSurvey";
 
 const queryClient = new QueryClient();
 
@@ -72,8 +75,19 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const DashboardPage = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute><DashboardLayout>{children}</DashboardLayout></ProtectedRoute>
+function QualificationGate({ children }: { children: React.ReactNode }) {
+  const { loading, completed } = useQualification();
+  if (loading) return <div className="flex items-center justify-center py-20"><p className="text-muted-foreground text-sm">Loading...</p></div>;
+  if (!completed) return <QualificationSurvey />;
+  return <>{children}</>;
+}
+
+const DashboardPage = ({ children, gated }: { children: React.ReactNode; gated?: boolean }) => (
+  <ProtectedRoute>
+    <QualificationProvider>
+      <DashboardLayout>{gated ? <QualificationGate>{children}</QualificationGate> : children}</DashboardLayout>
+    </QualificationProvider>
+  </ProtectedRoute>
 );
 const AdminPage = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute><AdminRoute><AdminLayout>{children}</AdminLayout></AdminRoute></ProtectedRoute>
@@ -89,7 +103,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/terms" element={<Terms />} />
-          <Route path="/dashboard" element={<DashboardPage><DashboardHome /></DashboardPage>} />
+          <Route path="/dashboard" element={<DashboardPage gated><DashboardHome /></DashboardPage>} />
           <Route path="/dashboard/balance-history" element={<DashboardPage><BalanceHistory /></DashboardPage>} />
           <Route path="/dashboard/update-account" element={<DashboardPage><UpdateAccount /></DashboardPage>} />
           <Route path="/dashboard/inbox" element={<DashboardPage><Inbox /></DashboardPage>} />
@@ -97,11 +111,11 @@ const App = () => (
           <Route path="/dashboard/affiliates" element={<DashboardPage><Affiliates /></DashboardPage>} />
           <Route path="/dashboard/withdrawal" element={<DashboardPage><Withdrawal /></DashboardPage>} />
           <Route path="/dashboard/convert-points" element={<DashboardPage><ConvertPoints /></DashboardPage>} />
-          <Route path="/dashboard/daily-surveys" element={<DashboardPage><DailySurveys /></DashboardPage>} />
-          <Route path="/dashboard/offers" element={<DashboardPage><Offers /></DashboardPage>} />
-          <Route path="/dashboard/offerwalls" element={<DashboardPage><Offerwalls /></DashboardPage>} />
-          <Route path="/dashboard/offerwall/:slug" element={<DashboardPage><OfferwallViewer /></DashboardPage>} />
-          <Route path="/dashboard/contest" element={<DashboardPage><Contest /></DashboardPage>} />
+          <Route path="/dashboard/daily-surveys" element={<DashboardPage gated><DailySurveys /></DashboardPage>} />
+          <Route path="/dashboard/offers" element={<DashboardPage gated><Offers /></DashboardPage>} />
+          <Route path="/dashboard/offerwalls" element={<DashboardPage gated><Offerwalls /></DashboardPage>} />
+          <Route path="/dashboard/offerwall/:slug" element={<DashboardPage gated><OfferwallViewer /></DashboardPage>} />
+          <Route path="/dashboard/contest" element={<DashboardPage gated><Contest /></DashboardPage>} />
           <Route path="/dashboard/news" element={<DashboardPage><News /></DashboardPage>} />
           <Route path="/dashboard/promocode" element={<DashboardPage><Promocode /></DashboardPage>} />
           <Route path="/dashboard/withdrawal-history" element={<DashboardPage><WithdrawalHistory /></DashboardPage>} />
@@ -137,6 +151,7 @@ const App = () => (
           <Route path="/admin/test-postback" element={<AdminPage><TestPostback /></AdminPage>} />
           <Route path="/admin/user-generation" element={<AdminPage><UserGeneration /></AdminPage>} />
           <Route path="/admin/activity-feed" element={<AdminPage><ActivityFeedControls /></AdminPage>} />
+          <Route path="/admin/qualification" element={<AdminPage><AdminQualification /></AdminPage>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

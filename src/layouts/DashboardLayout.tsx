@@ -1,12 +1,13 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useQualification } from "@/hooks/useQualification";
 import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard, History, UserCog, Mail, Users, Wallet, ArrowLeftRight,
   ClipboardList, Gift, Newspaper, Tag, CreditCard, Trophy, HelpCircle,
   LogOut, Shield, Menu, X, DollarSign, Star, ChevronDown, ChevronRight, UserPlus, Copy, PanelLeftClose,
-  TrendingUp, Network, MessageSquare, Headphones
+  TrendingUp, Network, MessageSquare, Headphones, Lock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -76,8 +77,17 @@ const navGroups: NavGroup[] = [
 
 let sessionTrackedThisLoad = false;
 
+const GATED_PATHS = new Set([
+  "/dashboard",
+  "/dashboard/daily-surveys",
+  "/dashboard/offers",
+  "/dashboard/offerwalls",
+  "/dashboard/contest",
+]);
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { profile, user, signOut, isAdminOrSubAdmin } = useAuth();
+  const { completed: qualified } = useQualification();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -135,10 +145,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setSidebarClosed(false);
   };
 
+  const isLocked = (to: string) => !qualified && !isAdminOrSubAdmin && GATED_PATHS.has(to);
+
   const handleNavClick = (e: React.MouseEvent, to: string) => {
     if (!user) {
       e.preventDefault();
       setShowAuthPrompt(true);
+    } else if (isLocked(to)) {
+      e.preventDefault();
+      setSidebarOpen(false);
+      navigate("/dashboard");
     } else {
       setSidebarOpen(false);
     }
@@ -243,7 +259,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         )}
                       >
                         <item.icon className="h-3.5 w-3.5" />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {isLocked(item.to) && <Lock className="h-3 w-3 text-muted-foreground" />}
                       </Link>
                     ))}
                   </div>
