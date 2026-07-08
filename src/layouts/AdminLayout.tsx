@@ -60,6 +60,7 @@ const dropdownGroups: DropdownGroup[] = [
       { to: "/admin/news", icon: Newspaper, label: "News" },
       { to: "/admin/promocodes", icon: Tag, label: "Promocodes" },
       { to: "/admin/pages", icon: FileStack, label: "Pages" },
+      { to: "/admin/qualification", icon: ClipboardList, label: "Qualification Surveys" },
       { to: "/admin/payment-methods", icon: CreditCard, label: "Payment Methods" },
     ],
   },
