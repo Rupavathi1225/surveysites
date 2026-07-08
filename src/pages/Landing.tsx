@@ -25,6 +25,7 @@ import {
   CreditCard,
   Target,
   Rocket,
+  Send,
 } from "lucide-react";
 
 const Landing = () => {
