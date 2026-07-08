@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import AuthModal from "@/components/AuthModal";
+import { SOCIAL_LINKS } from "@/config/social";
 import {
   Accordion,
   AccordionContent,
