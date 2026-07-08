@@ -259,7 +259,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         )}
                       >
                         <item.icon className="h-3.5 w-3.5" />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {isLocked(item.to) && <Lock className="h-3 w-3 text-muted-foreground" />}
                       </Link>
                     ))}
                   </div>
