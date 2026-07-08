@@ -1039,6 +1039,60 @@ export type Database = {
         }
         Relationships: []
       }
+      qualification_questions: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          options: Json
+          question_text: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          options?: Json
+          question_text: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          options?: Json
+          question_text?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qualification_responses: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recycle_bin: {
         Row: {
           created_at: string | null
