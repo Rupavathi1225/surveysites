@@ -151,6 +151,7 @@ const App = () => (
           <Route path="/admin/test-postback" element={<AdminPage><TestPostback /></AdminPage>} />
           <Route path="/admin/user-generation" element={<AdminPage><UserGeneration /></AdminPage>} />
           <Route path="/admin/activity-feed" element={<AdminPage><ActivityFeedControls /></AdminPage>} />
+          <Route path="/admin/qualification" element={<AdminPage><AdminQualification /></AdminPage>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
