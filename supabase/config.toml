@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.import-offers]
 verify_jwt = false
+
+[functions.telegram-notify]
+verify_jwt = false
