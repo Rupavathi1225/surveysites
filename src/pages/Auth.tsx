@@ -105,7 +105,7 @@ const Auth = () => {
         referral_code: newRefCode, referred_by: referredById,
       });
 
-      const { data: newProfile } = await supabase.from("profiles").select("id").eq("user_id", data.user.id).single();
+      const { data: newProfile } = await supabase.from("profiles").select("id, country").eq("user_id", data.user.id).single();
       if (newProfile) {
         await supabase.from("notifications").insert({
           user_id: newProfile.id, type: "signup",
@@ -113,7 +113,17 @@ const Auth = () => {
           is_global: true,
         });
       }
+
+      try {
+        const uname = username || email.split("@")[0];
+        const country = (newProfile as any)?.country || "Unknown";
+        const time = new Date().toLocaleString();
+        const message = `🎉 New user joined: <b>${uname}</b>\n🌍 Country: ${country}\n🕒 ${time}`;
+        await supabase.functions.invoke("telegram-notify", { body: { message } });
+      } catch (e) { console.error("Telegram signup notify failed:", e); }
+
       toast({ title: "Account created!", description: "Please check your email to verify your account." });
+
     }
     setLoading(false);
   };
